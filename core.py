@@ -236,51 +236,22 @@ def load_data(uploaded_zip, uploaded_excel):
         curr2["Mois"] = curr_mois
 
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
-
         df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
-
-        # 🔥 mapping dynamique basé sur le contenu réel
-        rename_map = {}
-
-        for col in df_month.columns:
-
-            col_clean = col.lower()
-
-            if "effectif" in col_clean and "transmise" in col_clean:
-                rename_map[col] = "effectif_transmis_HC"
-
-            elif "effectif" in col_clean and "valorisée" in col_clean:
-                rename_map[col] = "effectif_valorise_HC"
-
-            elif "montant br" in col_clean and "transmise" in col_clean:
-                rename_map[col] = "montantBR_transmis_HC"
-
-            elif "montant br" in col_clean and "valorisée" in col_clean:
-                rename_map[col] = "montantBR_valorise_HC"
-
-            elif "montant am" in col_clean and "valorisée" in col_clean:
-                rename_map[col] = "montantAM_valorise_HC"
-
-        # applique le mapping
-        df_month = df_month.rename(columns=rename_map)
-
-        required_cols = [
+        df_month.columns = [
             "effectif_transmis_HC",
             "effectif_valorise_HC",
+            "montantBR_transmis_HC",
             "montantBR_valorise_HC",
+            "effectif_transmis_HTP",
+            "effectif_valorise_HTP",
+            "montantBR_transmis_HTP",
+            "montantBR_valorise_HTP",
+            "montantAM_transmis_HC",
+            "montantAM_valorise_HC",
         ]
 
-        missing = [c for c in required_cols if c not in df_month.columns]
-
-        if missing:
-            raise ValueError(f"Colonnes manquantes après pivot : {missing}")
-
-        # ── Excel mapping sécurisé
-        match = valo_excel[valo_excel["mois"] == curr_mois]
-        if match.empty:
-            raise ValueError(f"❌ Mois {curr_mois} absent du fichier Excel")
-
-        df_month["jour_valo_HC"] = match["jours_valo"].values[0]
+        jours_valo_HC = valo_excel[valo_excel["mois"] == curr_mois]["jours_valo"].values[0]
+        df_month["jour_valo_HC"] = jours_valo_HC
 
         evol_rows.append(df_month)
 
