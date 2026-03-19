@@ -5,9 +5,15 @@ st.set_page_config(layout="wide")
 
 st.title("Générateur de rapport")
 
+uploaded_zip = st.file_uploader("📦 Upload du dossier compressé (.zip)", type=["zip"])
+
+if not uploaded_zip:
+    st.warning("Veuillez uploader le fichier zip")
+    st.stop()
+    
 comments = {}
 
-figures = core.generate_all_figures()
+figures = core.generate_all_figures(uploaded_files, uploaded_excel)
 
 for theme, fig, plots in figures:
     st.header(theme)
