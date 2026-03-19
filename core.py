@@ -351,8 +351,8 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=45, labelsize=8)
-    ax.tick_params(axis="y", labelsize=8, colors=GRIS_TEXTE)
+    ax.tick_params(axis="x", rotation=45, labelsize=11)
+    ax.tick_params(axis="y", labelsize=11, colors=GRIS_TEXTE)
 
 
 def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
@@ -900,7 +900,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
     ax_c.text(
         0.015, 0.90,
         "Analyse :\n\n" + display_comment,
-        fontsize=10.5, color="#374151", va="top",
+        fontsize=14, color="#374151", va="top",
         transform=ax_c.transAxes,
         linespacing=1.45,
     )
