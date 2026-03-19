@@ -295,21 +295,22 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df = evol_df.reset_index()
     evol_df["jour_valo_supp_test"] = 0
 
-    # Extraction du nom de l'établissement depuis le nom du fichier ZIP
+    # Extraction du nom depuis le fichier ZIP
     try:
+        # Streamlit UploadedFile expose .name ; un vrai path expose .stem
         if hasattr(uploaded_zip, "name"):
-            zip_stem = Path(uploaded_zip.name).stem
+            raw = Path(uploaded_zip.name).stem
         elif isinstance(uploaded_zip, (str, Path)):
-            zip_stem = Path(uploaded_zip).stem
+            raw = Path(uploaded_zip).stem
         else:
-            zip_stem = "Établissement"
-        # Nettoyer : supprimer patterns de mois/année et remplacer _ par espaces
-        zip_stem = re.sub(r'[_ -]?(202\d)[_ -]?M?\d*$', '', zip_stem, flags=re.IGNORECASE)
-        zip_stem = re.sub(r'[_ -]?M\d+[_ -]?M?\d*$', '', zip_stem, flags=re.IGNORECASE)
-        zip_stem = re.sub(r'[_ -]?\d{4}$', '', zip_stem)
-        NOM_ETAB = zip_stem.replace('_', ' ').replace('-', ' ').strip() or "Établissement"
+            raw = "Établissement"
+        # Supprimer les suffixes d'année / mois courants
+        raw = re.sub(r'[_ \-]?202\d[_ \-]?M?\d*$', '', raw, flags=re.IGNORECASE)
+        raw = re.sub(r'[_ \-]?M\d+([_ \-]M?\d*)?$', '', raw, flags=re.IGNORECASE)
+        raw = re.sub(r'[_ \-]?\d{4}$', '', raw)
+        NOM_ETAB = raw.replace('_', ' ').replace('-', ' ').strip() or "Établissement"
     except Exception:
-        NOM_ETAB = "Établissement" 
+        NOM_ETAB = "Établissement"
     PERIODE  = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
     return {
@@ -352,7 +353,7 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
             xy=(i, v),
             xytext=(0, 12),
             textcoords="offset points",
-            fontsize=7, fontweight="bold", color=couleur,
+            fontsize=10, fontweight="bold", color=couleur,
             ha="center", va="bottom",
             bbox=dict(boxstyle="round,pad=0.2", facecolor=BLANC,
                       edgecolor=couleur, alpha=0.85, linewidth=0.7),
@@ -367,8 +368,8 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=45, labelsize=11)
-    ax.tick_params(axis="y", labelsize=11, colors=GRIS_TEXTE)
+    ax.tick_params(axis="x", rotation=45, labelsize=13)
+    ax.tick_params(axis="y", labelsize=13, colors=GRIS_TEXTE)
 
 
 def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
@@ -394,7 +395,7 @@ def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}"):
         ax.axhline(objectif, color=ORANGE, linestyle="--", linewidth=1.5,
                    label=f"Objectif mensuel ({objectif:,.0f})")
     ax.set_title("", pad=0)
-    ax.legend(fontsize=9, framealpha=0.9, loc="best")
+    ax.legend(fontsize=12, framealpha=0.9, loc="best")
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
@@ -417,7 +418,7 @@ def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
         y_pos  = val + offset if val >= 0 else val - offset
         ax.text(
             bar.get_x() + bar.get_width() / 2, y_pos, label,
-            ha="center", va=va, fontsize=8, fontweight="bold",
+            ha="center", va=va, fontsize=10, fontweight="bold",
             color=VERT if val >= 0 else ROUGE,
         )
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8, linestyle="-")
@@ -437,7 +438,7 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
                 markeredgewidth=2, label=label)
         annoter_tous_les_points(ax, x_vals, y_vals, couleur=COLORS[i % len(COLORS)])
     ax.set_title("", pad=0)
-    ax.legend(fontsize=9, framealpha=0.9, loc="best")
+    ax.legend(fontsize=12, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -537,7 +538,7 @@ def page_garde(nom_etablissement: str, periode: str,
         # → on passe la valeur en paramètre optionnel via cover_kpi
         if cover_kpi is not None:
             kpi_cx = 0.756
-            kpi_cy = 0.160   # centre vertical du carré (bottom=0.047, top=0.306)
+            kpi_cy = 0.160
             ax.text(kpi_cx, kpi_cy + 0.058,
                     "Recette BR mensuelle",
                     ha="center", va="center", fontsize=11, fontweight="bold",
@@ -546,7 +547,7 @@ def page_garde(nom_etablissement: str, periode: str,
                     cover_kpi["valeur"],
                     ha="center", va="center", fontsize=24,
                     fontweight="bold", color=BLANC, zorder=2)
-            ax.text(kpi_cx, kpi_cy - 0.050,
+            ax.text(kpi_cx, kpi_cy - 0.052,
                     cover_kpi["evolution"],
                     ha="center", va="center", fontsize=16,
                     fontweight="bold", color=BLANC, zorder=2)
@@ -882,7 +883,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
             comment_texts.append(generate_comment(col, titre, evol_df))
     full_comment = "\n\n".join(comment_texts)
 
-    CMARGIN = 0.004
+    CMARGIN = 0.005
     ax_c = fig.add_axes(
         [PAGE_COMMENT_LEFT + CMARGIN,
          PAGE_COMMENT_BOTTOM + CMARGIN,
@@ -903,7 +904,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
 
     # Formater le texte avec textwrap pour éviter débordements
     import textwrap as _tw
-    max_chars_per_line = 120
+    max_chars_per_line = 78
     wrapped_lines = []
     for para in full_comment.split("\n\n"):
         lines = _tw.wrap(para, width=max_chars_per_line)
@@ -913,11 +914,12 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
     content_lines = [l for l in wrapped_lines if l][:4]
     display_comment = "\n".join(content_lines)
     ax_c.text(
-        0.01, 0.88,
+        0.03, 0.78,
         "Analyse :\n\n" + display_comment,
-        fontsize=15, color="#374151", va="top",
+        fontsize=13, color="#374151", va="top",
         transform=ax_c.transAxes,
         linespacing=1.5,
+        clip_on=True,
     )
 
     # ── Numéro de page ────────────────────────────────────────────────
