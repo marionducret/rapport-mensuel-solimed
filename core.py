@@ -114,11 +114,30 @@ NOIR       = "#1A1A1A"
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _charger_bg(path: str):
-    """Charge un PNG Canva comme background. Retourne None si non trouvé."""
-    try:
-        return imread(path)
-    except Exception:
-        return None
+    """
+    Charge un PNG/JPEG Canva comme background (robuste au format réel).
+    Cherche dans : chemin absolu, dossier du script, dossier courant, ./design/.
+    """
+    import os as _os
+    from pathlib import Path as _Path
+    import numpy as _np
+    from PIL import Image as _Image
+
+    candidates = [
+        path,
+        str(_Path(__file__).parent / path),
+        str(_Path(__file__).parent / _Path(path).name),
+        str(_Path(_os.getcwd()) / path),
+        str(_Path(_os.getcwd()) / _Path(path).name),
+        str(_Path(_os.getcwd()) / "design" / _Path(path).name),
+    ]
+    for p in candidates:
+        try:
+            img = _Image.open(p).convert("RGB")
+            return _np.array(img)
+        except Exception:
+            continue
+    return None
 
 
 def _appliquer_bg(fig: plt.Figure, bg_img) -> None:
@@ -441,22 +460,22 @@ KPI_BOX_WIDTH   = 0.880
 KPI_BOX_HEIGHT  = 0.794
 
 # PAGE GRAPHIQUE (calibration pixel-perfect sur le PNG 1414×2000)
-# Bandeau titre teal : mpl_y centre ≈ 0.944, x 0.03 → 0.63
-PAGE_TITRE_X        = 0.040
+# Bandeau titre teal : mpl_y centre ≈ 0.944
+PAGE_TITRE_X        = 0.030
 PAGE_TITRE_Y        = 0.944
-# Grand bloc graphique   : [left=0.066, bottom=0.363, w=0.868, h=0.488]
-PAGE_GRAPH_LEFT     = 0.066
-PAGE_GRAPH_BOTTOM   = 0.363
-PAGE_GRAPH_WIDTH    = 0.868
-PAGE_GRAPH_HEIGHT   = 0.488
-# Petit bloc commentaire : [left=0.066, bottom=0.062, w=0.868, h=0.247]
-PAGE_COMMENT_LEFT   = 0.066
-PAGE_COMMENT_BOTTOM = 0.062
-PAGE_COMMENT_WIDTH  = 0.868
-PAGE_COMMENT_HEIGHT = 0.247
-# Numéro de page + infos (dans ou sous le bloc commentaire)
+# Grand bloc graphique — marges internes de 1.5%
+PAGE_GRAPH_LEFT     = 0.080
+PAGE_GRAPH_BOTTOM   = 0.375
+PAGE_GRAPH_WIDTH    = 0.840
+PAGE_GRAPH_HEIGHT   = 0.460
+# Petit bloc commentaire — marges internes de 1.5%
+PAGE_COMMENT_LEFT   = 0.080
+PAGE_COMMENT_BOTTOM = 0.075
+PAGE_COMMENT_WIDTH  = 0.840
+PAGE_COMMENT_HEIGHT = 0.220
+# Numéro de page
 PAGE_NUM_X          = 0.940
-PAGE_NUM_Y          = 0.030
+PAGE_NUM_Y          = 0.032
 
 
 def page_garde(nom_etablissement: str, periode: str,
@@ -479,20 +498,20 @@ def page_garde(nom_etablissement: str, periode: str,
         ax.axis("off")
         ax.patch.set_alpha(0)
 
-        # Valeur "Présenté par"
+        # Valeur "Présenté par" — en-dessous du label (décalage -0.042)
         ax.text(
-            COVER_TEXT_X, COVER_NOM_ETAB_Y,
+            COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.042,
             nom_etablissement,
             ha="left", va="center",
-            fontsize=16, fontweight="bold", color=TEAL,
+            fontsize=16, fontweight="bold", color=NOIR,
             zorder=2,
         )
-        # Valeur "Période"
+        # Valeur "Période" — en-dessous du label (décalage -0.040)
         ax.text(
-            COVER_TEXT_X, COVER_PERIODE_Y,
+            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.040,
             periode,
             ha="left", va="center",
-            fontsize=14, color=TEAL,
+            fontsize=14, fontweight="bold", color=NOIR,
             zorder=2,
         )
 
@@ -630,10 +649,10 @@ def page_synthese(evol_df) -> plt.Figure:
 
     if bg is not None:
         # Titre dans le bandeau teal Canva
-        ax.text(PAGE_TITRE_X, PAGE_TITRE_Y,
+        ax.text(0.030, PAGE_TITRE_Y,
                 "SYNTHÈSE — INDICATEURS CLÉS",
                 ha="left", va="center",
-                fontsize=16, fontweight="bold", color=BLANC, zorder=2)
+                fontsize=22, fontweight="bold", color=BLANC, zorder=2)
     else:
         ax.patch.set_alpha(1)
         ax.add_patch(mpatches.FancyBboxPatch(
@@ -756,10 +775,10 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
         ax_titre.axis("off")
         ax_titre.patch.set_alpha(0)
         ax_titre.text(
-            PAGE_TITRE_X, PAGE_TITRE_Y,
+            0.030, PAGE_TITRE_Y,
             theme.upper(),
             ha="left", va="center",
-            fontsize=16, fontweight="bold", color=BLANC, zorder=3,
+            fontsize=22, fontweight="bold", color=BLANC, zorder=3,
         )
 
     else:
@@ -843,11 +862,15 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
             facecolor="#F9FAFB", edgecolor="#E5E7EB",
         ))
 
+    # Tronquer le commentaire pour éviter tout débordement
+    max_chars = 340
+    display_comment = full_comment if len(full_comment) <= max_chars else full_comment[:max_chars].rsplit(' ', 1)[0] + "…"
     ax_c.text(
-        0.01, 0.95,
-        "Analyse :\n\n" + full_comment,
-        fontsize=8.5, color="#374151", va="top", wrap=True,
+        0.015, 0.92,
+        "Analyse :\n\n" + display_comment,
+        fontsize=11, color="#374151", va="top", wrap=True,
         transform=ax_c.transAxes,
+        linespacing=1.4,
     )
 
     # ── Numéro de page ────────────────────────────────────────────────
