@@ -108,87 +108,107 @@ BLANC      = "#FFFFFF"
 # ══════════════════════════════════════════════════════════════════════════════
 
 def load_data(uploaded_zip, uploaded_excel):
-    """
-    Charge toutes les données depuis :
-      - uploaded_zip   : objet UploadedFile Streamlit (ou chemin) du .zip
-      - uploaded_excel : objet UploadedFile Streamlit (ou chemin) du .xlsx
+    import tempfile, zipfile, io, re
+    from pathlib import Path
+    import pandas as pd
 
-    Retourne un dict avec les clés :
-      evol_df, NOM_ETAB, PERIODE
-    """
-
-    # ── 1. Extraction du zip dans un répertoire temporaire ────────────────────
+    # ── 1. Extraction ZIP ─────────────────────────────────────────────
     tmp = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
 
-    # uploaded_zip peut être un UploadedFile Streamlit ou un chemin fichier
     if hasattr(uploaded_zip, "read"):
-        zip_bytes = uploaded_zip.read()
-        with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zf:
+        with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
             zf.extractall(tmp_path)
     else:
         with zipfile.ZipFile(uploaded_zip, "r") as zf:
             zf.extractall(tmp_path)
 
-    # Le zip peut contenir un sous-dossier racine unique — on descend dedans
-    children = [p for p in tmp_path.iterdir() if p.is_dir()]
-    path = children[0] if len(children) == 1 else tmp_path
+    # ── 2. Lecture Excel ──────────────────────────────────────────────
+    valo_excel = pd.read_excel(uploaded_excel)
 
-    NOM_ETAB = path.name
-
-    # ── 2. Lecture de l'Excel de valorisation ────────────────────────────────
-    if hasattr(uploaded_excel, "read"):
-        valo_excel = pd.read_excel(uploaded_excel)
-    else:
-        valo_excel = pd.read_excel(uploaded_excel)
-
-    # ── 3. Helpers mois ───────────────────────────────────────────────────────
+    # ── 3. Extraction mois robuste ────────────────────────────────────
     def extract_month(folder_name):
-        match = re.search(r"(\d{4}_M\d+|M\d+)$", folder_name)
-        return match.group(1) if match else None
+        # cas 2026_M1
+        match = re.search(r"(202\d)_M(\d+)$", folder_name)
+        if match:
+            return f"{match.group(1)}_M{match.group(2)}"
+
+        # cas M1 → 2025_M1 (année par défaut)
+        match = re.search(r"M(\d+)$", folder_name)
+        if match:
+            return f"2025_M{match.group(1)}"
+
+        return None
 
     def month_key(m):
-        if "_" in m:
-            year, month = m.split("_M")
-            return (int(year), int(month))
-        return (0, int(m[1:]))
+        year, month = m.split("_M")
+        return (int(year), int(month))
 
-    # ── 4. Lecture des fichiers HTML par mois ────────────────────────────────
-    html = {}
-    for month_folder in path.iterdir():
-        if month_folder.is_dir():
-            month = extract_month(month_folder.name)
-            if month is None:
-                continue
-            html_files  = list(month_folder.glob("*.ano-rha-sha.t1v1raev.html"))
-            html_files2 = list(month_folder.glob("*.ano-rha-sha.t1v1sv.html"))
-            html[month] = {
-                "raev": html_files[0]  if html_files  else None,
-                "sv":   html_files2[0] if html_files2 else None,
-            }
+    # ── 4. Recherche récursive des dossiers mois ──────────────────────
+    month_dirs = []
 
-    # ── 5. Chargement des tableaux ───────────────────────────────────────────
+    for p in tmp_path.rglob("*"):
+        if not p.is_dir():
+            continue
+        if "__MACOSX" in str(p):
+            continue
+
+        m = extract_month(p.name)
+        if m:
+            month_dirs.append((m, p))
+
+    if not month_dirs:
+        raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
+
+    # dédoublonnage (si plusieurs dossiers matchent le même mois)
+    month_dirs_dict = {}
+    for m, p in month_dirs:
+        month_dirs_dict[m] = p
+
+    sorted_months = sorted(month_dirs_dict.keys(), key=month_key)
+
+    # ── 5. Lecture HTML ───────────────────────────────────────────────
     data = {}
-    for month, files in html.items():
-        data[month] = {}
-        if files["raev"]:
-            data[month]["raev"] = pd.read_html(files["raev"])[1]
-        if files["sv"]:
-            data[month]["sv"] = pd.read_html(files["sv"])[0]
 
-    sorted_months = sorted(data.keys(), key=month_key)
+    for month in sorted_months:
+        folder = month_dirs_dict[month]
 
-    # ── 6. Calculs mensuels ───────────────────────────────────────────────────
+        html_files = list(folder.glob("*.html"))
+
+        # détection souple des fichiers
+        raev = next((f for f in html_files if "raev" in f.name), None)
+        sv   = next((f for f in html_files if "sv"   in f.name), None)
+
+        if not raev or not sv:
+            print(f"⚠️ Mois {month} ignoré (fichiers manquants)")
+            continue
+
+        try:
+            data[month] = {
+                "raev": pd.read_html(raev)[1],
+                "sv":   pd.read_html(sv)[0],
+            }
+        except Exception as e:
+            print(f"⚠️ Erreur lecture {month}: {e}")
+            continue
+
+    if not data:
+        raise ValueError("❌ Aucun mois exploitable (HTML non reconnus)")
+
+    # ── 6. Calculs ────────────────────────────────────────────────────
     evol_rows = []
 
-    for curr_mois in sorted_months:
+    for curr_mois in sorted(data.keys(), key=month_key):
+
         # RAEV
-        curr     = data[curr_mois]["raev"]
+        curr = data[curr_mois]["raev"]
+
         value_AM = curr.loc[
             curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
             "Montant AM",
         ].iloc[0]
-        value_AM = float(value_AM.replace(" ", "").replace(",", "."))
+
+        value_AM = float(str(value_AM).replace(" ", "").replace(",", "."))
 
         # SV
         curr2 = data[curr_mois]["sv"]
@@ -202,11 +222,10 @@ def load_data(uploaded_zip, uploaded_excel):
             col_htp_br:   "Journées en HTP - Montant BR",
         })
 
-        cols = ["SSRHA en HC - Montant BR", "Journées en HTP - Montant BR"]
-        for col in cols:
+        for col in ["SSRHA en HC - Montant BR", "Journées en HTP - Montant BR"]:
             curr2[col] = (
                 curr2[col]
-                .replace(".", None)
+                .astype(str)
                 .str.replace(" ", "", regex=False)
                 .str.replace(",", ".", regex=False)
             )
@@ -220,54 +239,38 @@ def load_data(uploaded_zip, uploaded_excel):
         curr2["Mois"] = curr_mois
 
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
-        df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
-        df_month.columns = [
-            "effectif_transmis_HC",
-            "effectif_valorise_HC",
-            "montantBR_transmis_HC",
-            "montantBR_valorise_HC",
-            "effectif_transmis_HTP",
-            "effectif_valorise_HTP",
-            "montantBR_transmis_HTP",
-            "montantBR_valorise_HTP",
-            "montantAM_transmis_HC",
-            "montantAM_valorise_HC",
-        ]
+        df_month.columns = [f"{a}_{b}" for a, b in df_month.columns]
 
-        jours_valo_HC = valo_excel[valo_excel["mois"] == curr_mois]["jours_valo"].values[0]
-        df_month["jour_valo_HC"] = jours_valo_HC
+        # ── Excel mapping sécurisé
+        match = valo_excel[valo_excel["mois"] == curr_mois]
+        if match.empty:
+            raise ValueError(f"❌ Mois {curr_mois} absent du fichier Excel")
+
+        df_month["jour_valo_HC"] = match["jours_valo"].values[0]
 
         evol_rows.append(df_month)
 
-    evol_df = pd.concat(evol_rows, ignore_index=False)
+    if not evol_rows:
+        raise ValueError("❌ Aucun mois valide après traitement")
 
+    evol_df = pd.concat(evol_rows)
+
+    # ── 7. KPI ────────────────────────────────────────────────────────
     evol_df["taux_valorisation_HC"] = evol_df["effectif_valorise_HC"] / evol_df["effectif_transmis_HC"] * 100
     evol_df["recette_BR_moy_sej"]   = evol_df["montantBR_valorise_HC"] / evol_df["effectif_valorise_HC"]
     evol_df["recette_BR_moy_jour"]  = evol_df["montantBR_valorise_HC"] / evol_df["jour_valo_HC"]
     evol_df["ecart_valo"]           = evol_df["montantBR_valorise_HC"].diff()
-    evol_df["sejour_supp"]          = evol_df["effectif_transmis_HC"].diff()
-    evol_df["sejour_valo_supp"]     = evol_df["effectif_valorise_HC"].diff()
-    evol_df["jour_valo_supp"]       = evol_df["jour_valo_HC"].diff()
-    evol_df["recette_BR_moy_mois"]  = evol_df["montantBR_valorise_HC"].diff()
-    evol_df["recette_AM_moy_mois"]  = evol_df["montantAM_valorise_HC"].diff()
-
-    evol_df.loc[evol_df.index[0], "recette_BR_moy_mois"] = evol_df["montantBR_valorise_HC"].iloc[0]
-    evol_df.loc[evol_df.index[0], "recette_AM_moy_mois"] = evol_df["montantAM_valorise_HC"].iloc[0]
 
     evol_df = evol_df.reset_index()
-    evol_df["jour_valo_supp_test"] = 0   # placeholder — remplacez par le vrai calcul
 
-    evol_df = evol_df[~evol_df["Mois"].isin(MOIS_EXCLUS)]
-
+    NOM_ETAB = "Extraction"
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
-    # On garde le répertoire temporaire en vie le temps de la session Streamlit
-    # en le stockant dans le dict retourné.
     return {
-        "evol_df":  evol_df,
+        "evol_df": evol_df,
         "NOM_ETAB": NOM_ETAB,
-        "PERIODE":  PERIODE,
-        "_tmp_dir": tmp,   # maintenu en vie tant que ce dict existe
+        "PERIODE": PERIODE,
+        "_tmp_dir": tmp,
     }
 
 
