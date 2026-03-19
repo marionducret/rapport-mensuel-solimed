@@ -25,7 +25,9 @@ import io
 # ══════════════════════════════════════════════════════════════════════════════
 
 OUTPUT_PDF  = "rapport_mensuel.pdf"
-LOGO_PATH   = "./assets/logo_solimed.png"
+BACKGROUND_GARDE  = "./design/page_garde.png"
+BACKGROUND_GRAPH = "./assets/page_graph.png"
+
 
 AUTEUR  = "SOLIMED"
 SERVICE = "Rapport évolution mensuelle SSR"
@@ -101,7 +103,6 @@ GRIS_CLAIR = "#F3F4F6"
 ROUGE      = "#E11D48"
 VERT       = "#16A34A"
 BLANC      = "#FFFFFF"
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHARGEMENT DES DONNÉES  (point d'entrée unique appelé par app.py)
@@ -294,6 +295,15 @@ def load_data(uploaded_zip, uploaded_excel):
 #  FONCTIONS GRAPHIQUES  (reçoivent evol_df en paramètre)
 # ══════════════════════════════════════════════════════════════════════════════
 
+def add_background(fig, image_path):
+    try:
+        img = imread(image_path)
+        ax_bg = fig.add_axes([0, 0, 1, 1], zorder=-1)
+        ax_bg.imshow(img)
+        ax_bg.axis("off")
+    except FileNotFoundError:
+        print(f"⚠️ Background introuvable : {image_path}")
+
 def style_xticklabels(ax, x_vals, y_vals):
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -302,7 +312,6 @@ def style_xticklabels(ax, x_vals, y_vals):
             label.set_color(ROUGE)
         else:
             label.set_color(GRIS_TEXTE)
-
 
 def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
     y_vals = y_vals.reset_index(drop=True)
@@ -328,7 +337,6 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
                       edgecolor=couleur, alpha=0.85, linewidth=0.7),
         )
 
-
 def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
     x_vals = list(evol_df["Mois"])
     y_vals = evol_df[col].reset_index(drop=True)
@@ -344,7 +352,6 @@ def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
     ax.tick_params(axis="y", labelsize=8, colors=GRIS_TEXTE)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
-
 
 def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}"):
     x_vals = list(evol_df["Mois"])
@@ -368,7 +375,6 @@ def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}"):
     ax.tick_params(axis="y", labelsize=8, colors=GRIS_TEXTE)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
-
 
 def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
     x_vals   = list(evol_df["Mois"])
@@ -405,7 +411,6 @@ def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
     ax.set_xticklabels(x_vals)
     style_xticklabels(ax, x_vals, y_vals)
 
-
 def make_ax_multi(ax, plots, theme_title, evol_df):
     x_vals = list(evol_df["Mois"])
     for i, (col, label) in enumerate(plots):
@@ -432,7 +437,6 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
         else:
             label.set_color(GRIS_TEXTE)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  FONCTIONS DE MISE EN FORME PDF
 # ══════════════════════════════════════════════════════════════════════════════
@@ -443,11 +447,12 @@ def page_garde(nom_etablissement: str, periode: str,
         date_generation = datetime.today().strftime("%d/%m/%Y")
 
     fig = plt.figure(figsize=(12, 17))
+    add_background(fig, BACKGROUND_GARDE)
     ax  = fig.add_axes([0, 0, 1, 1])
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
-    fig.patch.set_facecolor(BLANC)
+    fig.patch.set_alpha(0)
 
     ax.add_patch(mpatches.FancyBboxPatch(
         (0, 0.72), 1, 0.28, boxstyle="square,pad=0",
@@ -495,69 +500,6 @@ def page_garde(nom_etablissement: str, periode: str,
             ha="center", va="center", fontsize=9, color=GRIS_TEXTE)
 
     return fig
-
-
-def page_sommaire(themes: dict, page_depart: int = 4) -> plt.Figure:
-    fig = plt.figure(figsize=(12, 17))
-    ax  = fig.add_axes([0, 0, 1, 1])
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.axis("off")
-    fig.patch.set_facecolor(BLANC)
-
-    ax.add_patch(mpatches.FancyBboxPatch(
-        (0, 0.88), 1, 0.12, boxstyle="square,pad=0",
-        linewidth=0, facecolor=BLEU_FONCE,
-    ))
-    ax.text(0.5, 0.94, "SOMMAIRE",
-            ha="center", va="center", fontsize=24, fontweight="bold", color=BLANC)
-    ax.axhline(y=0.88, xmin=0, xmax=1, color=BLEU, linewidth=3)
-
-    entrees = [("Introduction & synthèse", "Indicateurs clés du dernier mois", 3, GRIS_TEXTE)]
-
-    page = page_depart
-    for i, (nom_theme, config) in enumerate(themes.items()):
-        if not nom_theme:
-            continue
-        n_plots   = len(config["plots"])
-        sous_titre = f"{n_plots} graphique{'s' if n_plots > 1 else ''}"
-        couleur = COLORS[i] if i < len(COLORS) else GRIS_TEXTE
-        entrees.append((nom_theme, sous_titre, page, couleur))
-        page += 1
-
-    y_start    = 0.80
-    espacement = 0.09
-
-    for i, (titre, sous_titre, num_page, couleur) in enumerate(entrees):
-        y = y_start - i * espacement
-
-        ax.add_patch(plt.Circle((0.08, y), 0.025, color=couleur, zorder=3))
-        ax.text(0.08, y, str(i + 1), ha="center", va="center",
-                fontsize=11, fontweight="bold", color=BLANC, zorder=4)
-
-        ax.text(0.15, y + 0.012, titre,
-                ha="left", va="center", fontsize=13, fontweight="bold", color=BLEU_FONCE)
-        ax.text(0.15, y - 0.015, sous_titre,
-                ha="left", va="center", fontsize=10, color=GRIS_TEXTE)
-
-        ax.annotate("", xy=(0.88, y), xytext=(0.58, y),
-                    xycoords="axes fraction",
-                    arrowprops=dict(arrowstyle="-", color=GRIS_CLAIR,
-                                    linestyle="dotted", lw=1.5))
-
-        ax.text(0.92, y, str(num_page),
-                ha="center", va="center", fontsize=13,
-                fontweight="bold", color=couleur)
-
-        if i < len(entrees) - 1:
-            ax.axhline(y=y - 0.04, xmin=0.05, xmax=0.95,
-                       color=GRIS_CLAIR, linewidth=0.8)
-
-    ax.axhline(y=0.04, xmin=0.05, xmax=0.95, color=GRIS_CLAIR, linewidth=1)
-    ax.text(0.5, 0.02, "2", ha="center", va="center", fontsize=9, color=GRIS_TEXTE)
-
-    return fig
-
 
 def page_synthese(evol_df) -> plt.Figure:
     dernier       = evol_df.iloc[-1]
@@ -650,7 +592,6 @@ def page_synthese(evol_df) -> plt.Figure:
 
     return fig
 
-
 def ajouter_entete_pied(fig: plt.Figure, titre_theme: str, num_page: int,
                         NOM_ETAB: str, PERIODE: str) -> None:
     ax_h = fig.add_axes([0, 0.91, 1, 0.09])
@@ -709,7 +650,6 @@ def generate_comment(col, titre, evol_df):
         f"avec un minimum de {series.min():,.0f} et un maximum de {series.max():,.0f}."
     )
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
 # ══════════════════════════════════════════════════════════════════════════════
@@ -750,7 +690,6 @@ def generate_all_figures(evol_df):
 
     return figures
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DU PDF
 # ══════════════════════════════════════════════════════════════════════════════
@@ -787,6 +726,7 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
             if config["type"] == "bar":
                 n   = len(plots)
                 fig = plt.figure(figsize=(12, 12))
+                add_background(fig, BACKGROUND_GRAPH)
                 fig.suptitle(theme, fontsize=18, fontweight="bold", color=BLEU_FONCE)
                 gs  = GridSpec(n, 1, figure=fig)
                 for i, (col, titre) in enumerate(plots):
@@ -797,6 +737,7 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
                 n         = len(plots)
                 objectifs = config["objectif"]
                 fig       = plt.figure(figsize=(12, 12))
+                add_background(fig, BACKGROUND_GRAPH)
                 fig.suptitle(theme, fontsize=18, fontweight="bold", color=BLEU_FONCE)
                 gs = GridSpec(n, 1, figure=fig)
                 for i, (col, titre) in enumerate(plots):
@@ -805,12 +746,14 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
 
             elif config["type"] == "multi":
                 fig, ax = plt.subplots(figsize=(12, 12))
+                add_background(fig, BACKGROUND_GRAPH)
                 fig.suptitle(theme, fontsize=18, fontweight="bold", color=BLEU_FONCE)
                 make_ax_multi(ax, plots, theme, evol_df)
 
             else:
                 n   = len(plots)
                 fig = plt.figure(figsize=(12, 12))
+                add_background(fig, BACKGROUND_GRAPH)
                 fig.suptitle(theme, fontsize=18, fontweight="bold", color=BLEU_FONCE)
                 gs = GridSpec(n, 1, figure=fig)
                 for i, (col, titre) in enumerate(plots):
@@ -818,8 +761,13 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
                     make_ax(ax, col, titre, evol_df)
 
             ajouter_entete_pied(fig, theme or "Activité", page_num, NOM_ETAB, PERIODE)
-            fig.subplots_adjust(left=0.08, right=0.97, top=0.88, bottom=0.25, hspace=0.6)
-
+            fig.subplots_adjust(
+                left=0.08,
+                right=0.92,
+                top=0.82,
+                bottom=0.28,
+                hspace=0.6
+            )
             # Commentaires
             comment_texts = []
             for col, titre in plots:
@@ -841,7 +789,7 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
                 mpatches.FancyBboxPatch(
                     (0, 0), 1, 1,
                     boxstyle="round,pad=0.02",
-                    facecolor="#F9FAFB", edgecolor="#E5E7EB",
+                    facecolor="white", edgecolor="#0F766E", linewidth=2,
                 )
             )
 
