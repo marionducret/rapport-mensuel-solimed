@@ -107,10 +107,7 @@ BLANC      = "#FFFFFF"
 #  CHARGEMENT DES DONNÉES  (point d'entrée unique appelé par app.py)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def load_data(uploaded_zip, uploaded_excel):
-    import tempfile, zipfile, io, re
-    from pathlib import Path
-    import pandas as pd
+def load_data(uploaded_zip, uploaded_excel): 
 
     # ── 1. Extraction ZIP ─────────────────────────────────────────────
     tmp = tempfile.TemporaryDirectory()
@@ -239,7 +236,44 @@ def load_data(uploaded_zip, uploaded_excel):
         curr2["Mois"] = curr_mois
 
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
-        df_month.columns = [f"{a}_{b}" for a, b in df_month.columns]
+
+        df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
+
+        # 🔥 mapping dynamique basé sur le contenu réel
+        rename_map = {}
+
+        for col in df_month.columns:
+
+            col_clean = col.lower()
+
+            if "effectif" in col_clean and "transmise" in col_clean:
+                rename_map[col] = "effectif_transmis_HC"
+
+            elif "effectif" in col_clean and "valorisée" in col_clean:
+                rename_map[col] = "effectif_valorise_HC"
+
+            elif "montant br" in col_clean and "transmise" in col_clean:
+                rename_map[col] = "montantBR_transmis_HC"
+
+            elif "montant br" in col_clean and "valorisée" in col_clean:
+                rename_map[col] = "montantBR_valorise_HC"
+
+            elif "montant am" in col_clean and "valorisée" in col_clean:
+                rename_map[col] = "montantAM_valorise_HC"
+
+        # applique le mapping
+        df_month = df_month.rename(columns=rename_map)
+
+        required_cols = [
+            "effectif_transmis_HC",
+            "effectif_valorise_HC",
+            "montantBR_valorise_HC",
+        ]
+
+        missing = [c for c in required_cols if c not in df_month.columns]
+
+        if missing:
+            raise ValueError(f"Colonnes manquantes après pivot : {missing}")
 
         # ── Excel mapping sécurisé
         match = valo_excel[valo_excel["mois"] == curr_mois]
