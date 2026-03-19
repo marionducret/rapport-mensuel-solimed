@@ -360,7 +360,7 @@ def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
     y_vals = evol_df[col].reset_index(drop=True)
     ax.plot(x_vals, y_vals, linewidth=2.5, color=BLEU,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
-    ax.set_title(titre, fontsize=15, fontweight="bold", pad=12, loc="left")
+    ax.set_title(titre, fontsize=16, fontweight="bold", pad=14, loc="left")
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
@@ -377,7 +377,7 @@ def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}"):
     if objectif is not None:
         ax.axhline(objectif, color=ROUGE, linestyle="--", linewidth=1.5,
                    label=f"Objectif mensuel ({objectif:,.0f})")
-    ax.set_title(titre, fontsize=15, fontweight="bold", pad=12, loc="left")
+    ax.set_title(titre, fontsize=16, fontweight="bold", pad=14, loc="left")
     ax.legend(fontsize=9, framealpha=0.9, loc="best")
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
@@ -405,7 +405,7 @@ def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
             color=VERT if val >= 0 else ROUGE,
         )
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8, linestyle="-")
-    ax.set_title(titre, fontsize=15, fontweight="bold", pad=12, loc="left")
+    ax.set_title(titre, fontsize=16, fontweight="bold", pad=14, loc="left")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -420,7 +420,7 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
                 marker="o", markersize=5, markerfacecolor="white",
                 markeredgewidth=2, label=label)
         annoter_tous_les_points(ax, x_vals, y_vals, couleur=COLORS[i % len(COLORS)])
-    ax.set_title("", fontsize=15, fontweight="bold", pad=12, loc="left")
+    ax.set_title("", fontsize=16, fontweight="bold", pad=14, loc="left")
     ax.legend(fontsize=9, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
@@ -524,15 +524,15 @@ def page_garde(nom_etablissement: str, periode: str,
             kpi_cy = 0.176
             ax.text(kpi_cx, kpi_cy + 0.075,
                     "Recette BR mensuelle",
-                    ha="center", va="center", fontsize=11,
+                    ha="center", va="center", fontsize=12,
                     color=BLANC, zorder=2)
-            ax.text(kpi_cx, kpi_cy + 0.015,
+            ax.text(kpi_cx, kpi_cy + 0.012,
                     cover_kpi["valeur"],
-                    ha="center", va="center", fontsize=24,
+                    ha="center", va="center", fontsize=26,
                     fontweight="bold", color=BLANC, zorder=2)
-            ax.text(kpi_cx, kpi_cy - 0.050,
+            ax.text(kpi_cx, kpi_cy - 0.052,
                     cover_kpi["evolution"],
-                    ha="center", va="center", fontsize=15,
+                    ha="center", va="center", fontsize=16,
                     fontweight="bold", color=BLANC, zorder=2)
 
 
@@ -897,7 +897,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
     content_lines = [l for l in wrapped_lines if l][:4]
     display_comment = "\n".join(content_lines)
     ax_c.text(
-        0.02, 0.97,
+        0.025, 0.96,
         "Analyse :\n\n" + display_comment,
         fontsize=13, color="#374151", va="top",
         transform=ax_c.transAxes,
