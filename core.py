@@ -29,6 +29,7 @@ OUTPUT_PDF  = "rapport_mensuel.pdf"
 # Déposer les PNG exportés depuis Canva dans ./assets/
 CANVA_COVER_PATH = "./design/page_garde.png"
 CANVA_PAGE_PATH  = "./design/page_graph.png"
+CANVA_KPI_PATH   = "./design/page_kpi.png"
 
 AUTEUR  = "SOLIMED"
 SERVICE = "Rapport évolution mensuelle SSR"
@@ -432,6 +433,13 @@ COVER_DATE_Y        = 0.200   # y de la date (dans le bloc teal bas-droite)
 COVER_DATE_X        = 0.650   # x de la date (centre du bloc teal)
 COVER_TEXT_X        = 0.091   # x de départ des textes dynamiques
 
+# PAGE KPI (calibration pixel-perfect sur le PNG 1414×2000)
+# Grand bloc unique : [left=0.060, bottom=0.057, w=0.880, h=0.794]
+KPI_BOX_LEFT    = 0.060
+KPI_BOX_BOTTOM  = 0.057
+KPI_BOX_WIDTH   = 0.880
+KPI_BOX_HEIGHT  = 0.794
+
 # PAGE GRAPHIQUE (calibration pixel-perfect sur le PNG 1414×2000)
 # Bandeau titre teal : mpl_y centre ≈ 0.944, x 0.03 → 0.63
 PAGE_TITRE_X        = 0.040
@@ -609,22 +617,25 @@ def page_synthese(evol_df) -> plt.Figure:
     fig = plt.figure(figsize=(12, 17))
     fig.patch.set_facecolor(BLANC)
 
-    bg = _charger_bg(CANVA_PAGE_PATH)
+    bg = _charger_bg(CANVA_KPI_PATH)
     if bg is not None:
         _appliquer_bg(fig, bg)
 
+    # ── Axe principal transparent ─────────────────────────────────────
     ax = fig.add_axes([0, 0, 1, 1], zorder=1)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
+    ax.patch.set_alpha(0)
 
     if bg is not None:
-        ax.patch.set_alpha(0)
+        # Titre dans le bandeau teal Canva
         ax.text(PAGE_TITRE_X, PAGE_TITRE_Y,
                 "SYNTHÈSE — INDICATEURS CLÉS",
                 ha="left", va="center",
                 fontsize=16, fontweight="bold", color=BLANC, zorder=2)
     else:
+        ax.patch.set_alpha(1)
         ax.add_patch(mpatches.FancyBboxPatch(
             (0, 0.88), 1, 0.12, boxstyle="square,pad=0",
             linewidth=0, facecolor=BLEU_FONCE,
@@ -632,11 +643,9 @@ def page_synthese(evol_df) -> plt.Figure:
         ax.axhline(y=0.88, xmin=0, xmax=1, color=BLEU, linewidth=3)
         ax.text(0.5, 0.95, "SYNTHÈSE — INDICATEURS CLÉS",
                 ha="center", va="center", fontsize=20, fontweight="bold", color=BLANC)
-        ax.text(0.5, 0.90, f"Dernier mois disponible : {mois_label}",
-                ha="center", va="center", fontsize=13, color=BLEU_CLAIR)
 
-    # Sous-titre mois dans le grand bloc
-    ax.text(0.5, 0.838,
+    # Sous-titre mois
+    ax.text(0.5, 0.826,
             f"Dernier mois disponible : {mois_label}",
             ha="center", va="center", fontsize=12,
             color=TEAL if bg is not None else BLEU_CLAIR,
@@ -646,63 +655,79 @@ def page_synthese(evol_df) -> plt.Figure:
         if ref is None or np.isnan(ref):
             return "–", GRIS_TEXTE
         delta = val - ref
-        if delta > 0:
-            return f"▲ +{delta:,.0f}", VERT
-        elif delta < 0:
-            return f"▼ {delta:,.0f}", ROUGE
+        if delta > 0:   return f"▲ +{delta:,.0f}", VERT
+        elif delta < 0: return f"▼ {delta:,.0f}", ROUGE
         return "= stable", GRIS_TEXTE
 
     def badge_objectif(val, objectif):
-        if objectif is None:
-            return None, None
-        if val >= objectif:
-            return f"✓ Objectif atteint ({objectif:,.0f} €)", VERT
+        if objectif is None: return None, None
+        if val >= objectif:  return f"✓ Objectif atteint ({objectif:,.0f} €)", VERT
         pct = (1 - val / objectif) * 100
         return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
 
-    # Cartes KPI dans le grand bloc (y: 0.810 → 0.380)
-    y_top      = 0.805
-    card_h     = 0.068
-    espacement = 0.073
+    # ── Cartes KPI dans le grand bloc Canva ──────────────────────────
+    MARGIN  = 0.012
+    box_l   = KPI_BOX_LEFT   + MARGIN
+    box_b   = KPI_BOX_BOTTOM + MARGIN
+    box_w   = KPI_BOX_WIDTH  - 2 * MARGIN
+    box_h   = KPI_BOX_HEIGHT - 2 * MARGIN
+
+    n_kpi      = len(KPI_CONFIG)
+    card_h     = box_h / n_kpi
+    card_gap   = 0.006
 
     for i, (col, label, fmt, obj_key) in enumerate(KPI_CONFIG):
-        y                       = y_top - i * espacement
+        # Coordonnées de la carte (de haut en bas)
+        card_top    = box_b + box_h - i * card_h
+        card_bottom = card_top - card_h + card_gap
+        card_cy     = (card_top + card_bottom) / 2
+
         couleur_fond, couleur_bord = KPI_COULEURS[i % len(KPI_COULEURS)]
         val = dernier.get(col, float("nan"))
         ref = avant_dernier.get(col) if avant_dernier is not None else None
 
+        # Fond de carte
         ax.add_patch(mpatches.FancyBboxPatch(
-            (0.068, y - card_h + 0.005), 0.864, card_h,
-            boxstyle="round,pad=0.01", linewidth=1.5,
+            (box_l + 0.005, card_bottom),
+            box_w - 0.010, card_h - card_gap * 1.5,
+            boxstyle="round,pad=0.005", linewidth=1.2,
             edgecolor=couleur_bord, facecolor=couleur_fond, zorder=2,
         ))
-        ax.text(0.11, y - 0.022, label,
+
+        # Label
+        ax.text(box_l + 0.020, card_cy,
+                label,
                 ha="left", va="center", fontsize=10, color=GRIS_TEXTE, zorder=3)
-        try:
-            val_str = fmt.format(val)
-        except (ValueError, TypeError):
-            val_str = "N/A"
-        ax.text(0.55, y - 0.022, val_str,
+
+        # Valeur
+        try:    val_str = fmt.format(val)
+        except: val_str = "N/A"
+        ax.text(0.50, card_cy,
+                val_str,
                 ha="center", va="center", fontsize=15,
                 fontweight="bold", color=BLEU_FONCE, zorder=3)
-        try:
-            fleche, couleur_fl = fleche_et_couleur(val, ref)
-        except (TypeError, ValueError):
-            fleche, couleur_fl = "–", GRIS_TEXTE
-        ax.text(0.80, y - 0.022, fleche,
+
+        # Flèche évolution
+        try:    fleche, couleur_fl = fleche_et_couleur(val, ref)
+        except: fleche, couleur_fl = "–", GRIS_TEXTE
+        ax.text(0.80, card_cy,
+                fleche,
                 ha="center", va="center", fontsize=10,
                 fontweight="bold", color=couleur_fl, zorder=3)
+
+        # Badge objectif
         if obj_key and OBJECTIFS.get(obj_key) is not None:
             try:
                 badge_txt, badge_col = badge_objectif(val, OBJECTIFS[obj_key])
                 if badge_txt:
-                    ax.text(0.55, y - 0.055, badge_txt,
-                            ha="center", va="center", fontsize=8,
+                    ax.text(0.50, card_cy - card_h * 0.22,
+                            badge_txt,
+                            ha="center", va="center", fontsize=7.5,
                             color=badge_col, style="italic", zorder=3)
-            except (TypeError, ValueError):
-                pass
+            except: pass
 
-    ax.text(PAGE_NUM_X, PAGE_NUM_Y, "3",
+    # Numéro de page
+    ax.text(PAGE_NUM_X, PAGE_NUM_Y, "2",
             ha="right", va="center", fontsize=9,
             fontweight="bold", color=GRIS_TEXTE, zorder=2)
 
@@ -736,18 +761,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
             ha="left", va="center",
             fontsize=16, fontweight="bold", color=BLANC, zorder=3,
         )
-        ax_titre.text(
-            0.96, PAGE_TITRE_Y + 0.015,
-            NOM_ETAB,
-            ha="right", va="center",
-            fontsize=9, color=BLANC, zorder=3,
-        )
-        ax_titre.text(
-            0.96, PAGE_TITRE_Y - 0.020,
-            PERIODE,
-            ha="right", va="center",
-            fontsize=8, color=BLANC, zorder=3,
-        )
+
     else:
         # Entête matplotlib originale
         ax_h = fig.add_axes([0, 0.91, 1, 0.09])
@@ -768,31 +782,38 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
 
     # ── Zone graphique ────────────────────────────────────────────────
     n = len(plots)
-    h_plot = PAGE_GRAPH_HEIGHT / n
-    hspace = 0.08
+    is_multi = config["type"] == "multi"
 
-    axes_graph = []
-    for i in range(n):
-        bottom = PAGE_GRAPH_BOTTOM + (n - 1 - i) * h_plot + hspace / 2
-        height = h_plot - hspace
+    # Marges internes pour rester bien dans le cadre Canva
+    MARGIN = 0.012
+    graph_left   = PAGE_GRAPH_LEFT   + MARGIN
+    graph_bottom = PAGE_GRAPH_BOTTOM + MARGIN
+    graph_width  = PAGE_GRAPH_WIDTH  - 2 * MARGIN
+    graph_height = PAGE_GRAPH_HEIGHT - 2 * MARGIN
+
+    if is_multi:
+        # Un seul axe couvrant toute la zone graphique
         ax_g = fig.add_axes(
-            [PAGE_GRAPH_LEFT, bottom, PAGE_GRAPH_WIDTH, height],
+            [graph_left, graph_bottom, graph_width, graph_height],
             zorder=3,
         )
-        axes_graph.append(ax_g)
-
-    for i, (col, titre) in enumerate(plots):
-        ax_g = axes_graph[i]
-        if config["type"] == "bar":
-            make_ax_bar(ax_g, col, titre, evol_df)
-        elif config["type"] == "single_hlines":
-            make_ax_hlines(ax_g, col, titre, config["objectif"][i], evol_df)
-        elif config["type"] == "multi":
-            make_ax_multi(ax_g, plots, theme, evol_df)
-            # multi utilise un seul ax pour toutes les séries
-            break
-        else:
-            make_ax(ax_g, col, titre, evol_df)
+        make_ax_multi(ax_g, plots, theme, evol_df)
+    else:
+        hspace = 0.05
+        h_plot = graph_height / n
+        for i, (col, titre) in enumerate(plots):
+            bottom = graph_bottom + (n - 1 - i) * h_plot + hspace / 2
+            height = h_plot - hspace
+            ax_g = fig.add_axes(
+                [graph_left, bottom, graph_width, height],
+                zorder=3,
+            )
+            if config["type"] == "bar":
+                make_ax_bar(ax_g, col, titre, evol_df)
+            elif config["type"] == "single_hlines":
+                make_ax_hlines(ax_g, col, titre, config["objectif"][i], evol_df)
+            else:
+                make_ax(ax_g, col, titre, evol_df)
 
     # ── Zone commentaire ──────────────────────────────────────────────
     comment_texts = []
@@ -803,9 +824,12 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
             comment_texts.append(generate_comment(col, titre, evol_df))
     full_comment = "\n\n".join(comment_texts)
 
+    CMARGIN = 0.012
     ax_c = fig.add_axes(
-        [PAGE_COMMENT_LEFT, PAGE_COMMENT_BOTTOM,
-         PAGE_COMMENT_WIDTH, PAGE_COMMENT_HEIGHT],
+        [PAGE_COMMENT_LEFT + CMARGIN,
+         PAGE_COMMENT_BOTTOM + CMARGIN,
+         PAGE_COMMENT_WIDTH  - 2 * CMARGIN,
+         PAGE_COMMENT_HEIGHT - 2 * CMARGIN],
         zorder=3,
     )
     ax_c.axis("off")
@@ -913,18 +937,13 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
 
-        # ── 2. Sommaire
-        fig = page_sommaire(THEMES, page_depart=4)
-        pdf.savefig(fig, bbox_inches="tight")
-        plt.close(fig)
-
-        # ── 3. Synthèse KPIs
+        # ── 2. Synthèse KPIs
         fig = page_synthese(evol_df)
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
 
-        # ── 4+. Pages graphiques
-        page_num = 4
+        # ── 3+. Pages graphiques
+        page_num = 3
         for theme, config in THEMES.items():
             fig = plt.figure(figsize=(12, 17))
             fig.patch.set_facecolor(BLANC)
