@@ -479,7 +479,8 @@ PAGE_NUM_Y          = 0.032
 
 
 def page_garde(nom_etablissement: str, periode: str,
-               date_generation: str | None = None) -> plt.Figure:
+               date_generation: str | None = None,
+               cover_kpi: dict | None = None) -> plt.Figure:
     if date_generation is None:
         date_generation = datetime.today().strftime("%d/%m/%Y")
 
@@ -498,22 +499,42 @@ def page_garde(nom_etablissement: str, periode: str,
         ax.axis("off")
         ax.patch.set_alpha(0)
 
-        # Valeur "Présenté par" — en-dessous du label (décalage -0.042)
+        # Valeur "Présenté par" — bien en-dessous du label
         ax.text(
-            COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.042,
+            COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.060,
             nom_etablissement,
             ha="left", va="center",
-            fontsize=16, fontweight="bold", color=NOIR,
+            fontsize=15, fontweight="bold", color=NOIR,
             zorder=2,
         )
-        # Valeur "Période" — en-dessous du label (décalage -0.040)
+        # Valeur "Période" — bien en-dessous du label
         ax.text(
-            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.040,
+            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.058,
             periode,
             ha="left", va="center",
-            fontsize=14, fontweight="bold", color=NOIR,
+            fontsize=13, fontweight="bold", color=NOIR,
             zorder=2,
         )
+        # KPI Recette BR dans le carré teal bas-droite
+        # Carré : left=0.557, bottom=0.047, width=0.398, height=0.259 -> centre x=0.756, y=0.176
+        # On affiche la valeur du dernier mois si disponible via le titre (pas accès à evol_df ici)
+        # → on passe la valeur en paramètre optionnel via cover_kpi
+        if cover_kpi is not None:
+            kpi_cx = 0.756
+            kpi_cy = 0.200
+            ax.text(kpi_cx, kpi_cy + 0.060,
+                    "Recette BR mensuelle",
+                    ha="center", va="center", fontsize=10,
+                    color=BLANC, zorder=2)
+            ax.text(kpi_cx, kpi_cy + 0.010,
+                    cover_kpi["valeur"],
+                    ha="center", va="center", fontsize=20,
+                    fontweight="bold", color=BLANC, zorder=2)
+            ax.text(kpi_cx, kpi_cy - 0.045,
+                    cover_kpi["evolution"],
+                    ha="center", va="center", fontsize=13,
+                    fontweight="bold",
+                    color=BLANC, zorder=2)
 
 
     else:
@@ -649,10 +670,10 @@ def page_synthese(evol_df) -> plt.Figure:
 
     if bg is not None:
         # Titre dans le bandeau teal Canva
-        ax.text(0.030, PAGE_TITRE_Y,
+        ax.text(0.055, PAGE_TITRE_Y,
                 "SYNTHÈSE — INDICATEURS CLÉS",
                 ha="left", va="center",
-                fontsize=22, fontweight="bold", color=BLANC, zorder=2)
+                fontsize=20, fontweight="bold", color=BLANC, zorder=2)
     else:
         ax.patch.set_alpha(1)
         ax.add_patch(mpatches.FancyBboxPatch(
@@ -685,7 +706,7 @@ def page_synthese(evol_df) -> plt.Figure:
         return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
 
     # ── Cartes KPI dans le grand bloc Canva ──────────────────────────
-    MARGIN  = 0.012
+    MARGIN  = 0.018
     box_l   = KPI_BOX_LEFT   + MARGIN
     box_b   = KPI_BOX_BOTTOM + MARGIN
     box_w   = KPI_BOX_WIDTH  - 2 * MARGIN
@@ -707,29 +728,32 @@ def page_synthese(evol_df) -> plt.Figure:
 
         # Fond de carte
         ax.add_patch(mpatches.FancyBboxPatch(
-            (box_l + 0.005, card_bottom),
-            box_w - 0.010, card_h - card_gap * 1.5,
-            boxstyle="round,pad=0.005", linewidth=1.2,
+            (box_l + 0.004, card_bottom + card_gap * 0.3),
+            box_w - 0.008, card_h - card_gap * 1.8,
+            boxstyle="round,pad=0.003", linewidth=1.2,
             edgecolor=couleur_bord, facecolor=couleur_fond, zorder=2,
+            clip_on=True,
         ))
 
         # Label
-        ax.text(box_l + 0.020, card_cy,
+        ax.text(box_l + 0.018, card_cy,
                 label,
                 ha="left", va="center", fontsize=10, color=GRIS_TEXTE, zorder=3)
 
-        # Valeur
+        # Valeur — centré dans la moitié gauche du cadre
+        val_x = box_l + box_w * 0.52
         try:    val_str = fmt.format(val)
         except: val_str = "N/A"
-        ax.text(0.50, card_cy,
+        ax.text(val_x, card_cy,
                 val_str,
-                ha="center", va="center", fontsize=15,
+                ha="center", va="center", fontsize=14,
                 fontweight="bold", color=BLEU_FONCE, zorder=3)
 
-        # Flèche évolution
+        # Flèche évolution — dans le dernier tiers du cadre
+        fleche_x = box_l + box_w * 0.82
         try:    fleche, couleur_fl = fleche_et_couleur(val, ref)
         except: fleche, couleur_fl = "–", GRIS_TEXTE
-        ax.text(0.80, card_cy,
+        ax.text(fleche_x, card_cy,
                 fleche,
                 ha="center", va="center", fontsize=10,
                 fontweight="bold", color=couleur_fl, zorder=3)
@@ -739,7 +763,7 @@ def page_synthese(evol_df) -> plt.Figure:
             try:
                 badge_txt, badge_col = badge_objectif(val, OBJECTIFS[obj_key])
                 if badge_txt:
-                    ax.text(0.50, card_cy - card_h * 0.22,
+                    ax.text(val_x, card_cy - card_h * 0.22,
                             badge_txt,
                             ha="center", va="center", fontsize=7.5,
                             color=badge_col, style="italic", zorder=3)
@@ -775,10 +799,10 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
         ax_titre.axis("off")
         ax_titre.patch.set_alpha(0)
         ax_titre.text(
-            0.030, PAGE_TITRE_Y,
+            0.055, PAGE_TITRE_Y,
             theme.upper(),
             ha="left", va="center",
-            fontsize=22, fontweight="bold", color=BLANC, zorder=3,
+            fontsize=20, fontweight="bold", color=BLANC, zorder=3,
         )
 
     else:
@@ -862,15 +886,23 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
             facecolor="#F9FAFB", edgecolor="#E5E7EB",
         ))
 
-    # Tronquer le commentaire pour éviter tout débordement
-    max_chars = 340
-    display_comment = full_comment if len(full_comment) <= max_chars else full_comment[:max_chars].rsplit(' ', 1)[0] + "…"
+    # Formater le texte avec textwrap pour éviter débordements
+    import textwrap as _tw
+    max_chars_per_line = 110
+    wrapped_lines = []
+    for para in full_comment.split("\n\n"):
+        lines = _tw.wrap(para, width=max_chars_per_line)
+        wrapped_lines.extend(lines)
+        wrapped_lines.append("")
+    # Max 4 lignes de contenu
+    content_lines = [l for l in wrapped_lines if l][:4]
+    display_comment = "\n".join(content_lines)
     ax_c.text(
-        0.015, 0.92,
+        0.015, 0.90,
         "Analyse :\n\n" + display_comment,
-        fontsize=11, color="#374151", va="top", wrap=True,
+        fontsize=10.5, color="#374151", va="top",
         transform=ax_c.transAxes,
-        linespacing=1.4,
+        linespacing=1.45,
     )
 
     # ── Numéro de page ────────────────────────────────────────────────
@@ -956,7 +988,21 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
     with pdf_backend.PdfPages(buf) as pdf:
 
         # ── 1. Page de garde
-        fig = page_garde(NOM_ETAB, PERIODE)
+        # Calcul KPI recette BR dernier mois pour la page de garde
+        dernier = evol_df.iloc[-1]
+        avant_dernier = evol_df.iloc[-2] if len(evol_df) > 1 else None
+        try:
+            val_br = dernier["recette_BR_moy_mois"]
+            val_str = f"{val_br:,.0f} €"
+            if avant_dernier is not None:
+                delta = val_br - avant_dernier["recette_BR_moy_mois"]
+                evo_str = f"{'▲' if delta >= 0 else '▼'} {delta:+,.0f} €"
+            else:
+                evo_str = ""
+            cover_kpi = {"valeur": val_str, "evolution": evo_str}
+        except Exception:
+            cover_kpi = None
+        fig = page_garde(NOM_ETAB, PERIODE, cover_kpi=cover_kpi)
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
 
