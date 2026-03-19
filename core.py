@@ -27,8 +27,8 @@ OUTPUT_PDF  = "rapport_mensuel.pdf"
 
 # ── Templates Canva ───────────────────────────────────────────────────────────
 # Déposer les PNG exportés depuis Canva dans ./assets/
-CANVA_COVER_PATH = "./assets/page_garde.png"
-CANVA_PAGE_PATH  = "./assets/page_graph.png"
+CANVA_COVER_PATH = "./design/page_garde.png"
+CANVA_PAGE_PATH  = "./design/page_graph.png"
 
 AUTEUR  = "SOLIMED"
 SERVICE = "Rapport évolution mensuelle SSR"
