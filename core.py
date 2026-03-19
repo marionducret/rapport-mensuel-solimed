@@ -107,6 +107,8 @@ VERT       = "#16A34A"
 BLANC      = "#FFFFFF"
 TEAL       = "#007B7B"
 NOIR       = "#1A1A1A"
+VIOLET     = "#7C3AED"
+ORANGE     = "#F97316"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -313,7 +315,7 @@ def style_xticklabels(ax, x_vals, y_vals):
     ax.set_xticklabels(x_vals)
     for i, label in enumerate(ax.get_xticklabels()):
         if i > 0 and y_vals.iloc[i] < y_vals.iloc[i - 1]:
-            label.set_color(BLEU)
+            label.set_color(VIOLET)
         else:
             label.set_color(GRIS_TEXTE)
 
@@ -336,7 +338,7 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
             xy=(i, v),
             xytext=(0, 12),
             textcoords="offset points",
-            fontsize=7, fontweight="bold", color=couleur,
+            fontsize=10, fontweight="bold", color=couleur,
             ha="center", va="bottom",
             bbox=dict(boxstyle="round,pad=0.2", facecolor=BLANC,
                       edgecolor=couleur, alpha=0.85, linewidth=0.7),
@@ -351,8 +353,8 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=45, labelsize=11)
-    ax.tick_params(axis="y", labelsize=11, colors=GRIS_TEXTE)
+    ax.tick_params(axis="x", rotation=45, labelsize=13)
+    ax.tick_params(axis="y", labelsize=13, colors=GRIS_TEXTE)
 
 
 def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
@@ -360,7 +362,7 @@ def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
     y_vals = evol_df[col].reset_index(drop=True)
     ax.plot(x_vals, y_vals, linewidth=2.5, color=BLEU,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
-    ax.set_title(titre, fontsize=16, fontweight="bold", pad=14, loc="left")
+    ax.set_title("", pad=0)
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
@@ -375,10 +377,10 @@ def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}"):
     ax.axhline(moyenne, color="#9CA3AF", linestyle="--", linewidth=1.5,
                label=f"Moyenne globale ({moyenne:,.0f})")
     if objectif is not None:
-        ax.axhline(objectif, color=ROUGE, linestyle="--", linewidth=1.5,
+        ax.axhline(objectif, color=ORANGE, linestyle="--", linewidth=1.5,
                    label=f"Objectif mensuel ({objectif:,.0f})")
-    ax.set_title(titre, fontsize=16, fontweight="bold", pad=14, loc="left")
-    ax.legend(fontsize=9, framealpha=0.9, loc="best")
+    ax.set_title("", pad=0)
+    ax.legend(fontsize=12, framealpha=0.9, loc="best")
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
@@ -401,11 +403,11 @@ def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
         y_pos  = val + offset if val >= 0 else val - offset
         ax.text(
             bar.get_x() + bar.get_width() / 2, y_pos, label,
-            ha="center", va=va, fontsize=8, fontweight="bold",
+            ha="center", va=va, fontsize=10, fontweight="bold",
             color=VERT if val >= 0 else ROUGE,
         )
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8, linestyle="-")
-    ax.set_title(titre, fontsize=16, fontweight="bold", pad=14, loc="left")
+    ax.set_title("", pad=0)
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -420,15 +422,15 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
                 marker="o", markersize=5, markerfacecolor="white",
                 markeredgewidth=2, label=label)
         annoter_tous_les_points(ax, x_vals, y_vals, couleur=COLORS[i % len(COLORS)])
-    ax.set_title("", fontsize=16, fontweight="bold", pad=14, loc="left")
-    ax.legend(fontsize=9, framealpha=0.9, loc="best")
+    ax.set_title("", pad=0)
+    ax.legend(fontsize=12, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
     for i, label in enumerate(ax.get_xticklabels()):
         if i > 0:
             all_down = all(evol_df[col].iloc[i] < evol_df[col].iloc[i - 1] for col, _ in plots)
-            label.set_color(BLEU if all_down else GRIS_TEXTE)
+            label.set_color(VIOLET if all_down else GRIS_TEXTE)
         else:
             label.set_color(GRIS_TEXTE)
 
@@ -522,17 +524,17 @@ def page_garde(nom_etablissement: str, periode: str,
         if cover_kpi is not None:
             kpi_cx = 0.756
             kpi_cy = 0.176
-            ax.text(kpi_cx, kpi_cy + 0.075,
+            ax.text(kpi_cx, kpi_cy + 0.068,
                     "Recette BR mensuelle",
-                    ha="center", va="center", fontsize=12,
+                    ha="center", va="center", fontsize=12, fontweight="bold",
                     color=BLANC, zorder=2)
-            ax.text(kpi_cx, kpi_cy + 0.012,
+            ax.text(kpi_cx, kpi_cy + 0.018,
                     cover_kpi["valeur"],
                     ha="center", va="center", fontsize=26,
                     fontweight="bold", color=BLANC, zorder=2)
             ax.text(kpi_cx, kpi_cy - 0.052,
                     cover_kpi["evolution"],
-                    ha="center", va="center", fontsize=16,
+                    ha="center", va="center", fontsize=17,
                     fontweight="bold", color=BLANC, zorder=2)
 
 
@@ -887,7 +889,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
 
     # Formater le texte avec textwrap pour éviter débordements
     import textwrap as _tw
-    max_chars_per_line = 110
+    max_chars_per_line = 95
     wrapped_lines = []
     for para in full_comment.split("\n\n"):
         lines = _tw.wrap(para, width=max_chars_per_line)
@@ -897,11 +899,11 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
     content_lines = [l for l in wrapped_lines if l][:4]
     display_comment = "\n".join(content_lines)
     ax_c.text(
-        0.025, 0.96,
+        0.03, 0.82,
         "Analyse :\n\n" + display_comment,
         fontsize=13, color="#374151", va="top",
         transform=ax_c.transAxes,
-        linespacing=1.5,
+        linespacing=1.55,
     )
 
     # ── Numéro de page ────────────────────────────────────────────────
