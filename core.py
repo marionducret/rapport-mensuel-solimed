@@ -265,8 +265,20 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df["recette_BR_moy_sej"]   = evol_df["montantBR_valorise_HC"] / evol_df["effectif_valorise_HC"]
     evol_df["recette_BR_moy_jour"]  = evol_df["montantBR_valorise_HC"] / evol_df["jour_valo_HC"]
     evol_df["ecart_valo"]           = evol_df["montantBR_valorise_HC"].diff()
+    evol_df["sejour_supp"]          = evol_df["effectif_transmis_HC"].diff()
+    evol_df["sejour_valo_supp"]     = evol_df["effectif_valorise_HC"].diff()
+    evol_df["jour_valo_supp"]       = evol_df["jour_valo_HC"].diff()
+    evol_df["recette_BR_moy_mois"]  = evol_df["montantBR_valorise_HC"].diff()
+    evol_df["recette_AM_moy_mois"]  = evol_df["montantAM_valorise_HC"].diff()
+
+    evol_df.loc[evol_df.index[0], "recette_BR_moy_mois"] = evol_df["montantBR_valorise_HC"].iloc[0]
+    evol_df.loc[evol_df.index[0], "recette_AM_moy_mois"] = evol_df["montantAM_valorise_HC"].iloc[0]
 
     evol_df = evol_df.reset_index()
+
+    # ── Variable test — jours non valorisés (placeholder à remplacer) ─────────────
+    evol_df["jour_valo_supp_test"] = 0 
+
 
     NOM_ETAB = "Extraction"
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
@@ -277,7 +289,6 @@ def load_data(uploaded_zip, uploaded_excel):
         "PERIODE": PERIODE,
         "_tmp_dir": tmp,
     }
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  FONCTIONS GRAPHIQUES  (reçoivent evol_df en paramètre)
