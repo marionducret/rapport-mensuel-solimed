@@ -449,7 +449,7 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
 COVER_PRES_LABEL_Y  = 0.654   # y du label "Etablissement"
 COVER_NOM_ETAB_Y    = 0.624   # y de la valeur NOM_ETAB (sous le label)
 COVER_PERI_LABEL_Y  = 0.579   # y du label "Période"
-COVER_PERIODE_Y     = 0.535   # y de la valeur PERIODE
+COVER_PERIODE_Y     = 0.510   # y de la valeur PERIODE
 COVER_DATE_Y        = 0.170  # y de la kpi (dans le bloc teal bas-droite)
 COVER_DATE_X        = 0.650   # x de la kpi (centre du bloc teal)
 COVER_TEXT_X        = 0.091   # x de départ des textes dynamiques
@@ -557,7 +557,7 @@ def page_garde(nom_etablissement: str, periode: str,
         ))
         ax.text(0.5, 0.61, nom_etablissement,
                 ha="center", va="center", fontsize=22, fontweight="bold", color=BLEU_FONCE)
-        ax.text(0.5, 0.54, f"Période analysée : {periode}",
+        ax.text(0.5, 0.50, f"Période analysée : {periode}",
                 ha="center", va="center", fontsize=16, color=GRIS_TEXTE)
         ax.plot([0.1, 0.9], [0.46, 0.46], color=GRIS_CLAIR, linewidth=1.5)
         ax.text(0.5, 0.38,
