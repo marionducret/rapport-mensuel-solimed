@@ -293,7 +293,7 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df.loc[evol_df.index[0], "recette_BR_moy_mois"] = evol_df["montantBR_valorise_HC"].iloc[0]
     evol_df.loc[evol_df.index[0], "recette_AM_moy_mois"] = evol_df["montantAM_valorise_HC"].iloc[0]
     evol_df = evol_df.reset_index()
-    evol_df["jour_valo_supp_test"] = 0
+    evol_df["jour_tot_supp"] = 0
 
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
