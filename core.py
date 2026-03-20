@@ -40,12 +40,12 @@ OBJECTIFS = {
 }
 
 KPI_CONFIG = [
-    ("taux_valorisation_HC",  "Taux de valorisation en hospit. complète",          "{:.1f} %",   None),
+    ("taux_valorisation_HC",  "Taux de valorisation HC",          "{:.1f} %",   None),
     ("recette_BR_moy_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
-    ("recette_AM_moy_mois",   "Recette mensuelle Assurance Maladie",              "{:,.0f} €",  "recette_AM_moy_mois"),
+    ("recette_AM_moy_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_moy_mois"),
     ("recette_BR_moy_sej",    "Recette brute par séjour",          "{:,.0f} €",  None),
     ("recette_BR_moy_jour",   "Recette brute par jour",   "{:,.0f} €",  None),
-    ("effectif_transmis_HC",  "Séjours transmis en hospit. complète",               "{:.0f}",     None),
+    ("effectif_transmis_HC",  "Séjours transmis HC",               "{:.0f}",     None),
 ]
 
 KPI_COULEURS = [
@@ -295,6 +295,8 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df = evol_df.reset_index()
     evol_df["jour_tot_supp"] = 0
 
+    evol_df[evol_df["Mois"] != MOIS_EXCLUS]#supp 2026 
+
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
     return {
@@ -444,12 +446,12 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
 # "Période"       label : mpl_y ≈ 0.579  (la période s'écrit en-dessous)
 # Les labels sont à x ≈ 0.091 (début du texte teal)
 # Valeurs dynamiques décalées légèrement vers le bas du label
-COVER_PRES_LABEL_Y  = 0.654   # y du label "Présenté par"
-COVER_NOM_ETAB_Y    = 0.622   # y de la valeur NOM_ETAB (sous le label)
+COVER_PRES_LABEL_Y  = 0.654   # y du label "Etablissement"
+COVER_NOM_ETAB_Y    = 0.624   # y de la valeur NOM_ETAB (sous le label)
 COVER_PERI_LABEL_Y  = 0.579   # y du label "Période"
 COVER_PERIODE_Y     = 0.547   # y de la valeur PERIODE
-COVER_DATE_Y        = 0.200   # y de la date (dans le bloc teal bas-droite)
-COVER_DATE_X        = 0.650   # x de la date (centre du bloc teal)
+COVER_DATE_Y        = 0.195   # y de la kpi (dans le bloc teal bas-droite)
+COVER_DATE_X        = 0.650   # x de la kpi (centre du bloc teal)
 COVER_TEXT_X        = 0.091   # x de départ des textes dynamiques
 
 # PAGE KPI (calibration pixel-perfect sur le PNG 1414×2000)
@@ -499,12 +501,12 @@ def page_garde(nom_etablissement: str, periode: str,
         ax.axis("off")
         ax.patch.set_alpha(0)
 
-        # Valeur "Etabliseement" — bien en-dessous du label
+        # Valeur "Etablissement" — bien en-dessous du label
         ax.text(
             COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.0605,
             nom_etablissement,
             ha="left", va="center",
-            fontsize=15, fontweight="bold", color=NOIR,
+            fontsize=20, fontweight="bold", color=NOIR,
             zorder=2,
         )
         # Valeur "Période" — bien en-dessous du label
@@ -512,7 +514,7 @@ def page_garde(nom_etablissement: str, periode: str,
             COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.058,
             periode,
             ha="left", va="center",
-            fontsize=13, fontweight="bold", color=NOIR,
+            fontsize=16, fontweight="bold", color=NOIR,
             zorder=2,
         )
         # KPI Recette BR dans le carré teal bas-droite
@@ -812,7 +814,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
 
     # Formater le texte avec textwrap pour éviter débordements
     import textwrap as _tw
-    max_chars_per_line = 78
+    max_chars_per_line = 85
     wrapped_lines = []
     for para in full_comment.split("\n\n"):
         lines = _tw.wrap(para, width=max_chars_per_line)
@@ -822,7 +824,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
     content_lines = [l for l in wrapped_lines if l][:6]
     display_comment = "\n".join(content_lines)
     ax_c.text(
-        0.03, 0.78,
+        0.01, 0.80,
         "Analyse :\n\n" + display_comment,
         fontsize=15, color="#374151", va="top",
         transform=ax_c.transAxes,
