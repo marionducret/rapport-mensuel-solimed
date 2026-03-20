@@ -466,7 +466,7 @@ KPI_BOX_HEIGHT  = 0.794
 PAGE_TITRE_X        = 0.030
 PAGE_TITRE_Y        = 0.944
 # Grand bloc graphique — marges internes de 1.5%
-PAGE_GRAPH_LEFT     = 0.080
+PAGE_GRAPH_LEFT     = 0.090
 PAGE_GRAPH_BOTTOM   = 0.375
 PAGE_GRAPH_WIDTH    = 0.840
 PAGE_GRAPH_HEIGHT   = 0.460
