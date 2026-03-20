@@ -511,7 +511,7 @@ def page_garde(nom_etablissement: str, periode: str,
         )
         # Valeur "Période" — bien en-dessous du label
         ax.text(
-            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.0605,
+            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.07,
             periode,
             ha="left", va="center",
             fontsize=22, fontweight="bold", color=NOIR,
@@ -523,9 +523,9 @@ def page_garde(nom_etablissement: str, periode: str,
         # → on passe la valeur en paramètre optionnel via cover_kpi
         if cover_kpi is not None:
             kpi_cx = 0.756
-            kpi_cy = 0.145
+            kpi_cy = 0.140
             ax.text(kpi_cx, kpi_cy + 0.058,
-                    "Recette BR mensuelle",
+                    "Recette brute mensuelle",
                     ha="center", va="center", fontsize=16, fontweight="bold",
                     color=BLANC, zorder=2)
             ax.text(kpi_cx, kpi_cy + 0.003,
