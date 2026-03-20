@@ -12,16 +12,26 @@ if not uploaded_zip or not uploaded_excel:
     st.warning("Veuillez uploader le fichier zip ET le fichier Excel de valorisation.")
     st.stop()
 
+# ── Nom de l'établissement ────────────────────────────────────────────────────
+NOM_ETAB = st.text_input(
+    "🏥 Nom de l'établissement",
+    placeholder="ex : Ceyrat",
+    help="Ce nom apparaîtra sur la page de garde et les en-têtes du PDF.",
+)
+
+if not NOM_ETAB:
+    st.warning("Veuillez saisir le nom de l'établissement.")
+    st.stop()
+
 # ── Chargement des données (mis en cache pour la session) ────────────────────
 @st.cache_data(show_spinner="Chargement des données…")
 def charger(zip_bytes, excel_bytes):
     import io
     return core.load_data(io.BytesIO(zip_bytes), io.BytesIO(excel_bytes))
 
-result   = charger(uploaded_zip.read(), uploaded_excel.read())
-evol_df  = result["evol_df"]
-NOM_ETAB = result["NOM_ETAB"]
-PERIODE  = result["PERIODE"]
+result  = charger(uploaded_zip.read(), uploaded_excel.read())
+evol_df = result["evol_df"]
+PERIODE = result["PERIODE"]
 
 st.success(f"✅ Données chargées — **{NOM_ETAB}** · {PERIODE}")
 

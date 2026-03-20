@@ -40,12 +40,12 @@ OBJECTIFS = {
 }
 
 KPI_CONFIG = [
-    ("taux_valorisation_HC",  "Taux de valorisation HC",          "{:.1f} %",   None),
-    ("recette_BR_moy_mois",   "Recette BR mensuelle",              "{:,.0f} €",  "recette_BR_moy_mois"),
-    ("recette_AM_moy_mois",   "Recette AM mensuelle",              "{:,.0f} €",  "recette_AM_moy_mois"),
-    ("recette_BR_moy_sej",    "Recette BR moy. / séjour",          "{:,.0f} €",  None),
-    ("recette_BR_moy_jour",   "Recette BR moy. / jour valorisé",   "{:,.0f} €",  None),
-    ("effectif_transmis_HC",  "Séjours transmis HC",               "{:.0f}",     None),
+    ("taux_valorisation_HC",  "Taux de valorisation en hospit. complète",          "{:.1f} %",   None),
+    ("recette_BR_moy_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
+    ("recette_AM_moy_mois",   "Recette mensuelle Assurance Maladie",              "{:,.0f} €",  "recette_AM_moy_mois"),
+    ("recette_BR_moy_sej",    "Recette brute par séjour",          "{:,.0f} €",  None),
+    ("recette_BR_moy_jour",   "Recette brute par jour",   "{:,.0f} €",  None),
+    ("effectif_transmis_HC",  "Séjours transmis en hospit. complète",               "{:.0f}",     None),
 ]
 
 KPI_COULEURS = [
@@ -64,32 +64,32 @@ THEMES = {
             ("ecart_valo", "Écart de valorisation avec M-1"),
         ],
     },
-    "Recette BR par jour": {
+    "Recette brute journalière": {
         "type": "single_hlines",
         "objectif": [None],
         "plots": [
-            ("recette_BR_moy_jour", "Recette brute moyenne par jour valorisé"),
+            ("recette_BR_moy_jour", "Recette brute journalière"),
         ],
     },
-    "Recette mensuelle BR": {
+    "Recette brute mensuelle": {
         "type": "single_hlines",
         "objectif": [OBJECTIFS["recette_BR_moy_mois"]],
         "plots": [
-            ("recette_BR_moy_mois", "Recette BR mensuelle"),
+            ("recette_BR_moy_mois", "Recette brute mensuelle"),
         ],
     },
-    "Séjours": {
+    "Activité : Séjours": {
         "type": "multi",
         "plots": [
             ("sejour_supp",       "Séjour supplémentaire par rapport à M-1"),
             ("sejour_valo_supp",  "Séjour valorisé supplémentaire par rapport à M-1"),
         ],
     },
-    "Jours valorisés": {
+    "Activité : Jours ": {
         "type": "multi",
         "plots": [
             ("jour_valo_supp",      "Jour valorisé supplémentaire par rapport à M-1"),
-            ("jour_valo_supp_test", "Jours NON valorisés (test)"),
+            ("jour_tot_supp", "Jour supplémentaire par rapport à M-1"),
         ],
     },
 }
@@ -295,27 +295,10 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df = evol_df.reset_index()
     evol_df["jour_valo_supp_test"] = 0
 
-    # Extraction du nom depuis le fichier ZIP
-    try:
-        # Streamlit UploadedFile expose .name ; un vrai path expose .stem
-        if hasattr(uploaded_zip, "name"):
-            raw = Path(uploaded_zip.name).stem
-        elif isinstance(uploaded_zip, (str, Path)):
-            raw = Path(uploaded_zip).stem
-        else:
-            raw = "Établissement"
-        # Supprimer les suffixes d'année / mois courants
-        raw = re.sub(r'[_ \-]?202\d[_ \-]?M?\d*$', '', raw, flags=re.IGNORECASE)
-        raw = re.sub(r'[_ \-]?M\d+([_ \-]M?\d*)?$', '', raw, flags=re.IGNORECASE)
-        raw = re.sub(r'[_ \-]?\d{4}$', '', raw)
-        NOM_ETAB = raw.replace('_', ' ').replace('-', ' ').strip() or "Établissement"
-    except Exception:
-        NOM_ETAB = "Établissement"
-    PERIODE  = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
+    PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
     return {
         "evol_df":  evol_df,
-        "NOM_ETAB": NOM_ETAB,
         "PERIODE":  PERIODE,
         "_tmp_dir": tmp,
     }
@@ -516,9 +499,9 @@ def page_garde(nom_etablissement: str, periode: str,
         ax.axis("off")
         ax.patch.set_alpha(0)
 
-        # Valeur "Présenté par" — bien en-dessous du label
+        # Valeur "Etabliseement" — bien en-dessous du label
         ax.text(
-            COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.060,
+            COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.0605,
             nom_etablissement,
             ha="left", va="center",
             fontsize=15, fontweight="bold", color=NOIR,
@@ -538,14 +521,14 @@ def page_garde(nom_etablissement: str, periode: str,
         # → on passe la valeur en paramètre optionnel via cover_kpi
         if cover_kpi is not None:
             kpi_cx = 0.756
-            kpi_cy = 0.160
+            kpi_cy = 0.155
             ax.text(kpi_cx, kpi_cy + 0.058,
                     "Recette BR mensuelle",
-                    ha="center", va="center", fontsize=11, fontweight="bold",
+                    ha="center", va="center", fontsize=16, fontweight="bold",
                     color=BLANC, zorder=2)
             ax.text(kpi_cx, kpi_cy + 0.003,
                     cover_kpi["valeur"],
-                    ha="center", va="center", fontsize=24,
+                    ha="center", va="center", fontsize=26,
                     fontweight="bold", color=BLANC, zorder=2)
             ax.text(kpi_cx, kpi_cy - 0.052,
                     cover_kpi["evolution"],
@@ -590,81 +573,6 @@ def page_garde(nom_etablissement: str, periode: str,
 
     return fig
 
-
-def page_sommaire(themes: dict, page_depart: int = 4) -> plt.Figure:
-    fig = plt.figure(figsize=(12, 17))
-    fig.patch.set_facecolor(BLANC)
-
-    bg = _charger_bg(CANVA_PAGE_PATH)
-    if bg is not None:
-        _appliquer_bg(fig, bg)
-
-    # Axe principal transparent si Canva, sinon fond bleu
-    ax = fig.add_axes([0, 0, 1, 1], zorder=1)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.axis("off")
-
-    if bg is not None:
-        ax.patch.set_alpha(0)
-        # Titre dans le bandeau teal
-        ax.text(PAGE_TITRE_X, PAGE_TITRE_Y, "SOMMAIRE",
-                ha="left", va="center",
-                fontsize=18, fontweight="bold", color=BLANC, zorder=2)
-    else:
-        ax.add_patch(mpatches.FancyBboxPatch(
-            (0, 0.88), 1, 0.12, boxstyle="square,pad=0",
-            linewidth=0, facecolor=BLEU_FONCE,
-        ))
-        ax.axhline(y=0.88, xmin=0, xmax=1, color=BLEU, linewidth=3)
-        ax.text(0.5, 0.94, "SOMMAIRE",
-                ha="center", va="center", fontsize=24, fontweight="bold", color=BLANC)
-
-    # Contenu sommaire — dans le grand bloc Canva (y: 0.851→0.363)
-    entrees = [("Introduction & synthèse", "Indicateurs clés du dernier mois", 3, GRIS_TEXTE)]
-    page = page_depart
-    for i, (nom_theme, config) in enumerate(themes.items()):
-        if not nom_theme:
-            continue
-        n_plots    = len(config["plots"])
-        sous_titre = f"{n_plots} graphique{'s' if n_plots > 1 else ''}"
-        couleur    = COLORS[i] if i < len(COLORS) else GRIS_TEXTE
-        entrees.append((nom_theme, sous_titre, page, couleur))
-        page += 1
-
-    # Zone de liste dans le grand bloc Canva
-    y_top      = 0.820
-    y_bottom   = 0.380
-    espacement = (y_top - y_bottom) / max(len(entrees), 1)
-
-    for i, (titre, sous_titre, num_page, couleur) in enumerate(entrees):
-        y = y_top - i * espacement
-
-        ax.add_patch(plt.Circle((0.09, y), 0.018, color=couleur, zorder=3))
-        ax.text(0.09, y, str(i + 1), ha="center", va="center",
-                fontsize=9, fontweight="bold", color=BLANC, zorder=4)
-        ax.text(0.13, y + 0.010, titre,
-                ha="left", va="center", fontsize=12, fontweight="bold", color=BLEU_FONCE)
-        ax.text(0.13, y - 0.012, sous_titre,
-                ha="left", va="center", fontsize=9, color=GRIS_TEXTE)
-        ax.annotate("", xy=(0.87, y), xytext=(0.60, y),
-                    arrowprops=dict(arrowstyle="-", color=GRIS_CLAIR,
-                                    linestyle="dotted", lw=1.5))
-        ax.text(0.92, y, str(num_page),
-                ha="center", va="center", fontsize=12,
-                fontweight="bold", color=couleur)
-        if i < len(entrees) - 1:
-            ax.axhline(y=y - espacement * 0.45, xmin=0.07, xmax=0.95,
-                       color=GRIS_CLAIR, linewidth=0.7)
-
-    # Numéro de page bas
-    ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 2",
-            ha="right", va="center", fontsize=11,
-            fontweight="bold", color=GRIS_TEXTE, zorder=2)
-
-    return fig
-
-
 def page_synthese(evol_df) -> plt.Figure:
     dernier       = evol_df.iloc[-1]
     avant_dernier = evol_df.iloc[-2] if len(evol_df) > 1 else None
@@ -700,7 +608,7 @@ def page_synthese(evol_df) -> plt.Figure:
         ax.text(0.5, 0.95, "SYNTHÈSE — INDICATEURS CLÉS",
                 ha="center", va="center", fontsize=20, fontweight="bold", color=BLANC)
 
-    # Sous-titre mois
+    # Sous-titre mois (MARCHE PAS)
     ax.text(0.5, 0.826,
             f"Dernier mois disponible : {mois_label}",
             ha="center", va="center", fontsize=12,
@@ -754,7 +662,7 @@ def page_synthese(evol_df) -> plt.Figure:
         # Label
         ax.text(box_l + 0.018, card_cy,
                 label,
-                ha="left", va="center", fontsize=10, color=GRIS_TEXTE, zorder=3)
+                ha="left", va="center", fontsize=16, color=GRIS_TEXTE, zorder=3)
 
         # Valeur — centré dans la moitié gauche du cadre
         val_x = box_l + box_w * 0.52
@@ -762,7 +670,7 @@ def page_synthese(evol_df) -> plt.Figure:
         except: val_str = "N/A"
         ax.text(val_x, card_cy,
                 val_str,
-                ha="center", va="center", fontsize=14,
+                ha="center", va="center", fontsize=20,
                 fontweight="bold", color=BLEU_FONCE, zorder=3)
 
         # Flèche évolution — dans le dernier tiers du cadre
@@ -771,7 +679,7 @@ def page_synthese(evol_df) -> plt.Figure:
         except: fleche, couleur_fl = "–", GRIS_TEXTE
         ax.text(fleche_x, card_cy,
                 fleche,
-                ha="center", va="center", fontsize=10,
+                ha="center", va="center", fontsize=18,
                 fontweight="bold", color=couleur_fl, zorder=3)
 
         # Badge objectif
@@ -781,7 +689,7 @@ def page_synthese(evol_df) -> plt.Figure:
                 if badge_txt:
                     ax.text(val_x, card_cy - card_h * 0.22,
                             badge_txt,
-                            ha="center", va="center", fontsize=7.5,
+                            ha="center", va="center", fontsize=12,
                             color=badge_col, style="italic", zorder=3)
             except: pass
 
@@ -910,13 +818,13 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
         lines = _tw.wrap(para, width=max_chars_per_line)
         wrapped_lines.extend(lines)
         wrapped_lines.append("")
-    # Max 4 lignes de contenu
-    content_lines = [l for l in wrapped_lines if l][:4]
+    # Max 6 lignes de contenu
+    content_lines = [l for l in wrapped_lines if l][:6]
     display_comment = "\n".join(content_lines)
     ax_c.text(
         0.03, 0.78,
         "Analyse :\n\n" + display_comment,
-        fontsize=13, color="#374151", va="top",
+        fontsize=15, color="#374151", va="top",
         transform=ax_c.transAxes,
         linespacing=1.5,
         clip_on=True,
