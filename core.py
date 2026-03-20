@@ -449,8 +449,8 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
 COVER_PRES_LABEL_Y  = 0.654   # y du label "Etablissement"
 COVER_NOM_ETAB_Y    = 0.624   # y de la valeur NOM_ETAB (sous le label)
 COVER_PERI_LABEL_Y  = 0.579   # y du label "Période"
-COVER_PERIODE_Y     = 0.547   # y de la valeur PERIODE
-COVER_DATE_Y        = 0.195   # y de la kpi (dans le bloc teal bas-droite)
+COVER_PERIODE_Y     = 0.535   # y de la valeur PERIODE
+COVER_DATE_Y        = 0.170  # y de la kpi (dans le bloc teal bas-droite)
 COVER_DATE_X        = 0.650   # x de la kpi (centre du bloc teal)
 COVER_TEXT_X        = 0.091   # x de départ des textes dynamiques
 
@@ -471,7 +471,7 @@ PAGE_GRAPH_BOTTOM   = 0.375
 PAGE_GRAPH_WIDTH    = 0.840
 PAGE_GRAPH_HEIGHT   = 0.460
 # Petit bloc commentaire — marges internes de 1.5%
-PAGE_COMMENT_LEFT   = 0.080
+PAGE_COMMENT_LEFT   = 0.070
 PAGE_COMMENT_BOTTOM = 0.075
 PAGE_COMMENT_WIDTH  = 0.840
 PAGE_COMMENT_HEIGHT = 0.220
@@ -506,7 +506,7 @@ def page_garde(nom_etablissement: str, periode: str,
             COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.0605,
             nom_etablissement,
             ha="left", va="center",
-            fontsize=20, fontweight="bold", color=NOIR,
+            fontsize=30, fontweight="bold", color=NOIR,
             zorder=2,
         )
         # Valeur "Période" — bien en-dessous du label
@@ -514,7 +514,7 @@ def page_garde(nom_etablissement: str, periode: str,
             COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.058,
             periode,
             ha="left", va="center",
-            fontsize=16, fontweight="bold", color=NOIR,
+            fontsize=22, fontweight="bold", color=NOIR,
             zorder=2,
         )
         # KPI Recette BR dans le carré teal bas-droite
@@ -523,7 +523,7 @@ def page_garde(nom_etablissement: str, periode: str,
         # → on passe la valeur en paramètre optionnel via cover_kpi
         if cover_kpi is not None:
             kpi_cx = 0.756
-            kpi_cy = 0.155
+            kpi_cy = 0.145
             ax.text(kpi_cx, kpi_cy + 0.058,
                     "Recette BR mensuelle",
                     ha="center", va="center", fontsize=16, fontweight="bold",
