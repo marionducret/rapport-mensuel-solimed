@@ -295,7 +295,7 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df = evol_df.reset_index()
     evol_df["jour_tot_supp"] = 0
 
-    evol_df[evol_df["Mois"] != MOIS_EXCLUS]#supp 2026 
+    evol_df = evol_df[evol_df["Mois"] != MOIS_EXCLUS]#supp 2026 
 
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
@@ -511,7 +511,7 @@ def page_garde(nom_etablissement: str, periode: str,
         )
         # Valeur "Période" — bien en-dessous du label
         ax.text(
-            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.058,
+            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.0605,
             periode,
             ha="left", va="center",
             fontsize=22, fontweight="bold", color=NOIR,
