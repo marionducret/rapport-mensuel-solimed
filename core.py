@@ -71,11 +71,11 @@ THEMES = {
             ("recette_BR_moy_jour", "Recette brute journalière"),
         ],
     },
-    "Recette brute mensuelle": {
+    "Recette brute par séjour": {
         "type": "single_hlines",
-        "objectif": [OBJECTIFS["recette_BR_moy_mois"]],
+        "objectif": [OBJECTIFS["recette_BR_moy_sej"]],
         "plots": [
-            ("recette_BR_moy_mois", "Recette brute mensuelle"),
+            ("recette_BR_moy_sej", "Recette brute par séjour"),
         ],
     },
     "Activité : Séjours": {
@@ -467,11 +467,8 @@ def recalculer_derives(brut_df):
     df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
     df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
     df["jour_valo_supp"]      = df["jour_valo_HC"].diff()
-    df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
-    df["recette_AM_moy_mois"] = df["montantAM_valorise_HC"].diff()
     # Premier mois : pas de M-1, on reprend la valeur brute (comme load_data)
-    df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
-    df.loc[df.index[0], "recette_AM_moy_mois"] = df["montantAM_valorise_HC"].iloc[0]
+    df.loc[df.index[0], "ecart_valo"] = df["montantBR_valorise_HC"].iloc[0]
     df["jour_tot_supp"] = 0
     return df
 
