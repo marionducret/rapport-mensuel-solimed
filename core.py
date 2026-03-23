@@ -574,18 +574,13 @@ def load_annee_precedente(uploaded_zip):
 
     df = pd.concat(rows).reset_index()
 
-    # Calcul des colonnes dérivées nécessaires (sans recette_BR_moy_jour — pas de jours valo)
+    # Calcul des colonnes dérivées
     df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
-    df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
-    df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
     df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
 
     # Moyennes mensuelles
     moyennes = {}
-    for col in ["recette_BR_moy_mois", "sejour_supp", "sejour_valo_supp"]:
-        moyennes[col] = float(df[col].mean())
-    # recette_BR_moy_jour : non calculable sans jours valo → None
-    moyennes["recette_BR_moy_jour"] = None
+    moyennes["recette_BR_moy_mois"] = float(df[recette_BR_moy_mois].mean())
 
     return moyennes
 
