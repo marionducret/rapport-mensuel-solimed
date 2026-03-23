@@ -143,7 +143,7 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
                     recuperer_moy_annuelle.clear()
                     st.success(
                         f"✅ Moyenne sauvegardée : "
-                        f"Recette brute par séjour (moyenne 2025) ={nouvelles_moy['recette_BR_moy_sej']:,.0f} € · "
+                        f"Recette brute par séjour (2025) ={nouvelles_moy['recette_BR_moy_sej']:,.0f} € · "
                     )
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
