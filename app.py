@@ -22,6 +22,14 @@ GH_HEADERS = {
     "Accept": "application/vnd.github.v3+json",
 }
 
+try:
+    r = requests.get(GH_API, headers=GH_HEADERS)
+    st.sidebar.write(f"GitHub status : {r.status_code}")
+    st.sidebar.write(f"Repo : {GITHUB_REPO}")
+    st.sidebar.write(f"Path : {GITHUB_PATH}")
+except Exception as e:
+    st.sidebar.error(f"Erreur GitHub : {e}")
+
 
 def github_lire():
     r = requests.get(GH_API, headers=GH_HEADERS)
