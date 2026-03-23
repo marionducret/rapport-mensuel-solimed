@@ -22,7 +22,6 @@ GH_HEADERS = {
 
 
 def gh_api(nom_etab):
-    """Construit l'URL API GitHub pour le fichier parquet de l'établissement."""
     slug = nom_etab.lower().replace(" ", "_")
     return f"https://api.github.com/repos/{GITHUB_REPO}/contents/data/historique_{slug}.parquet"
 
@@ -59,10 +58,7 @@ def month_key(m):
 #  NOM ÉTABLISSEMENT — en premier car il conditionne le fichier GitHub chargé
 # ══════════════════════════════════════════════════════════════════════════════
 
-NOM_ETAB = st.text_input(
-    "🏥 Nom de l'établissement",
-    placeholder="ex : Ceyrat",
-)
+NOM_ETAB = st.text_input("🏥 Nom de l'établissement", placeholder="ex : Ceyrat")
 if not NOM_ETAB:
     st.warning("Veuillez saisir le nom de l'établissement.")
     st.stop()
@@ -97,15 +93,19 @@ else:
 
 st.subheader("📂 Données à intégrer")
 
-uploaded_excel = st.file_uploader("📊 Fichier Excel de valorisation (.xlsx)", type=["xlsx"])
-uploaded_zip   = st.file_uploader(
+uploaded_zip = st.file_uploader(
     "📁 ZIP du nouveau mois à ajouter",
     type=["zip"],
     help="Peut contenir un ou plusieurs mois. Les doublons avec l'historique sont ignorés.",
 )
+uploaded_csv = st.file_uploader(
+    "📊 Fichier CSV VisualValoSejours",
+    type=["csv"],
+    help="Fichier de valorisation du mois — sert à calculer les jours valorisés.",
+)
 
-if not uploaded_excel or not uploaded_zip:
-    st.warning("Veuillez uploader le fichier ZIP et le fichier Excel.")
+if not uploaded_zip or not uploaded_csv:
+    st.warning("Veuillez uploader le fichier ZIP et le fichier CSV.")
     st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -113,11 +113,11 @@ if not uploaded_excel or not uploaded_zip:
 # ══════════════════════════════════════════════════════════════════════════════
 
 @st.cache_data(show_spinner="Chargement des nouvelles données…")
-def charger_brut(zip_bytes, excel_bytes):
-    return core.load_data_brut(io.BytesIO(zip_bytes), io.BytesIO(excel_bytes))
+def charger_brut(zip_bytes, csv_bytes):
+    return core.load_data_brut(io.BytesIO(zip_bytes), io.BytesIO(csv_bytes))
 
 
-nouveau         = charger_brut(uploaded_zip.read(), uploaded_excel.read())
+nouveau         = charger_brut(uploaded_zip.read(), uploaded_csv.read())
 nouveau_brut_df = nouveau["brut_df"]
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -144,12 +144,11 @@ if hist_brut_df is not None:
 else:
     brut_complet = nouveau_brut_df
 
-# Tri chronologique
+# Tri chronologique puis recalcul des .diff() sur la série complète
 brut_complet = brut_complet.iloc[
     brut_complet["Mois"].map(month_key).argsort()
 ].reset_index(drop=True)
 
-# Recalcul des .diff() sur la série complète et triée
 evol_df    = core.recalculer_derives(brut_complet)
 mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)
 PERIODE    = f"{mois_tries[0]} → {mois_tries[-1]}"

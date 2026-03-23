@@ -310,12 +310,34 @@ def load_data(uploaded_zip, uploaded_excel):
 #  CHARGEMENT INCRÉMENTAL — un seul mois, colonnes brutes uniquement
 # ══════════════════════════════════════════════════════════════════════════════
 
-def load_data_brut(uploaded_zip, uploaded_excel):
+def _calc_jours_valo(csv_file) -> float:
+    """
+    Calcule le nombre de jours valorisés à partir du CSV VisualValoSejours.
+    Règles :
+      - Filtre HOSP = C
+      - Pour les lignes où NBJV_GMT = 90 ET MNT_BR_GMT = 0 ou vide :
+        on neutralise NBJV_GMT (mis à 0) mais on conserve NBJV_GMTH
+      - Retourne la somme NBJV_GMT + NBJV_GMTH
+    """
+    df = pd.read_csv(csv_file, sep=None, engine="python")
+    for col in ["NBJV_GMT", "MNT_BR_GMT", "NBJV_GMTH"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df[df["HOSP"] == "C"].copy()
+    masque_exclusion = (df["NBJV_GMT"] == 90) & (
+        df["MNT_BR_GMT"].isna() | (df["MNT_BR_GMT"] == 0)
+    )
+    df.loc[masque_exclusion, "NBJV_GMT"] = 0   # neutralise les 90j GMT non facturés
+    return float(df["NBJV_GMT"].sum() + df["NBJV_GMTH"].sum())
+
+
+def load_data_brut(uploaded_zip, uploaded_csv):
     """
     Identique à load_data() mais retourne uniquement les colonnes BRUTES,
     sans les colonnes dérivées par .diff() (ecart_valo, sejour_supp, etc.).
     Utilisé en mode incrémental : on fusionne d'abord les brutes de tous les
     mois, puis on appelle recalculer_derives() sur la série complète.
+
+    uploaded_csv : fichier CSV VisualValoSejours (remplace l'Excel de valorisation).
     """
     tmp = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
@@ -327,7 +349,7 @@ def load_data_brut(uploaded_zip, uploaded_excel):
         with zipfile.ZipFile(uploaded_zip, "r") as zf:
             zf.extractall(tmp_path)
 
-    valo_excel = pd.read_excel(uploaded_excel)
+    jours_valo_mois = _calc_jours_valo(uploaded_csv)
 
     def extract_month(folder_name):
         match = re.search(r"(202\d)_M(\d+)$", folder_name)
@@ -414,8 +436,7 @@ def load_data_brut(uploaded_zip, uploaded_excel):
             "montantAM_transmis_HC",
             "montantAM_valorise_HC",
         ]
-        jours_valo_HC        = valo_excel[valo_excel["mois"] == curr_mois]["jours_valo"].values[0]
-        df_month["jour_valo_HC"] = jours_valo_HC
+        df_month["jour_valo_HC"] = jours_valo_mois
         evol_rows.append(df_month)
 
     if not evol_rows:
