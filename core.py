@@ -307,6 +307,153 @@ def load_data(uploaded_zip, uploaded_excel):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  CHARGEMENT INCRÉMENTAL — un seul mois, colonnes brutes uniquement
+# ══════════════════════════════════════════════════════════════════════════════
+
+def load_data_brut(uploaded_zip, uploaded_excel):
+    """
+    Identique à load_data() mais retourne uniquement les colonnes BRUTES,
+    sans les colonnes dérivées par .diff() (ecart_valo, sejour_supp, etc.).
+    Utilisé en mode incrémental : on fusionne d'abord les brutes de tous les
+    mois, puis on appelle recalculer_derives() sur la série complète.
+    """
+    tmp = tempfile.TemporaryDirectory()
+    tmp_path = Path(tmp.name)
+
+    if hasattr(uploaded_zip, "read"):
+        with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
+            zf.extractall(tmp_path)
+    else:
+        with zipfile.ZipFile(uploaded_zip, "r") as zf:
+            zf.extractall(tmp_path)
+
+    valo_excel = pd.read_excel(uploaded_excel)
+
+    def extract_month(folder_name):
+        match = re.search(r"(202\d)_M(\d+)$", folder_name)
+        if match:
+            return f"{match.group(1)}_M{match.group(2)}"
+        match = re.search(r"M(\d+)$", folder_name)
+        if match:
+            return f"2025_M{match.group(1)}"
+        return None
+
+    def month_key(m):
+        year, month = m.split("_M")
+        return (int(year), int(month))
+
+    month_dirs_dict = {}
+    for p in tmp_path.rglob("*"):
+        if not p.is_dir() or "__MACOSX" in str(p):
+            continue
+        m = extract_month(p.name)
+        if m:
+            month_dirs_dict[m] = p
+
+    if not month_dirs_dict:
+        raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
+
+    data = {}
+    for month in sorted(month_dirs_dict.keys(), key=month_key):
+        folder     = month_dirs_dict[month]
+        html_files = list(folder.glob("*.html"))
+        raev = next((f for f in html_files if "raev" in f.name), None)
+        sv   = next((f for f in html_files if "sv"   in f.name), None)
+        if not raev or not sv:
+            print(f"⚠️ Mois {month} ignoré (fichiers manquants)")
+            continue
+        try:
+            data[month] = {"raev": pd.read_html(raev)[1], "sv": pd.read_html(sv)[0]}
+        except Exception as e:
+            print(f"⚠️ Erreur lecture {month}: {e}")
+
+    if not data:
+        raise ValueError("❌ Aucun mois exploitable (HTML non reconnus)")
+
+    evol_rows = []
+    for curr_mois in sorted(data.keys(), key=month_key):
+        curr     = data[curr_mois]["raev"]
+        value_AM = curr.loc[
+            curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
+            "Montant AM",
+        ].iloc[0]
+        value_AM = float(str(value_AM).replace(" ", "").replace(",", "."))
+
+        curr2        = data[curr_mois]["sv"]
+        curr2        = curr2.iloc[[0, 11]].copy()
+        col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
+        col_htp_br   = [c for c in curr2.columns if "HTP"   in c and "Montant BR" in c][0]
+        curr2        = curr2.rename(columns={
+            col_ssrha_br: "SSRHA en HC - Montant BR",
+            col_htp_br:   "Journées en HTP - Montant BR",
+        })
+        for col in ["SSRHA en HC - Montant BR", "Journées en HTP - Montant BR"]:
+            curr2[col] = (
+                curr2[col].astype(str)
+                .str.replace(" ", "", regex=False)
+                .str.replace(",", ".", regex=False)
+            )
+            curr2[col] = pd.to_numeric(curr2[col], errors="coerce")
+        curr2.loc[
+            curr2["Type d'activité"] == "Activité valorisée",
+            "SSRHA en HC - Montant AM",
+        ] = value_AM
+        curr2["Mois"] = curr_mois
+
+        df_month = curr2.pivot(index="Mois", columns="Type d'activité")
+        df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
+        df_month.columns = [
+            "effectif_transmis_HC",
+            "effectif_valorise_HC",
+            "montantBR_transmis_HC",
+            "montantBR_valorise_HC",
+            "effectif_transmis_HTP",
+            "effectif_valorise_HTP",
+            "montantBR_transmis_HTP",
+            "montantBR_valorise_HTP",
+            "montantAM_transmis_HC",
+            "montantAM_valorise_HC",
+        ]
+        jours_valo_HC        = valo_excel[valo_excel["mois"] == curr_mois]["jours_valo"].values[0]
+        df_month["jour_valo_HC"] = jours_valo_HC
+        evol_rows.append(df_month)
+
+    if not evol_rows:
+        raise ValueError("❌ Aucun mois valide après traitement")
+
+    brut_df = pd.concat(evol_rows).reset_index()
+    brut_df["taux_valorisation_HC"] = (
+        brut_df["effectif_valorise_HC"] / brut_df["effectif_transmis_HC"] * 100
+    )
+    brut_df["recette_BR_moy_sej"]  = brut_df["montantBR_valorise_HC"] / brut_df["effectif_valorise_HC"]
+    brut_df["recette_BR_moy_jour"] = brut_df["montantBR_valorise_HC"] / brut_df["jour_valo_HC"]
+    brut_df = brut_df[~brut_df["Mois"].isin(MOIS_EXCLUS)]
+
+    return {"brut_df": brut_df, "_tmp_dir": tmp}
+
+
+def recalculer_derives(brut_df):
+    """
+    Calcule toutes les colonnes dérivées par .diff() sur la série COMPLÈTE
+    (historique + nouveau mois fusionnés et triés).
+    Réplique exactement les lignes 287-296 de load_data().
+    Retourne un evol_df prêt pour generate_all_figures() et generate_pdf().
+    """
+    df = brut_df.copy().reset_index(drop=True)
+    df["ecart_valo"]          = df["montantBR_valorise_HC"].diff()
+    df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
+    df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
+    df["jour_valo_supp"]      = df["jour_valo_HC"].diff()
+    df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
+    df["recette_AM_moy_mois"] = df["montantAM_valorise_HC"].diff()
+    # Premier mois : pas de M-1, on reprend la valeur brute (comme load_data)
+    df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
+    df.loc[df.index[0], "recette_AM_moy_mois"] = df["montantAM_valorise_HC"].iloc[0]
+    df["jour_tot_supp"] = 0
+    return df
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  FONCTIONS GRAPHIQUES
 # ══════════════════════════════════════════════════════════════════════════════
 
