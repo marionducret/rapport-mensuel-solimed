@@ -143,14 +143,14 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
                     recuperer_moy_annuelle.clear()
                     st.success(
                         f"✅ Moyenne sauvegardée : "
-                        f"recette_BR_mois={nouvelles_moy['recette_BR_moy_mois']:,.0f} € · "
+                        f"recette_BR_moy_sej={nouvelles_moy['recette_BR_moy_sej']:,.0f} € · "
                     )
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
     elif moy_annuelle is not None:
         st.success(
             f"✅ Moyenne déjà enregistrée : "
-            f"recette_BR_mois={moy_annuelle['recette_BR_mois']:,.0f} € · "
+            f"recette_BR_moy_sej={moy_annuelle['recette_BR_moy_sej']:,.0f} € · "
         )
 
 # ══════════════════════════════════════════════════════════════════════════════
