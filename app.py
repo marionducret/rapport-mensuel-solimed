@@ -124,7 +124,7 @@ if moy_annuelle is not None:
 with st.expander("📅 Charger les données de l'année précédente (facultatif)", expanded=moy_annuelle is None):
     st.caption(
         "Uploadez le ZIP contenant tous les dossiers mois de l'année passée. "
-        "Les moyennes seront calculées et sauvegardées sur GitHub — à faire une seule fois par établissement. "
+        "À faire une seule fois par établissement. "
         "Pas besoin du fichier CSV VisualValo."
     )
     uploaded_zip_annee = st.file_uploader(
