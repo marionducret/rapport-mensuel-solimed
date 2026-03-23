@@ -485,7 +485,7 @@ def load_annee_precedente(uploaded_zip):
     """
     Parse un ZIP contenant tous les dossiers mois d'une année passée.
     Retourne un dict {"recette_BR_moy_sej": x}
-    avec la moyenne mensuelle sur l'année.
+    avec la moyenne sur l'année.
     """
     tmp      = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
@@ -562,6 +562,7 @@ def load_annee_precedente(uploaded_zip):
             "effectif_transmis_HTP", "effectif_valorise_HTP",
             "montantBR_transmis_HTP", "montantBR_valorise_HTP",
         ]
+        df_month['recette_BR_moy_sej'] = df_month['montantBR_valorise_HC']/df_month['effectif_valorise_HC']
         rows.append(df_month)
 
     if not rows:
