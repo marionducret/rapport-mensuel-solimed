@@ -9,21 +9,26 @@ st.set_page_config(layout="wide")
 st.title("Générateur de rapport mensuel SSR")
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  GITHUB — lecture / écriture du fichier historique (colonnes brutes)
+#  GITHUB — configuration de base
 # ══════════════════════════════════════════════════════════════════════════════
 
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 GITHUB_REPO  = st.secrets["GITHUB_REPO"]
-GITHUB_PATH  = st.secrets["GITHUB_PATH"]
 
-GH_API = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_PATH}"
 GH_HEADERS = {
     "Authorization": f"token {GITHUB_TOKEN}",
     "Accept": "application/vnd.github.v3+json",
 }
 
-def github_lire():
-    r = requests.get(GH_API, headers=GH_HEADERS)
+
+def gh_api(nom_etab):
+    """Construit l'URL API GitHub pour le fichier parquet de l'établissement."""
+    slug = nom_etab.lower().replace(" ", "_")
+    return f"https://api.github.com/repos/{GITHUB_REPO}/contents/data/historique_{slug}.parquet"
+
+
+def github_lire(nom_etab):
+    r = requests.get(gh_api(nom_etab), headers=GH_HEADERS)
     if r.status_code == 404:
         return None, None
     r.raise_for_status()
@@ -33,13 +38,13 @@ def github_lire():
     return df, meta["sha"]
 
 
-def github_ecrire(df, sha, message):
+def github_ecrire(df, sha, nom_etab, message):
     buf = io.BytesIO()
     df.to_parquet(buf, index=False)
     payload = {"message": message, "content": base64.b64encode(buf.getvalue()).decode()}
     if sha:
         payload["sha"] = sha
-    requests.put(GH_API, headers=GH_HEADERS, json=payload).raise_for_status()
+    requests.put(gh_api(nom_etab), headers=GH_HEADERS, json=payload).raise_for_status()
 
 
 def month_key(m):
@@ -51,28 +56,40 @@ def month_key(m):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  CHARGEMENT DE L'HISTORIQUE AU DÉMARRAGE
+#  NOM ÉTABLISSEMENT — en premier car il conditionne le fichier GitHub chargé
+# ══════════════════════════════════════════════════════════════════════════════
+
+NOM_ETAB = st.text_input(
+    "🏥 Nom de l'établissement",
+    placeholder="ex : Ceyrat",
+)
+if not NOM_ETAB:
+    st.warning("Veuillez saisir le nom de l'établissement.")
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CHARGEMENT DE L'HISTORIQUE (propre à cet établissement)
 # ══════════════════════════════════════════════════════════════════════════════
 
 @st.cache_data(show_spinner="Récupération de l'historique sur GitHub…", ttl=60)
-def recuperer_historique():
+def recuperer_historique(nom_etab):
     try:
-        return github_lire()
+        return github_lire(nom_etab)
     except Exception as e:
         st.warning(f"⚠️ Impossible de lire l'historique GitHub : {e}")
         return None, None
 
 
-hist_brut_df, hist_sha = recuperer_historique()
+hist_brut_df, hist_sha = recuperer_historique(NOM_ETAB)
 
 if hist_brut_df is not None:
     mois_connus = sorted(hist_brut_df["Mois"].unique(), key=month_key)
     st.info(
-        f"📚 Historique chargé depuis GitHub — "
+        f"📚 Historique **{NOM_ETAB}** chargé depuis GitHub — "
         f"**{len(mois_connus)} mois** : {' · '.join(mois_connus)}"
     )
 else:
-    st.info("📭 Aucun historique sur GitHub — premier chargement.")
+    st.info(f"📭 Aucun historique sur GitHub pour **{NOM_ETAB}** — premier chargement.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  UPLOADS
@@ -91,11 +108,6 @@ if not uploaded_excel or not uploaded_zip:
     st.warning("Veuillez uploader le fichier ZIP et le fichier Excel.")
     st.stop()
 
-NOM_ETAB = st.text_input("🏥 Nom de l'établissement", placeholder="ex : Ceyrat")
-if not NOM_ETAB:
-    st.warning("Veuillez saisir le nom de l'établissement.")
-    st.stop()
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHARGEMENT DU NOUVEAU MOIS (colonnes brutes)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -104,7 +116,8 @@ if not NOM_ETAB:
 def charger_brut(zip_bytes, excel_bytes):
     return core.load_data_brut(io.BytesIO(zip_bytes), io.BytesIO(excel_bytes))
 
-nouveau = charger_brut(uploaded_zip.read(), uploaded_excel.read())
+
+nouveau         = charger_brut(uploaded_zip.read(), uploaded_excel.read())
 nouveau_brut_df = nouveau["brut_df"]
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -137,8 +150,7 @@ brut_complet = brut_complet.iloc[
 ].reset_index(drop=True)
 
 # Recalcul des .diff() sur la série complète et triée
-evol_df = core.recalculer_derives(brut_complet)
-
+evol_df    = core.recalculer_derives(brut_complet)
 mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)
 PERIODE    = f"{mois_tries[0]} → {mois_tries[-1]}"
 
@@ -146,7 +158,7 @@ st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
 st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  GRAPHES + COMMENTAIRES  (identique à l'original)
+#  GRAPHES + COMMENTAIRES
 # ══════════════════════════════════════════════════════════════════════════════
 
 comments = {}
@@ -175,7 +187,6 @@ st.subheader("📤 Export")
 
 if st.button("📄 Générer le PDF et sauvegarder l'historique"):
 
-    # 1. PDF — generate_pdf() reçoit le même evol_df qu'avant, rien ne change
     with st.spinner("Génération du PDF…"):
         pdf_bytes = core.generate_pdf(
             evol_df=evol_df,
@@ -184,22 +195,20 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
             custom_comments=comments,
         )
 
-    # 2. On sauvegarde les colonnes BRUTES sur GitHub (pas les dérivées)
-    #    → au prochain mois, la fusion + recalcul sera propre
     with st.spinner("Sauvegarde de l'historique sur GitHub…"):
         try:
-            _, sha_actuel = github_lire()
+            _, sha_actuel = github_lire(NOM_ETAB)
             github_ecrire(
-                brut_complet,           # ← brutes uniquement, pas evol_df
+                brut_complet,
                 sha_actuel,
+                NOM_ETAB,
                 f"historique: {PERIODE} — {NOM_ETAB}",
             )
-            st.success("✅ Historique mis à jour sur GitHub.")
+            st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
             recuperer_historique.clear()
         except Exception as e:
             st.error(f"❌ Erreur sauvegarde GitHub : {e}")
 
-    # 3. Téléchargement PDF
     st.download_button(
         label="⬇️ Télécharger le rapport PDF",
         data=pdf_bytes,
