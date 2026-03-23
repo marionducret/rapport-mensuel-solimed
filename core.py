@@ -94,7 +94,7 @@ THEMES = {
     },
 }
 
-MOIS_EXCLUS = ["2026_M1"]
+MOIS_EXCLUS = []  # à renseigner si certains mois doivent être exclus
 
 COLORS     = ["#2563EB", "#16A34A", "#16A34A", "#E11D48", "#E11D48"]
 BLEU_FONCE = "#1E3A5F"
@@ -461,6 +461,8 @@ def recalculer_derives(brut_df):
     Retourne un evol_df prêt pour generate_all_figures() et generate_pdf().
     """
     df = brut_df.copy().reset_index(drop=True)
+    if df.empty:
+        raise ValueError("❌ Aucune donnée à traiter — vérifiez que le mois n'est pas dans MOIS_EXCLUS.")
     df["ecart_valo"]          = df["montantBR_valorise_HC"].diff()
     df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
     df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
