@@ -560,12 +560,12 @@ def load_annee_precedente(uploaded_zip):
         curr2["Mois"] = curr_mois
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
         df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
+        # Le sv de l'année précédente n'a pas de Montant AM — 8 colonnes seulement
         df_month.columns = [
             "effectif_transmis_HC", "effectif_valorise_HC",
             "montantBR_transmis_HC", "montantBR_valorise_HC",
             "effectif_transmis_HTP", "effectif_valorise_HTP",
             "montantBR_transmis_HTP", "montantBR_valorise_HTP",
-            "montantAM_transmis_HC", "montantAM_valorise_HC",
         ]
         rows.append(df_month)
 
