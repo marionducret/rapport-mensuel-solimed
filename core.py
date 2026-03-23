@@ -467,7 +467,6 @@ def recalculer_derives(brut_df):
     df["recette_BR_mois"]     = df["montantBR_valorise_HC"].diff()
     df["recette_AM_mois"]     = df["montantAM_valorise_HC"].diff()
     # Premier mois : pas de M-1, on reprend la valeur brute (comme load_data)
-    df.loc[df.index[0], "ecart_valo"] = 0
     df.loc[df.index[0], "recette_BR_mois"] = df["montantBR_valorise_HC"].iloc[0]
     df.loc[df.index[0], "recette_AM_mois"] = df["montantAM_valorise_HC"].iloc[0]
     df["jour_tot_supp"] = 0
