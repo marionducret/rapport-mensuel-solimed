@@ -481,16 +481,13 @@ def recalculer_derives(brut_df):
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Colonnes pour lesquelles on calcule une moyenne annuelle
-COLS_MOY_ANNUELLE = ["recette_BR_moy_mois", "recette_BR_moy_jour", "sejour_supp", "sejour_valo_supp"]
-
+COLS_MOY_ANNUELLE = ["recette_BR_moy_mois"]
 
 def load_annee_precedente(uploaded_zip):
     """
-    Parse un ZIP contenant tous les dossiers mois d'une année passée
-    (sans CSV de jours valo — on ne calcule que les colonnes disponibles).
-    Retourne un dict {"recette_BR_moy_mois": x, "recette_BR_moy_jour": x,
-                      "sejour_supp": x, "sejour_valo_supp": x}
-    avec la moyenne mensuelle de chaque colonne sur l'année.
+    Parse un ZIP contenant tous les dossiers mois d'une année passée.
+    Retourne un dict {"recette_BR_moy_mois": x}
+    avec la moyenne mensuelle sur l'année.
     """
     tmp      = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
