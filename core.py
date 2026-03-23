@@ -477,6 +477,120 @@ def recalculer_derives(brut_df):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  MOYENNES ANNÉE PRÉCÉDENTE
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Colonnes pour lesquelles on calcule une moyenne annuelle
+COLS_MOY_ANNUELLE = ["recette_BR_moy_mois", "recette_BR_moy_jour", "sejour_supp", "sejour_valo_supp"]
+
+
+def load_annee_precedente(uploaded_zip):
+    """
+    Parse un ZIP contenant tous les dossiers mois d'une année passée
+    (sans CSV de jours valo — on ne calcule que les colonnes disponibles).
+    Retourne un dict {"recette_BR_moy_mois": x, "recette_BR_moy_jour": x,
+                      "sejour_supp": x, "sejour_valo_supp": x}
+    avec la moyenne mensuelle de chaque colonne sur l'année.
+    """
+    tmp      = tempfile.TemporaryDirectory()
+    tmp_path = Path(tmp.name)
+
+    if hasattr(uploaded_zip, "read"):
+        with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
+            zf.extractall(tmp_path)
+    else:
+        with zipfile.ZipFile(uploaded_zip, "r") as zf:
+            zf.extractall(tmp_path)
+
+    def extract_month(folder_name):
+        match = re.search(r"(202\d)_M(\d+)$", folder_name)
+        if match:
+            return f"{match.group(1)}_M{match.group(2)}"
+        match = re.search(r"M(\d+)$", folder_name)
+        if match:
+            return f"2025_M{match.group(1)}"
+        return None
+
+    def month_key(m):
+        year, month = m.split("_M")
+        return (int(year), int(month))
+
+    month_dirs_dict = {}
+    for p in tmp_path.rglob("*"):
+        if not p.is_dir() or "__MACOSX" in str(p):
+            continue
+        m = extract_month(p.name)
+        if m:
+            month_dirs_dict[m] = p
+
+    if not month_dirs_dict:
+        raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
+
+    data = {}
+    for month in sorted(month_dirs_dict.keys(), key=month_key):
+        folder     = month_dirs_dict[month]
+        html_files = list(folder.glob("*.html"))
+        raev = next((f for f in html_files if "raev" in f.name), None)
+        sv   = next((f for f in html_files if "sv"   in f.name), None)
+        if not raev or not sv:
+            continue
+        try:
+            data[month] = {"raev": pd.read_html(raev)[1], "sv": pd.read_html(sv)[0]}
+        except Exception:
+            continue
+
+    if not data:
+        raise ValueError("❌ Aucun mois exploitable")
+
+    rows = []
+    for curr_mois in sorted(data.keys(), key=month_key):
+        curr2        = data[curr_mois]["sv"]
+        curr2        = curr2.iloc[[0, 11]].copy()
+        col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
+        col_htp_br   = [c for c in curr2.columns if "HTP"   in c and "Montant BR" in c][0]
+        curr2        = curr2.rename(columns={
+            col_ssrha_br: "SSRHA en HC - Montant BR",
+            col_htp_br:   "Journées en HTP - Montant BR",
+        })
+        for col in ["SSRHA en HC - Montant BR", "Journées en HTP - Montant BR"]:
+            curr2[col] = pd.to_numeric(
+                curr2[col].astype(str).str.replace(" ", "", regex=False).str.replace(",", ".", regex=False),
+                errors="coerce",
+            )
+        curr2["Mois"] = curr_mois
+        df_month = curr2.pivot(index="Mois", columns="Type d'activité")
+        df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
+        df_month.columns = [
+            "effectif_transmis_HC", "effectif_valorise_HC",
+            "montantBR_transmis_HC", "montantBR_valorise_HC",
+            "effectif_transmis_HTP", "effectif_valorise_HTP",
+            "montantBR_transmis_HTP", "montantBR_valorise_HTP",
+            "montantAM_transmis_HC", "montantAM_valorise_HC",
+        ]
+        rows.append(df_month)
+
+    if not rows:
+        raise ValueError("❌ Aucun mois valide")
+
+    df = pd.concat(rows).reset_index()
+
+    # Calcul des colonnes dérivées nécessaires (sans recette_BR_moy_jour — pas de jours valo)
+    df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
+    df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
+    df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
+    df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
+
+    # Moyennes mensuelles
+    moyennes = {}
+    for col in ["recette_BR_moy_mois", "sejour_supp", "sejour_valo_supp"]:
+        moyennes[col] = float(df[col].mean())
+    # recette_BR_moy_jour : non calculable sans jours valo → None
+    moyennes["recette_BR_moy_jour"] = None
+
+    return moyennes
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  FONCTIONS GRAPHIQUES
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -538,7 +652,7 @@ def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
 
-def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}"):
+def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}", moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
     y_vals = evol_df[col].reset_index(drop=True)
     ax.plot(x_vals, y_vals, linewidth=2.5, color=BLEU,
@@ -549,6 +663,9 @@ def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}"):
     if objectif is not None:
         ax.axhline(objectif, color=ORANGE, linestyle="--", linewidth=1.5,
                    label=f"Objectif mensuel ({objectif:,.0f})")
+    if moy_annuelle is not None:
+        ax.axhline(moy_annuelle, color=VIOLET, linestyle="--", linewidth=1.5,
+                   label=f"Moy. année préc. ({moy_annuelle:,.0f})")
     ax.set_title("", pad=0)
     ax.legend(fontsize=12, framealpha=0.9, loc="best")
     _style_ax(ax)
@@ -584,7 +701,7 @@ def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
     style_xticklabels(ax, x_vals, y_vals)
 
 
-def make_ax_multi(ax, plots, theme_title, evol_df):
+def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
@@ -592,6 +709,10 @@ def make_ax_multi(ax, plots, theme_title, evol_df):
                 marker="o", markersize=5, markerfacecolor="white",
                 markeredgewidth=2, label=label)
         annoter_tous_les_points(ax, x_vals, y_vals, couleur=COLORS[i % len(COLORS)])
+        if moy_annuelle is not None and col in moy_annuelle and moy_annuelle[col] is not None:
+            ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
+                       linestyle=":", linewidth=1.5,
+                       label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
     ax.set_title("", pad=0)
     ax.legend(fontsize=12, framealpha=0.9, loc="best")
     _style_ax(ax)
@@ -875,7 +996,8 @@ def page_synthese(evol_df) -> plt.Figure:
 
 def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
                           evol_df, page_num: int, NOM_ETAB: str,
-                          PERIODE: str, custom_comments=None) -> None:
+                          PERIODE: str, custom_comments=None,
+                          moy_annuelle=None) -> None:
     """
     Construit une page graphique sur la figure `fig` déjà créée,
     en utilisant le template Canva si disponible.
@@ -936,7 +1058,7 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
             [graph_left, graph_bottom, graph_width, graph_height],
             zorder=3,
         )
-        make_ax_multi(ax_g, plots, theme, evol_df)
+        make_ax_multi(ax_g, plots, theme, evol_df, moy_annuelle=moy_annuelle)
     else:
         hspace = 0.05
         h_plot = graph_height / n
@@ -950,7 +1072,8 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
             if config["type"] == "bar":
                 make_ax_bar(ax_g, col, titre, evol_df)
             elif config["type"] == "single_hlines":
-                make_ax_hlines(ax_g, col, titre, config["objectif"][i], evol_df)
+                moy = moy_annuelle.get(col) if moy_annuelle else None
+                make_ax_hlines(ax_g, col, titre, config["objectif"][i], evol_df, moy_annuelle=moy)
             else:
                 make_ax(ax_g, col, titre, evol_df)
 
@@ -1042,8 +1165,10 @@ def generate_comment(col, titre, evol_df):
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generate_all_figures(evol_df):
-    """Retourne une liste de (theme, fig, plots) pour affichage Streamlit."""
+def generate_all_figures(evol_df, moy_annuelle=None):
+    """Retourne une liste de (theme, fig, plots) pour affichage Streamlit.
+    moy_annuelle : dict optionnel {"col": valeur} issu de load_annee_precedente().
+    """
     figures = []
     for theme, config in THEMES.items():
         plots = config["plots"]
@@ -1058,10 +1183,11 @@ def generate_all_figures(evol_df):
             gs  = GridSpec(len(plots), 1, figure=fig)
             for i, (col, titre) in enumerate(plots):
                 ax = fig.add_subplot(gs[i])
-                make_ax_hlines(ax, col, titre, config["objectif"][i], evol_df)
+                moy = moy_annuelle.get(col) if moy_annuelle else None
+                make_ax_hlines(ax, col, titre, config["objectif"][i], evol_df, moy_annuelle=moy)
         elif config["type"] == "multi":
             fig, ax = plt.subplots(figsize=(8, 6))
-            make_ax_multi(ax, plots, theme, evol_df)
+            make_ax_multi(ax, plots, theme, evol_df, moy_annuelle=moy_annuelle)
         else:
             fig = plt.figure(figsize=(8, 6))
             gs  = GridSpec(len(plots), 1, figure=fig)
@@ -1076,7 +1202,7 @@ def generate_all_figures(evol_df):
 #  GÉNÉRATION DU PDF
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
+def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None, moy_annuelle=None):
     """
     Génère le PDF et le retourne sous forme de bytes (pour st.download_button).
     """
@@ -1116,6 +1242,7 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None):
             _build_page_graphique(
                 fig, theme, config, evol_df,
                 page_num, NOM_ETAB, PERIODE, custom_comments,
+                moy_annuelle=moy_annuelle,
             )
             pdf.savefig(fig, bbox_inches="tight")
             plt.close(fig)
