@@ -35,14 +35,14 @@ AUTEUR  = "SOLIMED"
 SERVICE = "Rapport évolution mensuelle SSR"
 
 OBJECTIFS = {
-    "recette_AM_moy_mois": 392_400,
-    "recette_BR_moy_mois": 360_000,
+    "recette_AM_mois": 392_400,
+    "recette_BR_mois": 360_000,
 }
 
 KPI_CONFIG = [
     ("taux_valorisation_HC",  "Taux de valorisation HC",          "{:.1f} %",   None),
-    ("recette_BR_moy_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
-    ("recette_AM_moy_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_moy_mois"),
+    ("recette_BR_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
+    ("recette_AM_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_moy_mois"),
     ("recette_BR_moy_sej",    "Recette brute par séjour",          "{:,.0f} €",  None),
     ("recette_BR_moy_jour",   "Recette brute par jour",   "{:,.0f} €",  None),
     ("effectif_transmis_HC",  "Séjours transmis HC",               "{:.0f}",     None),
@@ -288,10 +288,7 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df["sejour_supp"]          = evol_df["effectif_transmis_HC"].diff()
     evol_df["sejour_valo_supp"]     = evol_df["effectif_valorise_HC"].diff()
     evol_df["jour_valo_supp"]       = evol_df["jour_valo_HC"].diff()
-    evol_df["recette_BR_moy_mois"]  = evol_df["montantBR_valorise_HC"].diff()
-    evol_df["recette_AM_moy_mois"]  = evol_df["montantAM_valorise_HC"].diff()
-    evol_df.loc[evol_df.index[0], "recette_BR_moy_mois"] = evol_df["montantBR_valorise_HC"].iloc[0]
-    evol_df.loc[evol_df.index[0], "recette_AM_moy_mois"] = evol_df["montantAM_valorise_HC"].iloc[0]
+    evol_df.loc[evol_df.index[0], "taux_valorisation_HC"] = 0
     evol_df = evol_df.reset_index()
     evol_df["jour_tot_supp"] = 0
 
@@ -467,8 +464,12 @@ def recalculer_derives(brut_df):
     df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
     df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
     df["jour_valo_supp"]      = df["jour_valo_HC"].diff()
+    df["recette_BR_mois"]  = diff(df["montantBR_valorise_HC"])
+    df["recette_AM_mois"]  = diff(df["montantAM_valorise_HC"])
     # Premier mois : pas de M-1, on reprend la valeur brute (comme load_data)
-    df.loc[df.index[0], "ecart_valo"] = df["montantBR_valorise_HC"].iloc[0]
+    df.loc[df.index[0], "ecart_valo"] = 0
+    df.loc[df.index[0], "recette_BR_mois"] = df["montantBR_valorise_HC"].iloc[0]
+    df.loc[df.index[0], "recette_AM_mois"] = df["montantAM_valorise_HC"].iloc[0]
     df["jour_tot_supp"] = 0
     return df
 
@@ -570,7 +571,7 @@ def load_annee_precedente(uploaded_zip):
 
     # Moyenne réelle des recettes mensuelles
     moyennes = {}
-    moyennes["recette_BR_moy_mois"] = float(df["montantBR_valorise_HC"].mean())
+    moyennes["recette_BR_moy_sej"] = float(df["recette_BR_moy_sej"].mean())
 
     return moyennes
 
