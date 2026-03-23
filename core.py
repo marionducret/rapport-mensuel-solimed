@@ -464,8 +464,8 @@ def recalculer_derives(brut_df):
     df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
     df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
     df["jour_valo_supp"]      = df["jour_valo_HC"].diff()
-    df["recette_BR_mois"]  = diff(df["montantBR_valorise_HC"])
-    df["recette_AM_mois"]  = diff(df["montantAM_valorise_HC"])
+    df["recette_BR_mois"]     = df["montantBR_valorise_HC"].diff()
+    df["recette_AM_mois"]     = df["montantAM_valorise_HC"].diff()
     # Premier mois : pas de M-1, on reprend la valeur brute (comme load_data)
     df.loc[df.index[0], "ecart_valo"] = 0
     df.loc[df.index[0], "recette_BR_mois"] = df["montantBR_valorise_HC"].iloc[0]
