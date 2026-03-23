@@ -73,7 +73,7 @@ THEMES = {
     },
     "Recette brute par séjour": {
         "type": "single_hlines",
-        "objectif": [OBJECTIFS["recette_BR_moy_sej"]],
+        "objectif": [None],
         "plots": [
             ("recette_BR_moy_sej", "Recette brute par séjour"),
         ],
