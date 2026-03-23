@@ -115,7 +115,7 @@ else:
     st.info(f"📭 Aucun historique pour **{NOM_ETAB}** — premier chargement.")
 
 if moy_annuelle is not None:
-    st.info("📊 Moyennes année précédente chargées depuis GitHub.")
+    st.info("📊 Moyenne année précédente chargée depuis GitHub.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION OPTIONNELLE — MOYENNES ANNÉE PRÉCÉDENTE
@@ -142,19 +142,15 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
                     moy_annuelle = nouvelles_moy
                     recuperer_moy_annuelle.clear()
                     st.success(
-                        f"✅ Moyennes sauvegardées : "
+                        f"✅ Moyenne sauvegardée : "
                         f"recette_BR_mois={nouvelles_moy['recette_BR_moy_mois']:,.0f} € · "
-                        f"sejour_supp={nouvelles_moy['sejour_supp']:,.1f} · "
-                        f"sejour_valo_supp={nouvelles_moy['sejour_valo_supp']:,.1f}"
                     )
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
     elif moy_annuelle is not None:
         st.success(
-            f"✅ Moyennes déjà enregistrées : "
-            f"recette_BR_mois={moy_annuelle['recette_BR_moy_mois']:,.0f} € · "
-            f"sejour_supp={moy_annuelle['sejour_supp']:,.1f} · "
-            f"sejour_valo_supp={moy_annuelle['sejour_valo_supp']:,.1f}"
+            f"✅ Moyenne déjà enregistrée : "
+            f"recette_BR_mois={moy_annuelle['recette_BR_moy_mois']:,.0f} € · 
         )
 
 # ══════════════════════════════════════════════════════════════════════════════
