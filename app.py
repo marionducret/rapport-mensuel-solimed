@@ -150,7 +150,7 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
     elif moy_annuelle is not None:
         st.success(
             f"✅ Moyenne déjà enregistrée : "
-            f"recette_BR_mois={moy_annuelle['recette_BR_moy_mois']:,.0f} € · "
+            f"recette_BR_mois={moy_annuelle['recette_BR_mois']:,.0f} € · "
         )
 
 # ══════════════════════════════════════════════════════════════════════════════
