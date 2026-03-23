@@ -41,8 +41,8 @@ OBJECTIFS = {
 
 KPI_CONFIG = [
     ("taux_valorisation_HC",  "Taux de valorisation HC",          "{:.1f} %",   None),
-    ("recette_BR_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
-    ("recette_AM_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_moy_mois"),
+    ("recette_BR_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_mois"),
+    ("recette_AM_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_mois"),
     ("recette_BR_moy_sej",    "Recette brute par séjour",          "{:,.0f} €",  None),
     ("recette_BR_moy_jour",   "Recette brute par jour",   "{:,.0f} €",  None),
     ("effectif_transmis_HC",  "Séjours transmis HC",               "{:.0f}",     None),
@@ -479,12 +479,12 @@ def recalculer_derives(brut_df):
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Colonnes pour lesquelles on calcule une moyenne annuelle
-COLS_MOY_ANNUELLE = ["recette_BR_moy_mois"]
+COLS_MOY_ANNUELLE = ["recette_BR_moy_sej"]
 
 def load_annee_precedente(uploaded_zip):
     """
     Parse un ZIP contenant tous les dossiers mois d'une année passée.
-    Retourne un dict {"recette_BR_moy_mois": x}
+    Retourne un dict {"recette_BR_moy_sej": x}
     avec la moyenne mensuelle sur l'année.
     """
     tmp      = tempfile.TemporaryDirectory()
@@ -1201,10 +1201,10 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None, moy_annuelle=
         dernier = evol_df.iloc[-1]
         avant_dernier = evol_df.iloc[-2] if len(evol_df) > 1 else None
         try:
-            val_br = dernier["recette_BR_moy_mois"]
+            val_br = dernier["recette_BR_mois"]
             val_str = f"{val_br:,.0f} €"
             if avant_dernier is not None:
-                delta = val_br - avant_dernier["recette_BR_moy_mois"]
+                delta = val_br - avant_dernier["recette_BR_mois"]
                 evo_str = f"{'▲' if delta >= 0 else '▼'} {delta:+,.0f} €"
             else:
                 evo_str = ""
