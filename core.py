@@ -373,12 +373,11 @@ def load_data_brut(uploaded_zip, uploaded_csv):
             month_dirs_dict[m] = p
 
     if not month_dirs_dict:
-        # Fallback : fichiers à la racine du ZIP, on détecte le mois depuis les noms de fichiers
+        # Fallback : fichiers à la racine du ZIP, détection depuis les noms de fichiers
         for f in tmp_path.glob("*.html"):
-            match = re.search(r"\.M(\d+)\.", f.name)
+            match = re.search(r"\.(202\d)\.(\d+)\.", f.name)
             if match:
-                m = f"{match.group(1)}_M{match.group(2)}"
-                month_dirs_dict[m] = tmp_path
+                month_dirs_dict[f"{match.group(1)}_M{match.group(2)}"] = tmp_path
                 break
 
     if not month_dirs_dict:
