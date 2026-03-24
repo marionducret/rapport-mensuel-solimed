@@ -35,14 +35,14 @@ AUTEUR  = "SOLIMED"
 SERVICE = "Rapport évolution mensuelle SSR"
 
 OBJECTIFS = {
-    "recette_AM_mois": 392_400,
-    "recette_BR_mois": 360_000,
+    "recette_AM_moy_mois": 392_400,
+    "recette_BR_moy_mois": 360_000,
 }
 
 KPI_CONFIG = [
     ("taux_valorisation_HC",  "Taux de valorisation HC",          "{:.1f} %",   None),
-    ("recette_BR_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_mois"),
-    ("recette_AM_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_mois"),
+    ("recette_BR_moy_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
+    ("recette_AM_moy_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_moy_mois"),
     ("recette_BR_moy_sej",    "Recette brute par séjour",          "{:,.0f} €",  None),
     ("recette_BR_moy_jour",   "Recette brute par jour",   "{:,.0f} €",  None),
     ("effectif_transmis_HC",  "Séjours transmis HC",               "{:.0f}",     None),
@@ -71,11 +71,11 @@ THEMES = {
             ("recette_BR_moy_jour", "Recette brute journalière"),
         ],
     },
-    "Recette brute par séjour": {
+    "Recette brute mensuelle": {
         "type": "single_hlines",
-        "objectif": [None],
+        "objectif": [OBJECTIFS["recette_BR_moy_mois"]],
         "plots": [
-            ("recette_BR_moy_sej", "Recette brute par séjour"),
+            ("recette_BR_moy_mois", "Recette brute mensuelle"),
         ],
     },
     "Activité : Séjours": {
@@ -288,7 +288,10 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df["sejour_supp"]          = evol_df["effectif_transmis_HC"].diff()
     evol_df["sejour_valo_supp"]     = evol_df["effectif_valorise_HC"].diff()
     evol_df["jour_valo_supp"]       = evol_df["jour_valo_HC"].diff()
-    evol_df.loc[evol_df.index[0], "taux_valorisation_HC"] = 0
+    evol_df["recette_BR_moy_mois"]  = evol_df["montantBR_valorise_HC"].diff()
+    evol_df["recette_AM_moy_mois"]  = evol_df["montantAM_valorise_HC"].diff()
+    evol_df.loc[evol_df.index[0], "recette_BR_moy_mois"] = evol_df["montantBR_valorise_HC"].iloc[0]
+    evol_df.loc[evol_df.index[0], "recette_AM_moy_mois"] = evol_df["montantAM_valorise_HC"].iloc[0]
     evol_df = evol_df.reset_index()
     evol_df["jour_tot_supp"] = 0
 
@@ -368,6 +371,15 @@ def load_data_brut(uploaded_zip, uploaded_csv):
         m = extract_month(p.name)
         if m:
             month_dirs_dict[m] = p
+
+    if not month_dirs_dict:
+        # Fallback : fichiers à la racine du ZIP, on détecte le mois depuis les noms de fichiers
+        for f in tmp_path.glob("*.html"):
+            match = re.search(r"\.M(\d+)\.", f.name)
+            if match:
+                m = f"{match.group(1)}_M{match.group(2)}"
+                month_dirs_dict[m] = tmp_path
+                break
 
     if not month_dirs_dict:
         raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
@@ -464,11 +476,11 @@ def recalculer_derives(brut_df):
     df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
     df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
     df["jour_valo_supp"]      = df["jour_valo_HC"].diff()
-    df["recette_BR_mois"]     = df["montantBR_valorise_HC"].diff()
-    df["recette_AM_mois"]     = df["montantAM_valorise_HC"].diff()
+    df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
+    df["recette_AM_moy_mois"] = df["montantAM_valorise_HC"].diff()
     # Premier mois : pas de M-1, on reprend la valeur brute (comme load_data)
-    df.loc[df.index[0], "recette_BR_mois"] = df["montantBR_valorise_HC"].iloc[0]
-    df.loc[df.index[0], "recette_AM_mois"] = df["montantAM_valorise_HC"].iloc[0]
+    df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
+    df.loc[df.index[0], "recette_AM_moy_mois"] = df["montantAM_valorise_HC"].iloc[0]
     df["jour_tot_supp"] = 0
     return df
 
@@ -478,13 +490,16 @@ def recalculer_derives(brut_df):
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Colonnes pour lesquelles on calcule une moyenne annuelle
-COLS_MOY_ANNUELLE = ["recette_BR_moy_sej"]
+COLS_MOY_ANNUELLE = ["recette_BR_moy_mois", "recette_BR_moy_jour", "sejour_supp", "sejour_valo_supp"]
+
 
 def load_annee_precedente(uploaded_zip):
     """
-    Parse un ZIP contenant tous les dossiers mois d'une année passée.
-    Retourne un dict {"recette_BR_moy_sej": x}
-    avec la moyenne sur l'année.
+    Parse un ZIP contenant tous les dossiers mois d'une année passée
+    (sans CSV de jours valo — on ne calcule que les colonnes disponibles).
+    Retourne un dict {"recette_BR_moy_mois": x, "recette_BR_moy_jour": x,
+                      "sejour_supp": x, "sejour_valo_supp": x}
+    avec la moyenne mensuelle de chaque colonne sur l'année.
     """
     tmp      = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
@@ -561,7 +576,6 @@ def load_annee_precedente(uploaded_zip):
             "effectif_transmis_HTP", "effectif_valorise_HTP",
             "montantBR_transmis_HTP", "montantBR_valorise_HTP",
         ]
-        df_month['recette_BR_moy_sej'] = df_month['montantBR_valorise_HC']/df_month['effectif_valorise_HC']
         rows.append(df_month)
 
     if not rows:
@@ -569,9 +583,18 @@ def load_annee_precedente(uploaded_zip):
 
     df = pd.concat(rows).reset_index()
 
-    # Moyenne réelle des recettes mensuelles
+    # Calcul des colonnes dérivées nécessaires (sans recette_BR_moy_jour — pas de jours valo)
+    df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
+    df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
+    df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
+    df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
+
+    # Moyennes mensuelles
     moyennes = {}
-    moyennes["recette_BR_moy_sej"] = float(df["recette_BR_moy_sej"].mean())
+    for col in ["recette_BR_moy_mois", "sejour_supp", "sejour_valo_supp"]:
+        moyennes[col] = float(df[col].mean())
+    # recette_BR_moy_jour : non calculable sans jours valo → None
+    moyennes["recette_BR_moy_jour"] = None
 
     return moyennes
 
@@ -1201,10 +1224,10 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None, moy_annuelle=
         dernier = evol_df.iloc[-1]
         avant_dernier = evol_df.iloc[-2] if len(evol_df) > 1 else None
         try:
-            val_br = dernier["recette_BR_mois"]
+            val_br = dernier["recette_BR_moy_mois"]
             val_str = f"{val_br:,.0f} €"
             if avant_dernier is not None:
-                delta = val_br - avant_dernier["recette_BR_mois"]
+                delta = val_br - avant_dernier["recette_BR_moy_mois"]
                 evo_str = f"{'▲' if delta >= 0 else '▼'} {delta:+,.0f} €"
             else:
                 evo_str = ""
