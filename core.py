@@ -71,11 +71,11 @@ THEMES = {
             ("recette_BR_moy_jour", "Recette brute journalière"),
         ],
     },
-    "Recette brute mensuelle": {
+    "Recette brute par séjour": {
         "type": "single_hlines",
-        "objectif": [OBJECTIFS["recette_BR_moy_mois"]],
+        "objectif": [None],
         "plots": [
-            ("recette_BR_moy_mois", "Recette brute mensuelle"),
+            ("recette_BR_moy_sej", "Recette brute par séjour"),
         ],
     },
     "Activité : Séjours": {
@@ -488,10 +488,6 @@ def recalculer_derives(brut_df):
 #  MOYENNES ANNÉE PRÉCÉDENTE
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Colonnes pour lesquelles on calcule une moyenne annuelle
-COLS_MOY_ANNUELLE = ["recette_BR_moy_mois", "recette_BR_moy_jour", "sejour_supp", "sejour_valo_supp"]
-
-
 def load_annee_precedente(uploaded_zip):
     """
     Parse un ZIP contenant tous les dossiers mois d'une année passée
@@ -583,17 +579,11 @@ def load_annee_precedente(uploaded_zip):
     df = pd.concat(rows).reset_index()
 
     # Calcul des colonnes dérivées nécessaires (sans recette_BR_moy_jour — pas de jours valo)
-    df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
-    df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
-    df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
-    df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
+    df["recette_BR_moy_sej"] = df["montantBR_valorise_HC"]/df["effectif_valorise_HC"]
 
     # Moyennes mensuelles
     moyennes = {}
-    for col in ["recette_BR_moy_mois", "sejour_supp", "sejour_valo_supp"]:
-        moyennes[col] = float(df[col].mean())
-    # recette_BR_moy_jour : non calculable sans jours valo → None
-    moyennes["recette_BR_moy_jour"] = None
+    moyennes[recette_BR_moy_sej] = float(df[col].mean())
 
     return moyennes
 
