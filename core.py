@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec
 import matplotlib.backends.backend_pdf as pdf_backend
-from matplotlib.image import imread
 from pathlib import Path
 from datetime import datetime
 import numpy as np
@@ -492,6 +491,7 @@ def load_annee_precedente(uploaded_zip):
     """
     Parse un ZIP contenant tous les dossiers mois d'une année passée
     (sans CSV de jours valo — on ne calcule que les colonnes disponibles).
+    Debug : uploaded_zip = '/Users/marionducret/Desktop/SOLIMED/Rapport évolution mensuelle/Ceyrat/Ceyrat.zip'
     """
     tmp      = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
@@ -550,8 +550,8 @@ def load_annee_precedente(uploaded_zip):
         curr2        = curr2.rename(columns={
             col_ssrha_br: "Séjour en HC - Montant BR"
         })
-        curr2["SSRHA en HC - Montant BR"] = pd.to_numeric(
-            curr2["SSRHA en HC - Montant BR"].astype(str).str.replace(" ", "", regex=False).str.replace(",", ".", regex=False),
+        curr2["Séjour en HC - Montant BR"] = pd.to_numeric(
+            curr2["Séjour en HC - Montant BR"].astype(str).str.replace(" ", "", regex=False).str.replace(",", ".", regex=False),
             errors="coerce",
         )
         curr2["Mois"] = curr_mois
@@ -571,7 +571,6 @@ def load_annee_precedente(uploaded_zip):
 
     df = pd.concat(rows).reset_index()
 
-    # Calcul des colonnes dérivées nécessaires (sans recette_BR_moy_jour — pas de jours valo)
     df["recette_BR_moy_sej"] = df["montantBR_valorise_HC"]/df["effectif_valorise_HC"]
 
     # Moyennes mensuelles
