@@ -17,6 +17,8 @@ import re
 import zipfile
 import tempfile
 import io
+import os as _os
+from PIL import Image as _Image
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION CONFIGURATION — tout ce qui est paramétrable est ici
@@ -25,15 +27,16 @@ import io
 OUTPUT_PDF  = "rapport_mensuel.pdf"
 
 # ── Templates Canva ───────────────────────────────────────────────────────────
-# Déposer les PNG exportés depuis Canva dans ./assets/
+# Déposer les PNG exportés depuis Canva dans ./design/
 CANVA_COVER_PATH = "./design/page_garde.png"
-CANVA_PAGE_PATH  = "./design/page_graph.png"
-CANVA_KPI_PATH   = "./design/page_kpi.png"
+CANVA_PAGE_HC_PATH  = "./design/page_graph_HC.png"
+CANVA_PAGE_HTP_PATH   = "./design/page_graph_HTP.png"
 
 AUTEUR = "Dr Nathalie DUCRET"
 DATE_RAPPORT = datetime.today().strftime("%d/%m/%Y")
 SERVICE = "Rapport évolution mensuelle SMR"
 
+#à automatiser
 OBJECTIFS = {
     "recette_AM_moy_mois": 392_400,
     "recette_BR_moy_mois": 360_000,
@@ -44,7 +47,6 @@ KPI_CONFIG = [
     ("recette_BR_moy_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
     ("recette_AM_moy_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_moy_mois"),
     ("recette_BR_moy_sej",    "Recette brute par séjour",          "{:,.0f} €",  None),
-    ("recette_BR_moy_jour",   "Recette brute par jour",   "{:,.0f} €",  None),
     ("effectif_transmis_HC",  "Séjours transmis HC",               "{:.0f}",     None),
 ]
 
@@ -53,48 +55,39 @@ KPI_COULEURS = [
     ("#DCFCE7", "#16A34A"),
     ("#FEF9C3", "#D97706"),
     ("#F3E8FF", "#7C3AED"),
-    ("#FEE2E2", "#E11D48"),
-    ("#F3F4F6", "#6B7280"),
+    ("#FEE2E2", "#E11D48")
 ]
 
 THEMES = {
-    "Valorisation": {
-        "type": "bar",
-        "plots": [
-            ("ecart_valo", "Écart de valorisation avec M-1"),
-        ],
-    },
-    "Recette brute journalière": {
-        "type": "single_hlines",
-        "objectif": [None],
-        "plots": [
-            ("recette_BR_moy_jour", "Recette brute journalière"),
-        ],
-    },
-    "Recette brute par séjour": {
-        "type": "single_hlines",
-        "objectif": [None],
-        "plots": [
-            ("recette_BR_moy_sej", "Recette brute par séjour"),
-        ],
-    },
-    "Activité : Séjours": {
+    "HC ": {
         "type": "multi",
-        "plots": [
-            ("sejour_supp",       "Séjour supplémentaire par rapport à M-1"),
-            ("sejour_valo_supp",  "Séjour valorisé supplémentaire par rapport à M-1"),
+        "plots":[ [
+            ("ecart_valo", "Écart de valorisation avec M-1")
         ],
+        [
+            ("recette_BR_sej", "Recette brute moyenne par séjour"),
+        ],
+        [
+            ("sej_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
+            ("sej_tot_supp", "Séjour supplémentaire par rapport à M-1"),
+        ]
+        ]
     },
-    "Activité : Jours ": {
+    "HTP ": {
         "type": "multi",
-        "plots": [
-            ("jour_valo_supp",      "Jour valorisé supplémentaire par rapport à M-1"),
+        "plots":[ [
+            ("ecart_valo", "Écart de valorisation avec M-1")
+        ],
+        [
+            ("recette_BR_jour", "Recette brute moyenne par jour"),
+        ],
+        [
+            ("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
             ("jour_tot_supp", "Jour supplémentaire par rapport à M-1"),
-        ],
+        ]
+        ]
     },
 }
-
-MOIS_EXCLUS = []  # à renseigner si certains mois doivent être exclus
 
 COLORS     = ["#2563EB", "#16A34A", "#16A34A", "#E11D48", "#E11D48"]
 BLEU_FONCE = "#1E3A5F"
@@ -117,14 +110,9 @@ ORANGE     = "#F97316"
 
 def _charger_bg(path: str):
     """
-    Charge un PNG/JPEG Canva comme background (robuste au format réel).
+    Charge un PNG Canva comme background
     Cherche dans : chemin absolu, dossier du script, dossier courant, ./design/.
     """
-    import os as _os
-    from pathlib import Path as _Path
-    import numpy as _np
-    from PIL import Image as _Image
-
     candidates = [
         path,
         str(_Path(__file__).parent / path),
@@ -723,44 +711,44 @@ def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
 
 # ── Dimensions calibrées sur les PNG Canva 1414×2000 px ──────────────────────
 #
-# PAGE DE GARDE
-# "Présenté par"  label : mpl_y ≈ 0.654  (le nom établissement s'écrit en-dessous)
-# "Période"       label : mpl_y ≈ 0.579  (la période s'écrit en-dessous)
-# Les labels sont à x ≈ 0.091 (début du texte teal)
-# Valeurs dynamiques décalées légèrement vers le bas du label
-COVER_PRES_LABEL_Y  = 0.654   # y du label "Etablissement"
-COVER_NOM_ETAB_Y    = 0.624   # y de la valeur NOM_ETAB (sous le label)
-COVER_PERI_LABEL_Y  = 0.579   # y du label "Période"
-COVER_PERIODE_Y     = 0.510   # y de la valeur PERIODE
-COVER_DATE_Y        = 0.170  # y de la kpi (dans le bloc teal bas-droite)
-COVER_DATE_X        = 0.650   # x de la kpi (centre du bloc teal)
-COVER_TEXT_X        = 0.091   # x de départ des textes dynamiques
+# PAGE DE GARDE/KPI
+COVER_NOM_ETAB_Y    = 0.624   # y de la valeur NOM_ETAB (sous le "Centre Médical de")
+KPI_BOX_LEFT        = 0.091  # !! à adapter !!
+KPI_BOX_BOTTOM      = 0.091  
+KPI_BOX_WIDTH       = 0.091  
+KPI_BOX_HEIGHT      = 0.091 
 
-# PAGE KPI (calibration pixel-perfect sur le PNG 1414×2000)
-# Grand bloc unique : [left=0.060, bottom=0.057, w=0.880, h=0.794]
-KPI_BOX_LEFT    = 0.060
-KPI_BOX_BOTTOM  = 0.057
-KPI_BOX_WIDTH   = 0.880
-KPI_BOX_HEIGHT  = 0.794
-
-# PAGE GRAPHIQUE (calibration pixel-perfect sur le PNG 1414×2000)
-# Bandeau titre teal : mpl_y centre ≈ 0.944
-PAGE_TITRE_X        = 0.030
-PAGE_TITRE_Y        = 0.944
-# Grand bloc graphique — marges internes de 1.5%
+# PAGE GRAPHIQUE (même disposition pour HC et HTP)
+# Bloc graphique 1 
 PAGE_GRAPH_LEFT     = 0.100
 PAGE_GRAPH_BOTTOM   = 0.375
 PAGE_GRAPH_WIDTH    = 0.840
 PAGE_GRAPH_HEIGHT   = 0.460
-# Petit bloc commentaire — marges internes de 1.5%
+# Bloc graphique 2 
+PAGE_GRAPH2_LEFT     = 0.100
+PAGE_GRAPH2_BOTTOM   = 0.375
+PAGE_GRAPH2_WIDTH    = 0.840
+PAGE_GRAPH2_HEIGHT   = 0.460
+# Bloc graphique 3 
+PAGE_GRAPH3_LEFT     = 0.100
+PAGE_GRAPH3_BOTTOM   = 0.375
+PAGE_GRAPH3_WIDTH    = 0.840
+PAGE_GRAPH3_HEIGHT   = 0.460
+# Bloc commentaire 1 
 PAGE_COMMENT_LEFT   = 0.070
 PAGE_COMMENT_BOTTOM = 0.075
 PAGE_COMMENT_WIDTH  = 0.840
 PAGE_COMMENT_HEIGHT = 0.220
-# Numéro de page
-PAGE_NUM_X          = 0.940
-PAGE_NUM_Y          = 0.032
-
+# Bloc commentaire 2 
+PAGE_COMMENT2_LEFT   = 0.070
+PAGE_COMMENT2_BOTTOM = 0.075
+PAGE_COMMENT2_WIDTH  = 0.840
+PAGE_COMMENT2_HEIGHT = 0.220
+# Bloc commentaire 3
+PAGE_COMMENT3_LEFT   = 0.070
+PAGE_COMMENT3_BOTTOM = 0.075
+PAGE_COMMENT3_WIDTH  = 0.840
+PAGE_COMMENT3_HEIGHT = 0.220
 
 def page_garde(nom_etablissement: str, periode: str,
                date_generation: str | None = None,
@@ -791,113 +779,14 @@ def page_garde(nom_etablissement: str, periode: str,
             fontsize=30, fontweight="bold", color=NOIR,
             zorder=2,
         )
-        # Valeur "Période" — bien en-dessous du label
-        ax.text(
-            COVER_TEXT_X, COVER_PERI_LABEL_Y - 0.07,
-            periode,
-            ha="left", va="center",
-            fontsize=22, fontweight="bold", color=NOIR,
-            zorder=2,
-        )
-        # KPI Recette BR dans le carré teal bas-droite
-        # Carré : left=0.557, bottom=0.047, width=0.398, height=0.259 -> centre x=0.756, y=0.176
-        # On affiche la valeur du dernier mois si disponible via le titre (pas accès à evol_df ici)
-        # → on passe la valeur en paramètre optionnel via cover_kpi
-        if cover_kpi is not None:
-            kpi_cx = 0.756
-            kpi_cy = 0.140
-            ax.text(kpi_cx, kpi_cy + 0.058,
-                    "Recette brute mensuelle",
-                    ha="center", va="center", fontsize=16, fontweight="bold",
-                    color=BLANC, zorder=2)
-            ax.text(kpi_cx, kpi_cy + 0.003,
-                    cover_kpi["valeur"],
-                    ha="center", va="center", fontsize=26,
-                    fontweight="bold", color=BLANC, zorder=2)
-            ax.text(kpi_cx, kpi_cy - 0.052,
-                    cover_kpi["evolution"],
-                    ha="center", va="center", fontsize=16,
-                    fontweight="bold", color=BLANC, zorder=2)
 
-
-    else:
-        # ── Fallback matplotlib ────────────────────────────────────────
-        ax = fig.add_axes([0, 0, 1, 1])
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        ax.axis("off")
-        ax.add_patch(mpatches.FancyBboxPatch(
-            (0, 0.72), 1, 0.28, boxstyle="square,pad=0",
-            linewidth=0, facecolor=BLEU_FONCE,
-        ))
-        ax.axhline(y=0.72, xmin=0, xmax=1, color=BLEU, linewidth=4)
-        ax.text(0.5, 0.88, "RAPPORT D'ÉVOLUTION MENSUELLE",
-                ha="center", va="center", fontsize=28, fontweight="bold", color=BLANC)
-        ax.add_patch(mpatches.FancyBboxPatch(
-            (0.1, 0.50), 0.8, 0.16, boxstyle="round,pad=0.02",
-            linewidth=1.5, edgecolor=BLEU, facecolor=BLEU_CLAIR,
-        ))
-        ax.text(0.5, 0.61, nom_etablissement,
-                ha="center", va="center", fontsize=22, fontweight="bold", color=BLEU_FONCE)
-        ax.text(0.5, 0.50, f"Période analysée : {periode}",
-                ha="center", va="center", fontsize=16, color=GRIS_TEXTE)
-        ax.plot([0.1, 0.9], [0.46, 0.46], color=GRIS_CLAIR, linewidth=1.5)
-        ax.text(0.5, 0.38,
-                "Suivi de la valorisation · Recettes BR/AM · Activité HC/HTP",
-                ha="center", va="center", fontsize=11, color=GRIS_TEXTE, style="italic")
-        for x, couleur, label in [(0.25, BLEU, "Valorisation"),
-                                   (0.50, VERT, "Recettes"),
-                                   (0.75, ROUGE, "Activités")]:
-            ax.add_patch(plt.Circle((x, 0.28), 0.055, color=couleur, zorder=3))
-            ax.text(x, 0.28, label[0], ha="center", va="center",
-                    fontsize=14, fontweight="bold", color=BLANC, zorder=4)
-            ax.text(x, 0.20, label, ha="center", va="center",
-                    fontsize=9, color=GRIS_TEXTE)
-        ax.axhline(y=0.08, xmin=0.05, xmax=0.95, color=GRIS_CLAIR, linewidth=1)
-
-    return fig
-
-def page_synthese(evol_df) -> plt.Figure:
-    dernier       = evol_df.iloc[-1]
-    avant_dernier = evol_df.iloc[-2] if len(evol_df) > 1 else None
-    mois_label    = dernier["Mois"]
-
-    fig = plt.figure(figsize=(12, 17))
-    fig.patch.set_facecolor(BLANC)
-
-    bg = _charger_bg(CANVA_KPI_PATH)
-    if bg is not None:
-        _appliquer_bg(fig, bg)
-
+## KPI à adapter sur page 1 ##
     # ── Axe principal transparent ─────────────────────────────────────
     ax = fig.add_axes([0, 0, 1, 1], zorder=1)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
     ax.patch.set_alpha(0)
-
-    if bg is not None:
-        # Titre dans le bandeau teal Canva
-        ax.text(0.055, PAGE_TITRE_Y,
-                "SYNTHÈSE — INDICATEURS CLÉS",
-                ha="left", va="center",
-                fontsize=20, fontweight="bold", color=BLANC, zorder=2)
-    else:
-        ax.patch.set_alpha(1)
-        ax.add_patch(mpatches.FancyBboxPatch(
-            (0, 0.88), 1, 0.12, boxstyle="square,pad=0",
-            linewidth=0, facecolor=BLEU_FONCE,
-        ))
-        ax.axhline(y=0.88, xmin=0, xmax=1, color=BLEU, linewidth=3)
-        ax.text(0.5, 0.95, "SYNTHÈSE — INDICATEURS CLÉS",
-                ha="center", va="center", fontsize=20, fontweight="bold", color=BLANC)
-
-    # Sous-titre mois (MARCHE PAS)
-    ax.text(0.5, 0.826,
-            f"Dernier mois disponible : {mois_label}",
-            ha="center", va="center", fontsize=12,
-            color=TEAL if bg is not None else BLEU_CLAIR,
-            fontweight="bold", zorder=2)
 
     def fleche_et_couleur(val, ref):
         if ref is None or np.isnan(ref):
@@ -914,11 +803,11 @@ def page_synthese(evol_df) -> plt.Figure:
         return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
 
     # ── Cartes KPI dans le grand bloc Canva ──────────────────────────
-    MARGIN  = 0.018
+    MARGIN  = 0.018 #à tester et définir proprement
     box_l   = KPI_BOX_LEFT   + MARGIN
     box_b   = KPI_BOX_BOTTOM + MARGIN
-    box_w   = KPI_BOX_WIDTH  - 2 * MARGIN
-    box_h   = KPI_BOX_HEIGHT - 2 * MARGIN
+    box_w   = KPI_BOX_WIDTH  - MARGIN
+    box_h   = KPI_BOX_HEIGHT - MARGIN
 
     n_kpi      = len(KPI_CONFIG)
     card_h     = box_h / n_kpi
@@ -988,7 +877,7 @@ def page_synthese(evol_df) -> plt.Figure:
     return fig
 
 
-def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
+def _build_page_graphique_HC(fig: plt.Figure, theme: str, config: dict,
                           evol_df, page_num: int, NOM_ETAB: str,
                           PERIODE: str, custom_comments=None,
                           moy_annuelle=None) -> None:
@@ -1136,6 +1025,121 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
         ha="right", va="center", fontsize=11, color=GRIS_TEXTE, zorder=5,
     )
 
+def _build_page_graphique_HTP(fig: plt.Figure, theme: str, config: dict,
+                          evol_df, page_num: int, NOM_ETAB: str,
+                          PERIODE: str, custom_comments=None,
+                          moy_annuelle=None) -> None:
+    """
+    Construit une page graphique sur la figure `fig` déjà créée,
+    en utilisant le template Canva si disponible.
+    Les graphiques vont dans PAGE_GRAPH_*, les commentaires dans PAGE_COMMENT_*.
+    """
+    bg = _charger_bg(CANVA_PAGE_PATH)
+    plots = config["plots"]
+
+    if bg is not None:
+        _appliquer_bg(fig, bg)
+
+    # ── Zone graphique ────────────────────────────────────────────────
+    n = len(plots)
+    is_multi = config["type"] == "multi"
+
+    # Marges internes pour rester bien dans le cadre Canva
+    MARGIN = 0.012
+    graph_left   = PAGE_GRAPH_LEFT   + MARGIN
+    graph_bottom = PAGE_GRAPH_BOTTOM + MARGIN
+    graph_width  = PAGE_GRAPH_WIDTH  - 2 * MARGIN
+    graph_height = PAGE_GRAPH_HEIGHT - 2 * MARGIN
+
+    if is_multi:
+        # Un seul axe couvrant toute la zone graphique
+        ax_g = fig.add_axes(
+            [graph_left, graph_bottom, graph_width, graph_height],
+            zorder=3,
+        )
+        make_ax_multi(ax_g, plots, theme, evol_df, moy_annuelle=moy_annuelle)
+    else:
+        hspace = 0.05
+        h_plot = graph_height / n
+        for i, (col, titre) in enumerate(plots):
+            bottom = graph_bottom + (n - 1 - i) * h_plot + hspace / 2
+            height = h_plot - hspace
+            ax_g = fig.add_axes(
+                [graph_left, bottom, graph_width, height],
+                zorder=3,
+            )
+            if config["type"] == "bar":
+                make_ax_bar(ax_g, col, titre, evol_df)
+            elif config["type"] == "single_hlines":
+                moy = moy_annuelle.get(col) if moy_annuelle else None
+                make_ax_hlines(ax_g, col, titre, config["objectif"][i], evol_df, moy_annuelle=moy)
+            else:
+                make_ax(ax_g, col, titre, evol_df)
+
+    # ── Zone commentaire ──────────────────────────────────────────────
+    comment_texts = []
+    for col, titre in plots:
+        if custom_comments and (theme, col) in custom_comments:
+            comment_texts.append(custom_comments[(theme, col)])
+        else:
+            comment_texts.append(generate_comment(col, titre, evol_df))
+    full_comment = "\n\n".join(comment_texts)
+
+    CMARGIN = 0.005
+    ax_c = fig.add_axes(
+        [PAGE_COMMENT_LEFT + CMARGIN,
+         PAGE_COMMENT_BOTTOM + CMARGIN,
+         PAGE_COMMENT_WIDTH  - 2 * CMARGIN,
+         PAGE_COMMENT_HEIGHT - 2 * CMARGIN],
+        zorder=3,
+    )
+    ax_c.axis("off")
+    ax_c.patch.set_facecolor("#F9FAFB")
+    ax_c.patch.set_alpha(0.95)
+
+    if bg is None:
+        ax_c.add_patch(mpatches.FancyBboxPatch(
+            (0, 0), 1, 1,
+            boxstyle="round,pad=0.02",
+            facecolor="#F9FAFB", edgecolor="#E5E7EB",
+        ))
+
+    # Formater le texte avec textwrap pour éviter débordements
+    import textwrap as _tw
+    max_chars_per_line = 85
+    wrapped_lines = []
+    for para in full_comment.split("\n\n"):
+        lines = _tw.wrap(para, width=max_chars_per_line)
+        wrapped_lines.extend(lines)
+        wrapped_lines.append("")
+    # Max 6 lignes de contenu
+    content_lines = [l for l in wrapped_lines if l][:6]
+    display_comment = "\n".join(content_lines)
+    ax_c.text(
+        0.01, 0.80,
+        "Analyse :\n\n" + display_comment,
+        fontsize=15, color="#374151", va="top",
+        transform=ax_c.transAxes,
+        linespacing=1.5,
+        clip_on=True,
+    )
+
+    # ── Pied de page ────────────────────────────────────────────────
+    ax_num = fig.add_axes([0, 0, 1, 1], zorder=4)
+    ax_num.set_xlim(0, 1)
+    ax_num.set_ylim(0, 1)
+    ax_num.axis("off")
+    ax_num.patch.set_alpha(0)
+    ax_num.text(
+        0.03, PAGE_NUM_Y,
+        f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
+        ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=5,
+    )
+    ax_num.text(
+        PAGE_NUM_X, PAGE_NUM_Y,
+        f"Page {page_num}",
+        ha="right", va="center", fontsize=11, color=GRIS_TEXTE, zorder=5,
+    )
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES COMMENTAIRES
@@ -1159,14 +1163,13 @@ def generate_comment(col, titre, evol_df):
         f"avec un minimum de {series.min():,.0f} et un maximum de {series.max():,.0f}."
     )
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
 # ══════════════════════════════════════════════════════════════════════════════
 
 def generate_all_figures(evol_df, moy_annuelle=None):
-    """Retourne une liste de (theme, fig, plots) pour affichage Streamlit.
-    moy_annuelle : dict optionnel {"col": valeur} issu de load_annee_precedente().
+    """
+    Retourne une liste de (theme, fig, plots) pour affichage Streamlit.
     """
     figures = []
     for theme, config in THEMES.items():
