@@ -81,7 +81,7 @@ def month_key(m):
 #  NOM ÉTABLISSEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
-NOM_ETAB = st.text_input("🏥 Nom de l'établissement", placeholder="Attention à toujours bien mettre le même nom ! (Exemple : LB-Monchy)")
+NOM_ETAB = st.text_input("🏥 Nom de l'établissement", placeholder="Attention à TOUJOURS bien mettre le même nom ! (Exemple : LB-Monchy)")
 if not NOM_ETAB:
     st.warning("Veuillez saisir le nom de l'établissement.")
     st.stop()

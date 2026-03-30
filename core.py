@@ -544,7 +544,7 @@ def load_annee_precedente(uploaded_zip):
 
     rows = []
     for curr_mois in sorted(data.keys(), key=month_key):
-        curr2        = data[curr_mois]
+        curr2        = data[curr_mois]['sv']
         curr2        = curr2.iloc[[0, 11]].copy()
         col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
         curr2        = curr2.rename(columns={
