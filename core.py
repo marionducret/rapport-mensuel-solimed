@@ -30,8 +30,9 @@ CANVA_COVER_PATH = "./design/page_garde.png"
 CANVA_PAGE_PATH  = "./design/page_graph.png"
 CANVA_KPI_PATH   = "./design/page_kpi.png"
 
-AUTEUR  = "SOLIMED"
-SERVICE = "Rapport évolution mensuelle SSR"
+AUTEUR = "Dr Nathalie DUCRET"
+DATE_RAPPORT = datetime.today().strftime("%d/%m/%Y")
+SERVICE = "Rapport évolution mensuelle SMR"
 
 OBJECTIFS = {
     "recette_AM_moy_mois": 392_400,
@@ -977,6 +978,9 @@ def page_synthese(evol_df) -> plt.Figure:
             except: pass
 
     # Numéro de page
+    ax.text(0.03, PAGE_NUM_Y,
+        f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
+        ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=2)
     ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 2",
             ha="right", va="center", fontsize=11,
             fontweight="bold", color=GRIS_TEXTE, zorder=2)
@@ -1115,12 +1119,17 @@ def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
         clip_on=True,
     )
 
-    # ── Numéro de page ────────────────────────────────────────────────
+    # ── Pied de page ────────────────────────────────────────────────
     ax_num = fig.add_axes([0, 0, 1, 1], zorder=4)
     ax_num.set_xlim(0, 1)
     ax_num.set_ylim(0, 1)
     ax_num.axis("off")
     ax_num.patch.set_alpha(0)
+    ax_num.text(
+        0.03, PAGE_NUM_Y,
+        f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
+        ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=5,
+    )
     ax_num.text(
         PAGE_NUM_X, PAGE_NUM_Y,
         f"Page {page_num}",
