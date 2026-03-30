@@ -576,7 +576,7 @@ def load_annee_precedente(uploaded_zip):
 
     # Moyennes mensuelles
     moyennes = {}
-    moyennes["recette_BR_moy_sej"] = float(df[col].mean())
+    moyennes["recette_BR_moy_sej"] = float(df["recette_BR_moy_sej"].mean())
 
     return moyennes
 
