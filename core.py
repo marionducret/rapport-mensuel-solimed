@@ -4,7 +4,7 @@
 CSAR Tool - Génération automatique du rapport PDF mensuel SSR
 Streamlit Cloud version : toutes les données sont chargées via load_data().
 """
-
+#%%
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -18,7 +18,7 @@ import re
 import zipfile
 import tempfile
 import io
-
+#%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION CONFIGURATION — tout ce qui est paramétrable est ici
 # ══════════════════════════════════════════════════════════════════════════════
@@ -110,7 +110,7 @@ NOIR       = "#1A1A1A"
 VIOLET     = "#7C3AED"
 ORANGE     = "#F97316"
 
-
+#%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  UTILITAIRES CANVA
 # ══════════════════════════════════════════════════════════════════════════════
@@ -483,7 +483,7 @@ def recalculer_derives(brut_df):
     df["jour_tot_supp"] = 0
     return df
 
-
+#%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  MOYENNES ANNÉE PRÉCÉDENTE
 # ══════════════════════════════════════════════════════════════════════════════
@@ -492,9 +492,6 @@ def load_annee_precedente(uploaded_zip):
     """
     Parse un ZIP contenant tous les dossiers mois d'une année passée
     (sans CSV de jours valo — on ne calcule que les colonnes disponibles).
-    Retourne un dict {"recette_BR_moy_mois": x, "recette_BR_moy_jour": x,
-                      "sejour_supp": x, "sejour_valo_supp": x}
-    avec la moyenne mensuelle de chaque colonne sur l'année.
     """
     tmp      = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
@@ -534,12 +531,11 @@ def load_annee_precedente(uploaded_zip):
     for month in sorted(month_dirs_dict.keys(), key=month_key):
         folder     = month_dirs_dict[month]
         html_files = list(folder.glob("*.html"))
-        raev = next((f for f in html_files if "raev" in f.name), None)
         sv   = next((f for f in html_files if "sv"   in f.name), None)
-        if not raev or not sv:
+        if not sv:
             continue
         try:
-            data[month] = {"raev": pd.read_html(raev)[1], "sv": pd.read_html(sv)[0]}
+            data[month] = {"sv": pd.read_html(sv)[0]}
         except Exception:
             continue
 
@@ -548,19 +544,16 @@ def load_annee_precedente(uploaded_zip):
 
     rows = []
     for curr_mois in sorted(data.keys(), key=month_key):
-        curr2        = data[curr_mois]["sv"]
+        curr2        = data[curr_mois]
         curr2        = curr2.iloc[[0, 11]].copy()
         col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
-        col_htp_br   = [c for c in curr2.columns if "HTP"   in c and "Montant BR" in c][0]
         curr2        = curr2.rename(columns={
-            col_ssrha_br: "SSRHA en HC - Montant BR",
-            col_htp_br:   "Journées en HTP - Montant BR",
+            col_ssrha_br: "Séjour en HC - Montant BR"
         })
-        for col in ["SSRHA en HC - Montant BR", "Journées en HTP - Montant BR"]:
-            curr2[col] = pd.to_numeric(
-                curr2[col].astype(str).str.replace(" ", "", regex=False).str.replace(",", ".", regex=False),
-                errors="coerce",
-            )
+        curr2["SSRHA en HC - Montant BR"] = pd.to_numeric(
+            curr2["SSRHA en HC - Montant BR"].astype(str).str.replace(" ", "", regex=False).str.replace(",", ".", regex=False),
+            errors="coerce",
+        )
         curr2["Mois"] = curr_mois
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
         df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
@@ -583,7 +576,7 @@ def load_annee_precedente(uploaded_zip):
 
     # Moyennes mensuelles
     moyennes = {}
-    moyennes[recette_BR_moy_sej] = float(df[col].mean())
+    moyennes["recette_BR_moy_sej"] = float(df[col].mean())
 
     return moyennes
 

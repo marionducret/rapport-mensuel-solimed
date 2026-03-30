@@ -1,3 +1,4 @@
+
 import streamlit as st
 import core
 import pandas as pd
@@ -12,6 +13,7 @@ st.title("Générateur de rapport mensuel SSR")
 # ══════════════════════════════════════════════════════════════════════════════
 #  GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 GITHUB_REPO  = st.secrets["GITHUB_REPO"]
@@ -254,3 +256,5 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
         file_name=f"rapport_mensuel_{NOM_ETAB}_{PERIODE.replace(' → ', '_')}.pdf",
         mime="application/pdf",
     )
+
+# %%
