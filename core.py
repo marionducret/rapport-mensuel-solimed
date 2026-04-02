@@ -117,32 +117,22 @@ ORANGE     = "#F97316"
 # ══════════════════════════════════════════════════════════════════════════════
 #  UTILITAIRES CANVA
 # ══════════════════════════════════════════════════════════════════════════════
-# def _charger_bg(path: str):
-#     candidates = [
-#         path,
-#         str(Path(__file__).parent / path),
-#         str(Path(__file__).parent / Path(path).name),
-#         str(Path(os.getcwd()) / path),
-#         str(Path(os.getcwd()) / Path(path).name),
-#         str(Path(os.getcwd()) / "design" / Path(path).name),
-#     ]
-#     for p in candidates:
-#         try:
-#             img = Image.open(p).convert("RGB")
-#             return np.array(img)
-#         except Exception:
-#             continue
-#     return None
-
 def _charger_bg(path: str):
-    # Chemin direct depuis __file__
-    p = Path(__file__).parent / path
-    try:
-        img = Image.open(str(p)).convert("RGB")
-        return np.array(img)
-    except Exception as e:
-        print(f"❌ _charger_bg failed: {e} — path={p}")
-        return None
+    candidates = [
+        path,
+        str(Path(__file__).parent / path),
+        str(Path(__file__).parent / Path(path).name),
+        str(Path(os.getcwd()) / path),
+        str(Path(os.getcwd()) / Path(path).name),
+        str(Path(os.getcwd()) / "design" / Path(path).name),
+    ]
+    for p in candidates:
+        try:
+            img = Image.open(p).convert("RGB")
+            return np.array(img)
+        except Exception:
+            continue
+    return None
 
 def _appliquer_bg(fig: plt.Figure, bg_img) -> None:
     if bg_img is None:

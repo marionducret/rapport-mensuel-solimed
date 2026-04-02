@@ -11,9 +11,6 @@ from pathlib import Path
 st.set_page_config(layout="wide")
 st.title("Générateur de rapport mensuel SSR")
 
-#debug background
-bg = core._charger_bg(core.CANVA_COVER_PATH)
-st.write("bg result:", bg is not None, type(bg))
 # ══════════════════════════════════════════════════════════════════════════════
 #  GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
