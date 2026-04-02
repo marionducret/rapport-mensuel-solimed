@@ -451,7 +451,6 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     brut_df["recette_BR_moy_sej"]  = brut_df["montantBR_valorise_HC"] / brut_df["effectif_valorise_HC"]
     brut_df["recette_BR_moy_jour"] = brut_df["montantBR_valorise_HC"] / brut_df["jour_valo_HC"]
     brut_df["recette_BR_period"] = brut_df["montantBR_valorise_HC"] + brut_df["montantBR_valorise_HTP"]
-    brut_df["recette_AM_period"] = brut_df["montantAM_valorise_HC"] + brut_df["montantAM_valorise_HTP"]
 
     return {"brut_df": brut_df, "_tmp_dir": tmp}
 
