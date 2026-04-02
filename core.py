@@ -19,6 +19,7 @@ import tempfile
 import io
 import os
 from PIL import Image
+import textwrap
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION CONFIGURATION — tout ce qui est paramétrable est ici
