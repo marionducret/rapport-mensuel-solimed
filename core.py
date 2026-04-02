@@ -28,9 +28,9 @@ OUTPUT_PDF  = "rapport_mensuel.pdf"
 
 # ── Templates Canva ───────────────────────────────────────────────────────────
 # Déposer les PNG exportés depuis Canva dans ./design/
-CANVA_COVER_PATH = "./design/page_garde.png"
-CANVA_PAGE_HC_PATH  = "./design/page_graph_HC.png"
-CANVA_PAGE_HTP_PATH   = "./design/page_graph_HTP.png"
+CANVA_COVER_PATH = "design/page_garde.png"
+CANVA_PAGE_HC_PATH  = "design/page_graph_HC.png"
+CANVA_PAGE_HTP_PATH   = "design/page_graph_HTP.png"
 
 AUTEUR = "Dr Nathalie DUCRET"
 DATE_RAPPORT = datetime.today().strftime("%d/%m/%Y")
