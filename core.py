@@ -1128,8 +1128,10 @@ def generate_all_figures(evol_df, moy_annuelle=None):
                 moy = moy_annuelle.get(col) if moy_annuelle else None
                 make_ax_hlines(ax, col, titre, config["objectif"][i], evol_df, moy_annuelle=moy)
         elif config["type"] == "multi":
+            plots_flat = [item for sublist in plots for item in sublist]
             fig, ax = plt.subplots(figsize=(8, 6))
-            make_ax_multi(ax, plots, theme, evol_df, moy_annuelle=moy_annuelle)
+            make_ax_multi(ax, plots_flat, theme, evol_df, moy_annuelle=moy_annuelle)
+            figures.append((theme, fig, plots_flat))
         else:
             fig = plt.figure(figsize=(8, 6))
             gs  = GridSpec(len(plots), 1, figure=fig)
