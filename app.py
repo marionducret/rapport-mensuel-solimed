@@ -86,6 +86,8 @@ if not NOM_ETAB:
     st.warning("Veuillez saisir le nom de l'établissement.")
     st.stop()
 
+NOM_ETAB = f"Centre Médical de {NOM_ETAB}"
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHARGEMENT HISTORIQUE + MOY ANNUELLE DEPUIS GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
@@ -200,7 +202,7 @@ brut_complet = brut_complet.iloc[
 
 evol_df    = core.recalculer_derives(brut_complet)
 mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)
-PERIODE    = f"{mois_tries[0]} → {mois_tries[-1]}"
+PERIODE    = f"{mois_tries[-1]}"
 
 st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
 st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
