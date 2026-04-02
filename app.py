@@ -213,41 +213,28 @@ st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
 #  GRAPHES + COMMENTAIRES
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.subheader("Commentaires et graphiques")
+comments = {}
+figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle)
 
-# ===== FORMULAIRE STREAMLIT =====
-with st.form("form_comments"):
+for theme, graphe_label, fig, plots in figures:
+    st.subheader(f"{theme.strip()} — {graphe_label}")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.pyplot(fig)
+    with col2:
+        for col, titre in plots:
+            auto_comment = core.generate_comment(col, titre, evol_df)
+            edited = st.text_area(titre, value=auto_comment, height=120, key=f"{theme}_{col}")
+            comments[(theme, col)] = edited
+    st.divider()
 
-    comments = {}
-    figures = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle)
+# ══════════════════════════════════════════════════════════════════════════════
+#  GÉNÉRATION PDF + SAUVEGARDE GITHUB
+# ══════════════════════════════════════════════════════════════════════════════
 
-    for theme, graphe_label, fig, plots in figures:
-        st.subheader(f"{theme.strip()} — {graphe_label}")
-        col1, col2 = st.columns([2, 1])
+st.subheader("📤 Export")
 
-        with col1:
-            st.pyplot(fig)
-
-        with col2:
-            for col, titre in plots:
-                auto_comment = core.generate_comment(col, titre, evol_df)
-
-                edited = st.text_area(
-                    label=titre,
-                    value=auto_comment,
-                    height=120,
-                    key=f"{theme}_{col}"
-                )
-
-                comments[(theme, col)] = edited
-
-        st.divider()
-
-    # Bouton du formulaire
-    submit = st.form_submit_button("📄 Générer le PDF et sauvegarder l'historique")
-
-# ===== APRÈS VALIDATION DU FORMULAIRE =====
-if submit:
+if st.button("📄 Générer le PDF et sauvegarder l'historique"):
 
     with st.spinner("Génération du PDF…"):
         pdf_bytes = core.generate_pdf(
@@ -262,15 +249,9 @@ if submit:
     with st.spinner("Sauvegarde de l'historique sur GitHub…"):
         try:
             _, sha_actuel = github_lire_parquet(NOM_ETAB)
-            github_ecrire_parquet(
-                brut_complet,
-                sha_actuel,
-                NOM_ETAB,
-                f"historique: {PERIODE} — {NOM_ETAB}"
-            )
+            github_ecrire_parquet(brut_complet, sha_actuel, NOM_ETAB, f"historique: {PERIODE} — {NOM_ETAB}")
             st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
             recuperer_historique.clear()
-
         except Exception as e:
             st.error(f"❌ Erreur sauvegarde GitHub : {e}")
 
@@ -281,53 +262,3 @@ if submit:
         mime="application/pdf",
     )
 
-# comments = {}
-# figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle)
-
-# for theme, graphe_label, fig, plots in figures:
-#     st.subheader(f"{theme.strip()} — {graphe_label}")
-#     col1, col2 = st.columns([2, 1])
-#     with col1:
-#         st.pyplot(fig)
-#     with col2:
-#         for col, titre in plots:
-#             auto_comment = core.generate_comment(col, titre, evol_df)
-#             edited = st.text_area(titre, value=auto_comment, height=120, key=f"{theme}_{col}")
-#             comments[(theme, col)] = edited
-#     st.divider()
-
-# # ══════════════════════════════════════════════════════════════════════════════
-# #  GÉNÉRATION PDF + SAUVEGARDE GITHUB
-# # ══════════════════════════════════════════════════════════════════════════════
-
-# st.subheader("📤 Export")
-
-# if st.button("📄 Générer le PDF et sauvegarder l'historique"):
-
-#     with st.spinner("Génération du PDF…"):
-#         pdf_bytes = core.generate_pdf(
-#             evol_df=evol_df,
-#             NOM_ETAB=NOM_ETAB,
-#             NOM_ETAB_LAYOUT=NOM_ETAB_LAYOUT,
-#             PERIODE=PERIODE,
-#             custom_comments=comments,
-#             moy_annuelle=moy_annuelle,
-#         )
-
-#     with st.spinner("Sauvegarde de l'historique sur GitHub…"):
-#         try:
-#             _, sha_actuel = github_lire_parquet(NOM_ETAB)
-#             github_ecrire_parquet(brut_complet, sha_actuel, NOM_ETAB, f"historique: {PERIODE} — {NOM_ETAB}")
-#             st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
-#             recuperer_historique.clear()
-#         except Exception as e:
-#             st.error(f"❌ Erreur sauvegarde GitHub : {e}")
-
-#     st.download_button(
-#         label="⬇️ Télécharger le rapport PDF",
-#         data=pdf_bytes,
-#         file_name=f"rapport_mensuel_{NOM_ETAB}_{PERIODE.replace(' → ', '_')}.pdf",
-#         mime="application/pdf",
-#     )
-
-# # %%

@@ -995,7 +995,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
     ax.patch.set_alpha(0.95)
     texts = []
     for col, titre in subplot_plots:
-        key = (theme.strip(), col)
+        key = (theme, col)
         if custom_comments and key in custom_comments:
             texts.append(custom_comments[key])
         else:
@@ -1008,7 +1008,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
 
     ax.text(
         0.01, 0.95,
-        full_text,
+        lignes,
         fontsize=fontsize, 
         color="#374151", 
         va="top",
