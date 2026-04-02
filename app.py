@@ -10,6 +10,12 @@ import requests
 st.set_page_config(layout="wide")
 st.title("Générateur de rapport mensuel SSR")
 
+#debug background
+import os
+from pathlib import Path
+st.write("CWD:", os.getcwd())
+st.write("__file__ parent:", str(Path(core.__file__).parent))
+st.write("Fichiers design:", list((Path(core.__file__).parent / "design").glob("*")))
 # ══════════════════════════════════════════════════════════════════════════════
 #  GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
