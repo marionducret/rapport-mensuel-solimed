@@ -60,23 +60,41 @@ KPI_COULEURS = [
 
 THEMES = {
     "HC ": {
-        "type": "multi",
         "plots": [
-            [("taux_valorisation_HC", "Taux de valorisation"),
-             ("ecart_valo", "Écart de valorisation avec M-1")],
-            [("recette_BR_moy_sej", "Recette brute moyenne par séjour")],
-            [("sejour_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
-             ("sejour_supp", "Séjour supplémentaire par rapport à M-1")],
+            {
+                "type": "bar",
+                "series": [("taux_valorisation_HC", "Taux de valorisation"),
+                           ("ecart_valo", "Écart de valorisation avec M-1")],
+            },
+            {
+                "type": "single_hlines",
+                "objectif": None,
+                "series": [("recette_BR_moy_sej", "Recette brute moyenne par séjour")],
+            },
+            {
+                "type": "multi",
+                "series": [("sejour_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
+                           ("sejour_supp",      "Séjour supplémentaire par rapport à M-1")],
+            },
         ]
     },
     "HTP ": {
-        "type": "multi",
         "plots": [
-            [("taux_valorisation_HTP", "Taux de valorisation"),
-             ("ecart_valo", "Écart de valorisation avec M-1")],
-            [("recette_BR_moy_jour", "Recette brute moyenne par jour")],
-            [("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
-             ("jour_tot_supp", "Jour supplémentaire par rapport à M-1")],
+            {
+                "type": "bar",
+                "series": [("taux_valorisation_HTP", "Taux de valorisation"),
+                           ("ecart_valo",             "Écart de valorisation avec M-1")],
+            },
+            {
+                "type": "single_hlines",
+                "objectif": None,
+                "series": [("recette_BR_moy_jour", "Recette brute moyenne par jour")],
+            },
+            {
+                "type": "multi",
+                "series": [("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
+                           ("jour_tot_supp",  "Jour supplémentaire par rapport à M-1")],
+            },
         ]
     },
 }
@@ -995,23 +1013,13 @@ def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE GRAPHIQUE GÉNÉRIQUE  (HC ou HTP selon le background passé)
 # ══════════════════════════════════════════════════════════════════════════════
-
 def _build_page_graphique(fig, theme, config, evol_df, page_num,
                           NOM_ETAB, PERIODE, canva_path,
                           custom_comments=None, moy_annuelle=None):
-    """
-    Remplit `fig` avec le template Canva (HC ou HTP) et 3 zones graphiques :
-      - plots[0] → bloc haut-gauche  (courbe)
-      - plots[1] → bloc haut-droit   (courbe)
-      - plots[2] → grand bloc bas    (multi-séries)
-    + leurs commentaires dans les blocs gris.
-    """
-    bg    = _charger_bg(canva_path)
-    plots = config["plots"]   # liste de 3 sous-listes
- 
+    bg = _charger_bg(canva_path)
     if bg is not None:
         _appliquer_bg(fig, bg)
- 
+
     # ── Titre bandeau teal ────────────────────────────────────────────
     ax_t = fig.add_axes([0, 0, 1, 1], zorder=2)
     ax_t.set_xlim(0, 1); ax_t.set_ylim(0, 1)
@@ -1029,39 +1037,47 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         ax_t.text(0.03, 0.97, theme.strip().upper(),
                   ha="left", va="center", fontsize=14,
                   fontweight="bold", color=BLANC)
- 
-    # ── Graphique HAUT GAUCHE → plots[0] ─────────────────────────────
+
+    # ── Création des 3 axes graphiques ────────────────────────────────
     ax_gl = fig.add_axes(
         [GRAPH_LEFT_L, GRAPH_LEFT_B, GRAPH_LEFT_W, GRAPH_LEFT_H], zorder=3)
-    make_ax_multi(ax_gl, plots[0], theme, evol_df, moy_annuelle=moy_annuelle)
- 
-    # ── Commentaire petit GAUCHE ──────────────────────────────────────
+    ax_gr = fig.add_axes(
+        [GRAPH_RIGHT_L, GRAPH_RIGHT_B, GRAPH_RIGHT_W, GRAPH_RIGHT_H], zorder=3)
+    ax_gb = fig.add_axes(
+        [GRAPH_BIG_L, GRAPH_BIG_B, GRAPH_BIG_W, GRAPH_BIG_H], zorder=3)
+
+    # ── Création des 3 axes commentaires ─────────────────────────────
     ax_cl = fig.add_axes(
         [COMMENT_SMALL_L_L, COMMENT_SMALL_L_B,
          COMMENT_SMALL_L_W, COMMENT_SMALL_L_H], zorder=3)
-    _draw_comment(ax_cl, plots[0], theme, evol_df, custom_comments)
- 
-    # ── Graphique HAUT DROIT → plots[1] ──────────────────────────────
-    ax_gr = fig.add_axes(
-        [GRAPH_RIGHT_L, GRAPH_RIGHT_B, GRAPH_RIGHT_W, GRAPH_RIGHT_H], zorder=3)
-    make_ax_multi(ax_gr, plots[1], theme, evol_df, moy_annuelle=moy_annuelle)
- 
-    # ── Commentaire petit DROIT ───────────────────────────────────────
     ax_cr = fig.add_axes(
         [COMMENT_SMALL_R_L, COMMENT_SMALL_R_B,
          COMMENT_SMALL_R_W, COMMENT_SMALL_R_H], zorder=3)
-    _draw_comment(ax_cr, plots[1], theme, evol_df, custom_comments)
- 
-    # ── Graphique BAS (large) → plots[2] ─────────────────────────────
-    ax_gb = fig.add_axes(
-        [GRAPH_BIG_L, GRAPH_BIG_B, GRAPH_BIG_W, GRAPH_BIG_H], zorder=3)
-    make_ax_multi(ax_gb, plots[2], theme, evol_df, moy_annuelle=moy_annuelle)
- 
-    # ── Commentaire BAS (large) ───────────────────────────────────────
     ax_cb = fig.add_axes(
         [COMMENT_BIG_L, COMMENT_BIG_B, COMMENT_BIG_W, COMMENT_BIG_H], zorder=3)
-    _draw_comment(ax_cb, plots[2], theme, evol_df, custom_comments)
- 
+
+    graph_axes   = [ax_gl, ax_gr, ax_gb]
+    comment_axes = [ax_cl, ax_cr, ax_cb]
+
+    # ── Dispatch par type pour chaque sous-graphe ─────────────────────
+    for i, subplot in enumerate(config["plots"]):
+        ax     = graph_axes[i]
+        ax_c   = comment_axes[i]
+        t      = subplot["type"]
+        series = subplot["series"]
+
+        if t == "bar":
+            make_ax_bar(ax, series[0][0], series[0][1], evol_df)
+        elif t == "single_hlines":
+            col, titre = series[0]
+            moy = moy_annuelle.get(col) if moy_annuelle else None
+            make_ax_hlines(ax, col, titre, subplot.get("objectif"),
+                           evol_df, moy_annuelle=moy)
+        elif t == "multi":
+            make_ax_multi(ax, series, theme, evol_df, moy_annuelle=moy_annuelle)
+
+        _draw_comment(ax_c, series, theme, evol_df, custom_comments)
+
     # ── Pied de page ─────────────────────────────────────────────────
     ax_n = fig.add_axes([0, 0, 1, 1], zorder=4)
     ax_n.set_xlim(0, 1); ax_n.set_ylim(0, 1)
@@ -1072,7 +1088,6 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
     ax_n.text(PAGE_NUM_X, PAGE_NUM_Y, f"Page {page_num}",
               ha="right", va="center", fontsize=11,
               fontweight="bold", color=GRIS_TEXTE, zorder=5)
-    
 # ── Helpers graphiques internes ───────────────────────────────────────────────
  
 def _draw_subplot(ax, plot_list, evol_df, moy_annuelle):
@@ -1169,39 +1184,27 @@ def generate_comment(col, titre, evol_df):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def generate_all_figures(evol_df, moy_annuelle=None):
-    """
-    Retourne une liste de (theme, fig, plots) pour affichage Streamlit.
-    """
     figures = []
     for theme, config in THEMES.items():
-        plots = config["plots"]
-        if config["type"] == "bar":
-            fig = plt.figure(figsize=(8, 6))
-            gs  = GridSpec(len(plots), 1, figure=fig)
-            for i, (col, titre) in enumerate(plots):
-                ax = fig.add_subplot(gs[i])
-                make_ax_bar(ax, col, titre, evol_df)
-        elif config["type"] == "single_hlines":
-            fig = plt.figure(figsize=(8, 6))
-            gs  = GridSpec(len(plots), 1, figure=fig)
-            for i, (col, titre) in enumerate(plots):
-                ax = fig.add_subplot(gs[i])
-                moy = moy_annuelle.get(col) if moy_annuelle else None
-                make_ax_hlines(ax, col, titre, config["objectif"][i], evol_df, moy_annuelle=moy)
-        elif config["type"] == "multi":
-            plots_flat = [item for sublist in plots for item in sublist]
-            fig, ax = plt.subplots(figsize=(8, 6))
-            make_ax_multi(ax, plots_flat, theme, evol_df, moy_annuelle=moy_annuelle)
-            figures.append((theme, fig, plots_flat))
-        else:
-            fig = plt.figure(figsize=(8, 6))
-            gs  = GridSpec(len(plots), 1, figure=fig)
-            for i, (col, titre) in enumerate(plots):
-                ax = fig.add_subplot(gs[i])
-                make_ax(ax, col, titre, evol_df)
-        figures.append((theme, fig, plots))
-    return figures
+        for i, subplot in enumerate(config["plots"]):
+            fig, ax = plt.subplots(figsize=(10, 5))
+            t      = subplot["type"]
+            series = subplot["series"]
 
+            if t == "bar":
+                # plusieurs barres sur le même axe
+                make_ax_bar(ax, series[0][0], series[0][1], evol_df)
+            elif t == "single_hlines":
+                col, titre = series[0]
+                moy = moy_annuelle.get(col) if moy_annuelle else None
+                make_ax_hlines(ax, col, titre, subplot.get("objectif"),
+                               evol_df, moy_annuelle=moy)
+            elif t == "multi":
+                make_ax_multi(ax, series, theme, evol_df, moy_annuelle=moy_annuelle)
+
+            fig.tight_layout()
+            figures.append((theme, f"Graphe {i+1}", fig, series))
+    return figures
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DU PDF
