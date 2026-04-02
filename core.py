@@ -614,8 +614,8 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=45, labelsize=11)
-    ax.tick_params(axis="y", labelsize=13, colors=GRIS_TEXTE)
+    ax.tick_params(axis="x", rotation=45, labelsize=8)
+    ax.tick_params(axis="y", labelsize=8, colors=GRIS_TEXTE)
     ax.yaxis.set_tick_params(pad=1)
     ax.xaxis.set_tick_params(pad=1)
 
@@ -721,16 +721,16 @@ KPI_BOX_HEIGHT      = 0.556
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Bloc graphique GAUCHE (teal dashed, haut)
-GRAPH_LEFT_L        = 0.042
-GRAPH_LEFT_B        = 0.612
-GRAPH_LEFT_W        = 0.454
-GRAPH_LEFT_H        = 0.276
+GRAPH_LEFT_L        = 0.046#4
+GRAPH_LEFT_B        = 0.616
+GRAPH_LEFT_W        = 0.450
+GRAPH_LEFT_H        = 0.272
  
 # Bloc graphique DROIT (teal dashed, haut)
-GRAPH_RIGHT_L       = 0.506
-GRAPH_RIGHT_B       = 0.612
-GRAPH_RIGHT_W       = 0.454
-GRAPH_RIGHT_H       = 0.276
+GRAPH_RIGHT_L       = 0.512#6
+GRAPH_RIGHT_B       = 0.618
+GRAPH_RIGHT_W       = 0.448
+GRAPH_RIGHT_H       = 0.270
  
 # Blocs commentaire petit GAUCHE (gris, milieu)
 COMMENT_SMALL_L_L   = 0.042
@@ -745,10 +745,10 @@ COMMENT_SMALL_R_W   = 0.446
 COMMENT_SMALL_R_H   = 0.086
  
 # Grand bloc graphique BAS (teal dashed)
-GRAPH_BIG_L         = 0.042
-GRAPH_BIG_B         = 0.183
-GRAPH_BIG_W         = 0.918
-GRAPH_BIG_H         = 0.275
+GRAPH_BIG_L         = 0.050#8
+GRAPH_BIG_B         = 0.191
+GRAPH_BIG_W         = 0.910
+GRAPH_BIG_H         = 0.267
  
 # Grand bloc commentaire BAS (gris)
 COMMENT_BIG_L       = 0.042
@@ -999,7 +999,7 @@ def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
     # Pied de page
     ax.text(0.03, PAGE_NUM_Y,
             f"{AUTEUR}  |  {nom_etablissement}  |  {DATE_RAPPORT}",
-            ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=3)
+            ha="left", va="center", fontsize=11, color=GRIS_TEXTE, zorder=3)
     ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 1",
             ha="right", va="center", fontsize=11,
             fontweight="bold", color=GRIS_TEXTE, zorder=3)
@@ -1092,7 +1092,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
     ax_n.axis("off"); ax_n.patch.set_alpha(0)
     ax_n.text(0.03, PAGE_NUM_Y,
               f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
-              ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=5)
+              ha="left", va="center", fontsize=11, color=GRIS_TEXTE, zorder=5)
     ax_n.text(PAGE_NUM_X, PAGE_NUM_Y, f"Page {page_num}",
               ha="right", va="center", fontsize=11,
               fontweight="bold", color=GRIS_TEXTE, zorder=5)
@@ -1122,7 +1122,7 @@ def _draw_subplot_bar(ax, plot_list, evol_df):
         fmt = "{:.0f}"
     make_ax_bar(ax, col, titre, evol_df, fmt=fmt)
  
-def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=10):
+def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=11):
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
@@ -1142,12 +1142,12 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
     ax.text(
         0.01, 0.95,
         full_text,
-        fontsize=fontsize, color="#374151", va="top",
+        fontsize=fontsize, 
+        color="#374151", 
+        va="top",
         transform=ax.transAxes,
         linespacing=1.3,
-        clip_on=False,
-        wrap=True,          
-        multialignment="left",
+        clip_on=False
     )
  
 
