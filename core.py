@@ -40,15 +40,14 @@ SERVICE = "Rapport évolution mensuelle SMR"
 #à automatiser
 OBJECTIFS = {
     "obj_AM_mois": 0,
-    "obj_BR_mois": 0,
-    "obj_valo_HC": 0
+    "obj_BR_mois": 0
 }
 
 KPI_CONFIG = [
-    ("montantBR_valorise_HC"+"montantBR_valorise_HTP",   "Recette brute pour la période", "{:,.0f} €",  "obj_BR_mois"),
-    ("montantAM_valorise_HC"+"montantAM_valorise_HTP",   "Recette AM pour la période", "{:,.0f} €",  "obj_AM_mois"),
+    ("recette_BR_period",   "Recette brute totale pour la période", "{:,.0f} €",  "obj_BR_mois"),
+    ("recette_AM_period",   "Recette AM totale pour la période", "{:,.0f} €",  "obj_AM_mois"),
     ("recette_BR_moy_sej",    "Recette brute par séjour", "{:,.0f} €",  None),
-    ("taux_valorisation_HC",  "Taux de valorisation HC",  "{:.1f} %",   "obj_valo_HC"),
+    ("taux_valorisation_HC",  "Taux de valorisation HC",  "{:.1f} %",   None),
     ("effectif_transmis_HC",  "Séjours transmis HC",      "{:.0f}",     None),
 ]
 
@@ -451,6 +450,8 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     )
     brut_df["recette_BR_moy_sej"]  = brut_df["montantBR_valorise_HC"] / brut_df["effectif_valorise_HC"]
     brut_df["recette_BR_moy_jour"] = brut_df["montantBR_valorise_HC"] / brut_df["jour_valo_HC"]
+    brut_df["recette_BR_period"] = brut_df["montantBR_valorise_HC"] + brut_df["montantBR_valorise_HTP"]
+    brut_df["recette_AM_period"] = brut_df["montantAM_valorise_HC"] + brut_df["montantAM_valorise_HTP"]
 
     return {"brut_df": brut_df, "_tmp_dir": tmp}
 
