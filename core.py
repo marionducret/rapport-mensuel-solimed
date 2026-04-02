@@ -39,24 +39,25 @@ SERVICE = "Rapport évolution mensuelle SMR"
 
 #à automatiser
 OBJECTIFS = {
-    "recette_AM_moy_mois": 392_400,
-    "recette_BR_moy_mois": 360_000,
+    "obj_AM_mois": 0,
+    "obj_BR_mois": 0,
+    "obj_valo_HC": 0
 }
 
 KPI_CONFIG = [
-    ("taux_valorisation_HC",  "Taux de valorisation HC",          "{:.1f} %",   None),
-    ("recette_BR_moy_mois",   "Recette mensuelle brute",              "{:,.0f} €",  "recette_BR_moy_mois"),
-    ("recette_AM_moy_mois",   "Recette mensuelle AM",              "{:,.0f} €",  "recette_AM_moy_mois"),
-    ("recette_BR_moy_sej",    "Recette brute par séjour",          "{:,.0f} €",  None),
-    ("effectif_transmis_HC",  "Séjours transmis HC",               "{:.0f}",     None),
+    ("montantBR_valorise_HC"+"montantBR_valorise_HTP",   "Recette brute pour la période", "{:,.0f} €",  "obj_BR_mois"),
+    ("montantAM_valorise_HC"+"montantAM_valorise_HTP",   "Recette AM pour la période", "{:,.0f} €",  "obj_AM_mois"),
+    ("recette_BR_moy_sej",    "Recette brute par séjour", "{:,.0f} €",  None),
+    ("taux_valorisation_HC",  "Taux de valorisation HC",  "{:.1f} %",   "obj_valo_HC"),
+    ("effectif_transmis_HC",  "Séjours transmis HC",      "{:.0f}",     None),
 ]
 
 KPI_COULEURS = [
-    ("#DBEAFE", "#2563EB"),
     ("#DCFCE7", "#16A34A"),
-    ("#FEF9C3", "#D97706"),
-    ("#F3E8FF", "#7C3AED"),
-    ("#FEE2E2", "#E11D48")
+    ("#DCFCE7", "#16A34A"),
+    ("#DCFCE7", "#16A34A"),
+    ("#DBEAFE", "#2563EB"),
+    ("#FEF9C3", "#E0CE09")
 ]
 
 THEMES = {
@@ -567,7 +568,6 @@ def load_annee_precedente(uploaded_zip):
 
     return moyennes
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  FONCTIONS GRAPHIQUES
 # ══════════════════════════════════════════════════════════════════════════════
@@ -722,7 +722,7 @@ KPI_BOX_HEIGHT      = 0.556
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Bloc graphique GAUCHE (teal dashed, haut)
-GRAPH_LEFT_L        = 0.050
+GRAPH_LEFT_L        = 0.044
 GRAPH_LEFT_B        = 0.616
 GRAPH_LEFT_W        = 0.450
 GRAPH_LEFT_H        = 0.272
@@ -765,7 +765,7 @@ PAGE_NUM_X          = 0.970
 #  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
+def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, dernier, avant_dernier):
     """
     Page de garde avec background Canva + KPIs.
     Appelée uniquement depuis generate_pdf().
@@ -783,10 +783,10 @@ def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
     ax.axis("off")
     ax.patch.set_alpha(0)
  
-    # Nom établissement dans la box "Centre Médical de"
+    # Nom établissement dans la box
     ax.text(
         COVER_ETAB_X, COVER_ETAB_Y,
-        nom_etablissement,
+        nom_etablissement_layout,
         ha="center", va="center",
         fontsize=34, fontweight="bold", color=TEAL, zorder=3,
     )
@@ -1018,7 +1018,6 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         wrap=True
     )
  
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  WRAPPERS HC / HTP  (rétrocompatibilité)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1097,14 +1096,7 @@ def generate_all_figures(evol_df, moy_annuelle=None):
 
 def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
                  custom_comments=None, moy_annuelle=None):
-    """
-    Génère le PDF complet — retourne des bytes pour st.download_button.
- 
-    Structure :
-      Page 1  — Page de garde + KPIs
-      Page 2  — HC  (3 graphiques + commentaires)
-      Page 3  — HTP (3 graphiques + commentaires)
-    """
+   
     buf = io.BytesIO()
  
     dernier       = evol_df.iloc[-1].to_dict()
@@ -1114,7 +1106,8 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
  
         # ── Page 1 : Garde + KPIs ────────────────────────────────────
         fig = _page_garde_with_data(
-            nom_etablissement=NOM_ETAB_LAYOUT,
+            nom_etablissement=NOM_ETAB,
+            nom_etablissement_layout=NOM_ETAB_LAYOUT,
             periode=PERIODE,
             dernier=dernier,
             avant_dernier=avant_dernier,
