@@ -44,8 +44,8 @@ OBJECTIFS = {
 }
 
 KPI_CONFIG = [
-    ("recette_BR_period",   "Recette brute totale pour la période", "{:,.0f} €",  "obj_BR_mois"),
-    ("recette_AM_period",   "Recette AM totale pour la période", "{:,.0f} €",  "obj_AM_mois"),
+    ("recette_BR_period",   "Recette brute pour la période", "{:,.0f} €",  "obj_BR_mois"),
+    ("montantAM_valorise_HC",   "Recette AM pour la période en HC", "{:,.0f} €",  "obj_AM_mois"),
     ("recette_BR_moy_sej",    "Recette brute par séjour", "{:,.0f} €",  None),
     ("taux_valorisation_HC",  "Taux de valorisation HC",  "{:.1f} %",   None),
     ("effectif_transmis_HC",  "Séjours transmis HC",      "{:.0f}",     None),
