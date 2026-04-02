@@ -135,27 +135,16 @@ ORANGE     = "#F97316"
 #     return None
 
 def _charger_bg(path: str):
-    candidates = [
-        path,
-        str(Path(__file__).parent / path),
-        str(Path(__file__).parent / Path(path).name),
-        str(Path(os.getcwd()) / path),
-        str(Path(os.getcwd()) / Path(path).name),
-        str(Path(os.getcwd()) / "design" / Path(path).name),
-    ]
-    print(f"🔍 Recherche bg: {path}")
-    for p in candidates:
-        print(f"   tentative: {p}")
-        try:
-            img = Image.open(p).convert("RGB")
-            print(f"   ✅ trouvé: {p}")
-            return np.array(img)
-        except Exception as e:
-            print(f"   ❌ {e}")
-    return None
+    # Chemin direct depuis __file__
+    p = Path(__file__).parent / path
+    try:
+        img = Image.open(str(p)).convert("RGB")
+        return np.array(img)
+    except Exception as e:
+        print(f"❌ _charger_bg failed: {e} — path={p}")
+        return None
 
 def _appliquer_bg(fig: plt.Figure, bg_img) -> None:
-    """Affiche bg_img en plein fond de la figure."""
     if bg_img is None:
         return
     ax_bg = fig.add_axes([0, 0, 1, 1], zorder=0)
@@ -163,9 +152,10 @@ def _appliquer_bg(fig: plt.Figure, bg_img) -> None:
         bg_img,
         aspect="auto",
         extent=[0, 1, 0, 1],
-        transform=ax_bg.transAxes,
         zorder=0,
     )
+    ax_bg.set_xlim(0, 1)
+    ax_bg.set_ylim(0, 1)
     ax_bg.axis("off")
     ax_bg.set_navigate(False)
 
