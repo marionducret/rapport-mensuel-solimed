@@ -614,8 +614,10 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=45, labelsize=13)
+    ax.tick_params(axis="x", rotation=45, labelsize=11)
     ax.tick_params(axis="y", labelsize=13, colors=GRIS_TEXTE)
+    ax.yaxis.set_tick_params(pad=1)
+    ax.xaxis.set_tick_params(pad=1)
 
 
 def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
@@ -1132,13 +1134,18 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         else:
             texts.append(generate_comment(col, titre, evol_df))
     full_text = "  |  ".join(texts)
+
+    largeur = ax.get_position().width
+    chars_par_ligne = int(largeur * 120)  # ← réduit de 160 à 120
+    lignes = textwrap.fill(full_text, width=max(chars_par_ligne, 30))
+
     ax.text(
         0.01, 0.95,
         full_text,
         fontsize=fontsize, color="#374151", va="top",
         transform=ax.transAxes,
-        linespacing=1.4,
-        clip_on=True,
+        linespacing=1.3,
+        clip_on=False,
         wrap=True,          
         multialignment="left",
     )
