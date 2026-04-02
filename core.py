@@ -778,7 +778,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
     ax.patch.set_alpha(0)
  
     # Nom établissement dans la box
-    barlow_bold = font_manager.FontProperties(
+    barlow_title = font_manager.FontProperties(
         fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
         size=34)
     
