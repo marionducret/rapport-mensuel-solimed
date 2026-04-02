@@ -117,24 +117,19 @@ ORANGE     = "#F97316"
 # ══════════════════════════════════════════════════════════════════════════════
 #  UTILITAIRES CANVA
 # ══════════════════════════════════════════════════════════════════════════════
-
 def _charger_bg(path: str):
-    """
-    Charge un PNG Canva comme background
-    Cherche dans : chemin absolu, dossier du script, dossier courant, ./design/.
-    """
     candidates = [
         path,
-        str(_Path(__file__).parent / path),
-        str(_Path(__file__).parent / _Path(path).name),
-        str(_Path(_os.getcwd()) / path),
-        str(_Path(_os.getcwd()) / _Path(path).name),
-        str(_Path(_os.getcwd()) / "design" / _Path(path).name),
+        str(Path(__file__).parent / path),
+        str(Path(__file__).parent / Path(path).name),
+        str(Path(os.getcwd()) / path),
+        str(Path(os.getcwd()) / Path(path).name),
+        str(Path(os.getcwd()) / "design" / Path(path).name),
     ]
     for p in candidates:
         try:
-            img = _Image.open(p).convert("RGB")
-            return _np.array(img)
+            img = Image.open(p).convert("RGB")
+            return np.array(img)
         except Exception:
             continue
     return None
