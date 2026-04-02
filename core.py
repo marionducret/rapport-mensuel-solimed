@@ -22,6 +22,8 @@ from PIL import Image
 import textwrap
 from matplotlib import font_manager
 
+BASE_DIR = Path(__file__).parent
+
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION CONFIGURATION — tout ce qui est paramétrable est ici
@@ -578,7 +580,7 @@ def load_annee_precedente(uploaded_zip):
 # ══════════════════════════════════════════════════════════════════════════════
 
 barlow_bold = font_manager.FontProperties(
-    fname="/Users/marionducret/opt/anaconda3/envs/solimed/lib/python3.10/site-packages/matplotlib/mpl-data/fonts/ttf/Barlow-Bold.ttf",
+    fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
     size=11)
 
 def style_xticklabels(ax, x_vals, y_vals):
@@ -776,8 +778,10 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
     ax.patch.set_alpha(0)
  
     # Nom établissement dans la box
-    barlow_title = font_manager.FontProperties(fname="/chemin/vers/Barlow-Bold.ttf", size=34)
-
+    barlow_bold = font_manager.FontProperties(
+        fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
+        size=34)
+    
     ax.text(
         COVER_ETAB_X, COVER_ETAB_Y,
         nom_etablissement_layout,
