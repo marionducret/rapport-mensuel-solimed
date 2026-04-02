@@ -1147,7 +1147,8 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         va="top",
         transform=ax.transAxes,
         linespacing=1.3,
-        clip_on=False
+        clip_on=False,
+        wrap=True
     )
  
 
