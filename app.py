@@ -6,6 +6,7 @@ import io
 import json
 import base64
 import requests
+from pathlib import Path
 
 st.set_page_config(layout="wide")
 st.title("Générateur de rapport mensuel SSR")
