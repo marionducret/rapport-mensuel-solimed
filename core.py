@@ -65,17 +65,20 @@ THEMES = {
             {
                 "type": "bar",
                 "series": [("taux_valorisation_HC", "Taux de valorisation"),
-                           ("ecart_valo", "Écart de valorisation avec M-1")],
+                           ("ecart_valo", "Écart avec M-1")],
+                "title": "Valorisation",
             },
             {
                 "type": "single_hlines",
                 "objectif": None,
-                "series": [("recette_BR_moy_sej", "Recette brute moyenne par séjour")],
+                "series": [("recette_BR_moy_sej", "Evolution de la recette brute moyenne par séjour")],
+                "title": "Evolution de la recette brute moyenne par séjour",
             },
             {
                 "type": "multi",
                 "series": [("sejour_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
                            ("sejour_supp",      "Séjour supplémentaire par rapport à M-1")],
+                "title": "Evolution de l'activité (séjours)",
             },
         ]
     },
@@ -85,16 +88,19 @@ THEMES = {
                 "type": "bar",
                 "series": [("taux_valorisation_HTP", "Taux de valorisation"),
                            ("ecart_valo",             "Écart de valorisation avec M-1")],
+                "title": "Valorisation",
             },
             {
                 "type": "single_hlines",
                 "objectif": None,
-                "series": [("recette_BR_moy_jour", "Recette brute moyenne par jour")],
+                "series": [("recette_BR_moy_jour", "Evolution de la recette brute moyenne par jour")],
+                "title": "Evolution de la recette brute moyenne par jour",
             },
             {
                 "type": "multi",
                 "series": [("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
                            ("jour_tot_supp",  "Jour supplémentaire par rapport à M-1")],
+                "title": "Evolution de l'activité (jours)",
             },
         ]
     },
@@ -109,6 +115,7 @@ VERT       = "#16A34A"
 BLANC      = "#FFFFFF"
 TEAL       = "##028181"
 VIOLET     = "#7C3AED"
+ORANGE     = "#F09516"
 
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
@@ -614,18 +621,7 @@ def _style_ax(ax):
     ax.yaxis.set_tick_params(pad=1)
     ax.xaxis.set_tick_params(pad=1)
 
-def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
-    x_vals = list(evol_df["Mois"])
-    y_vals = evol_df[col].reset_index(drop=True)
-    ax.plot(x_vals, y_vals, linewidth=2.5, color=BLEU,
-            marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
-    ax.set_title("", pad=0)
-    _style_ax(ax)
-    style_xticklabels(ax, x_vals, y_vals)
-    annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
-
-
-def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}", moy_annuelle=None):
+def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
     y_vals = evol_df[col].reset_index(drop=True)
     ax.plot(x_vals, y_vals, linewidth=2.5, color=BLEU,
@@ -639,13 +635,13 @@ def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=VIOLET, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({moy_annuelle:,.0f})")
-    ax.set_title("", pad=0)
-    ax.legend(fontsize=12, framealpha=0.9, loc="best")
+    ax.set_title(title, pad=10,fontweight="bold",fontsize=11, fontname="Barlow")
+    ax.legend(fontsize=9, framealpha=0.9, loc="best")
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
-def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
+def make_ax_bar(ax, col, title, evol_df, fmt="{:,.0f}"):
     x_vals   = list(evol_df["Mois"])
     y_vals   = evol_df[col].reset_index(drop=True)
     couleurs = [VERT if v >= 0 else ROUGE for v in y_vals]
@@ -662,17 +658,17 @@ def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
         y_pos  = val + offset if val >= 0 else val - offset
         ax.text(
             bar.get_x() + bar.get_width() / 2, y_pos, label,
-            ha="center", va=va, fontsize=10, fontweight="bold",
+            ha="center", va=va, fontsize=9, fontweight="bold",
             color=VERT if val >= 0 else ROUGE,
         )
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8, linestyle="-")
-    ax.set_title("", pad=0)
+    ax.set_title(title, pad=10,fontweight="bold",fontsize=11, fontname="Barlow")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
     style_xticklabels(ax, x_vals, y_vals)
 
-def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
+def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
@@ -684,7 +680,7 @@ def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
-    ax.set_title("", pad=0)
+    ax.set_title(title, pad=10,fontweight="bold",fontsize=11,fontname="Barlow")
     ax.legend(fontsize=9, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
@@ -778,7 +774,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         COVER_ETAB_X, COVER_ETAB_Y,
         nom_etablissement_layout,
         ha="center", va="center",
-        fontsize=34, fontweight="bold", color=TEAL, zorder=3,
+        fontsize=34, fontweight="bold", color=TEAL, zorder=3, fontname="Barlow"
     )
  
     def _fleche(val, ref):
@@ -930,16 +926,17 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         ax_c   = comment_axes[i]
         t      = subplot["type"]
         series = subplot["series"]
+        title  = subplot["title"]
 
         if t == "bar":
-            make_ax_bar(ax, series[0][0], series[0][1], evol_df)
+            make_ax_bar(ax, series[0][0], series[0][1], title, evol_df)
         elif t == "single_hlines":
-            col, titre = series[0]
+            col, _ = series[0]
             moy = moy_annuelle.get(col) if moy_annuelle else None
-            make_ax_hlines(ax, col, titre, subplot.get("objectif"),
+            make_ax_hlines(ax, col, title, subplot.get("objectif"),
                            evol_df, moy_annuelle=moy)
         elif t == "multi":
-            make_ax_multi(ax, series, theme, evol_df, moy_annuelle=moy_annuelle)
+            make_ax_multi(ax, series, theme, title, evol_df, moy_annuelle=moy_annuelle)
 
         _draw_comment(ax_c, series, theme, evol_df, custom_comments)
 
@@ -1132,4 +1129,18 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
  
     buf.seek(0)
     return buf.read() 
+
+
+for theme, config in THEMES.items():
+    print(f"theme : {theme}")
+    print(f"config : {config}")
+    print("\n\n")
+
+     
+     
+
+
+
+
+
  
