@@ -113,7 +113,7 @@ GRIS_TEXTE = "#6B7280"
 ROUGE      = "#E11D48"
 VERT       = "#16A34A"
 BLANC      = "#FFFFFF"
-TEAL       = "##028181"
+TEAL       = "#028181"
 VIOLET     = "#7C3AED"
 ORANGE     = "#F09516"
 
