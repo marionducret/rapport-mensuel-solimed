@@ -62,24 +62,30 @@ THEMES = {
     "HC ": {
         "type": "multi",
         "plots":[ [
+            ("taux_valorisation_HC", "Taux de valorisation")
+        ],
+        [
             ("ecart_valo", "Écart de valorisation avec M-1")
         ],
         [
-            ("recette_BR_sej", "Recette brute moyenne par séjour"),
+            ("recette_BR_moy_sej", "Recette brute moyenne par séjour"),
         ],
         [
-            ("sej_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
-            ("sej_tot_supp", "Séjour supplémentaire par rapport à M-1"),
+            ("sejour_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
+            ("sejour_supp", "Séjour supplémentaire par rapport à M-1"),
         ]
         ]
     },
     "HTP ": {
         "type": "multi",
         "plots":[ [
+            ("taux_valorisation_HTP", "Taux de valorisation")
+        ],
+        [
             ("ecart_valo", "Écart de valorisation avec M-1")
         ],
         [
-            ("recette_BR_jour", "Recette brute moyenne par jour"),
+            ("recette_BR_moy_jour", "Recette brute moyenne par jour"),
         ],
         [
             ("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
@@ -442,12 +448,14 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     brut_df["taux_valorisation_HC"] = (
         brut_df["effectif_valorise_HC"] / brut_df["effectif_transmis_HC"] * 100
     )
+    brut_df["taux_valorisation_HTP"] = (
+        brut_df["effectif_valorise_HTP"] / brut_df["effectif_transmis_HTP"] * 100
+    )
     brut_df["recette_BR_moy_sej"]  = brut_df["montantBR_valorise_HC"] / brut_df["effectif_valorise_HC"]
     brut_df["recette_BR_moy_jour"] = brut_df["montantBR_valorise_HC"] / brut_df["jour_valo_HC"]
     brut_df = brut_df[~brut_df["Mois"].isin(MOIS_EXCLUS)]
 
     return {"brut_df": brut_df, "_tmp_dir": tmp}
-
 
 def recalculer_derives(brut_df):
     """
@@ -463,12 +471,7 @@ def recalculer_derives(brut_df):
     df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
     df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
     df["jour_valo_supp"]      = df["jour_valo_HC"].diff()
-    df["recette_BR_moy_mois"] = df["montantBR_valorise_HC"].diff()
-    df["recette_AM_moy_mois"] = df["montantAM_valorise_HC"].diff()
-    # Premier mois : pas de M-1, on reprend la valeur brute (comme load_data)
-    df.loc[df.index[0], "recette_BR_moy_mois"] = df["montantBR_valorise_HC"].iloc[0]
-    df.loc[df.index[0], "recette_AM_moy_mois"] = df["montantAM_valorise_HC"].iloc[0]
-    df["jour_tot_supp"] = 0
+    df["jour_tot_supp"] = 0 #à calculer
     return df
 
 #%%
