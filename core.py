@@ -762,144 +762,8 @@ PAGE_NUM_Y          = 0.020
 PAGE_NUM_X          = 0.970
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  PAGE DE GARDE (avec ancienne version)
+#  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
- 
-# def page_garde(nom_etablissement: str, periode: str,
-#                date_generation: str | None = None,
-#                cover_kpi: dict | None = None) -> plt.Figure:
-#     """
-#     Page de garde avec background Canva.
-#     - Nom de l'établissement dans la box grise "Centre Médical de"
-#     - 5 cartes KPI dans le grand bloc teal pointillé
-#     - Pied de page auteur / date
-#     """
-#     if date_generation is None:
-#         date_generation = datetime.today().strftime("%d/%m/%Y")
- 
-#     fig = plt.figure(figsize=(12, 17))
-#     fig.patch.set_facecolor(BLANC)
- 
-#     bg = _charger_bg(CANVA_COVER_PATH)
-#     if bg is not None:
-#         _appliquer_bg(fig, bg)
- 
-#     # ── Axe transparent pleine page ──────────────────────────────────
-#     ax = fig.add_axes([0, 0, 1, 1], zorder=2)
-#     ax.set_xlim(0, 1)
-#     ax.set_ylim(0, 1)
-#     ax.axis("off")
-#     ax.patch.set_alpha(0)
- 
-#     # Nom de l'établissement dans la box "Centre Médical de"
-#     ax.text(
-#         COVER_ETAB_X, COVER_ETAB_Y,
-#         nom_etablissement,
-#         ha="center", va="center",
-#         fontsize=28, fontweight="bold", color=NOIR,
-#         zorder=3,
-#     )
- 
-#     # ── Helpers ──────────────────────────────────────────────────────
-#     def fleche_et_couleur(val, ref):
-#         try:
-#             if ref is None or np.isnan(float(ref)):
-#                 return "–", GRIS_TEXTE
-#             delta = float(val) - float(ref)
-#             if delta > 0:   return f"▲ +{delta:,.0f}", VERT
-#             elif delta < 0: return f"▼ {delta:,.0f}", ROUGE
-#             return "= stable", GRIS_TEXTE
-#         except Exception:
-#             return "–", GRIS_TEXTE
- 
-#     def badge_objectif(val, objectif):
-#         if objectif is None:
-#             return None, None
-#         try:
-#             val = float(val)
-#             if val >= objectif:
-#                 return f"✓ Objectif atteint ({objectif:,.0f} €)", VERT
-#             pct = (1 - val / objectif) * 100
-#             return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
-#         except Exception:
-#             return None, None
- 
-#     # ── Récupération dernière ligne de données (appelant doit passer evol_df) ──
-#     # NOTE : evol_df n'est pas un paramètre direct de page_garde pour rester
-#     # compatible avec l'interface existante.  Les valeurs sont lues via la
-#     # closure sur les variables `dernier` / `avant_dernier` définies dans
-#     # generate_pdf() — exactement comme dans l'original.
- 
-#     # ── Cartes KPI ───────────────────────────────────────────────────
-#     n_kpi   = len(KPI_CONFIG)
-#     card_h  = KPI_BOX_HEIGHT / n_kpi
-#     card_gap = 0.006
-#     box_l   = KPI_BOX_LEFT
-#     box_b   = KPI_BOX_BOTTOM
- 
-#     for i, (col, label, fmt, obj_key) in enumerate(KPI_CONFIG):
-#         # Coordonnées (de haut en bas)
-#         card_top    = box_b + KPI_BOX_HEIGHT - i * card_h
-#         card_bottom = card_top - card_h + card_gap
-#         card_cy     = (card_top + card_bottom) / 2
- 
-#         couleur_fond, couleur_bord = KPI_COULEURS[i % len(KPI_COULEURS)]
- 
-#         val = dernier.get(col, float("nan"))
-#         ref = avant_dernier.get(col) if avant_dernier is not None else None
- 
-#         # Fond de carte
-#         ax.add_patch(mpatches.FancyBboxPatch(
-#             (box_l + 0.006, card_bottom + card_gap * 0.3),
-#             KPI_BOX_WIDTH - 0.012, card_h - card_gap * 1.8,
-#             boxstyle="round,pad=0.003", linewidth=1.2,
-#             edgecolor=couleur_bord, facecolor=couleur_fond,
-#             zorder=2, clip_on=True,
-#         ))
- 
-#         # Label
-#         ax.text(box_l + 0.020, card_cy,
-#                 label,
-#                 ha="left", va="center", fontsize=15, color=GRIS_TEXTE, zorder=3)
- 
-#         # Valeur
-#         val_x = box_l + KPI_BOX_WIDTH * 0.52
-#         try:    val_str = fmt.format(val)
-#         except: val_str = "N/A"
-#         ax.text(val_x, card_cy,
-#                 val_str,
-#                 ha="center", va="center", fontsize=19,
-#                 fontweight="bold", color=BLEU_FONCE, zorder=3)
- 
-#         # Flèche évolution
-#         fleche_x = box_l + KPI_BOX_WIDTH * 0.82
-#         fleche, couleur_fl = fleche_et_couleur(val, ref)
-#         ax.text(fleche_x, card_cy,
-#                 fleche,
-#                 ha="center", va="center", fontsize=16,
-#                 fontweight="bold", color=couleur_fl, zorder=3)
- 
-#         # Badge objectif
-#         if obj_key and OBJECTIFS.get(obj_key) is not None:
-#             try:
-#                 badge_txt, badge_col = badge_objectif(val, OBJECTIFS[obj_key])
-#                 if badge_txt:
-#                     ax.text(val_x, card_cy - card_h * 0.22,
-#                             badge_txt,
-#                             ha="center", va="center", fontsize=11,
-#                             color=badge_col, style="italic", zorder=3)
-#             except Exception:
-#                 pass
- 
-#     # Pied de page
-#     ax.text(0.03, PAGE_NUM_Y,
-#             f"{AUTEUR}  |  {nom_etablissement}  |  {date_generation}",
-#             ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=3)
-#     ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 1",
-#             ha="right", va="center", fontsize=11,
-#             fontweight="bold", color=GRIS_TEXTE, zorder=3)
- 
-#     return fig
 
 def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
     """
@@ -1018,27 +882,29 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         _appliquer_bg(fig, bg)
 
     # ── Création des 3 axes graphiques ────────────────────────────────
-    INNER = 0.018  # marge interne supplémentaire
- 
+    INNER = 0.018 #marge interne supp
+    PAD_L = 0.036
+    PAD_R = 0.010
+
     ax_gl = fig.add_axes([
-        GRAPH_LEFT_L  + INNER,
-        GRAPH_LEFT_B  + INNER,
-        GRAPH_LEFT_W  - 2 * INNER,
-        GRAPH_LEFT_H  - 2 * INNER,
+        GRAPH_LEFT_L + PAD_L,
+        GRAPH_LEFT_B + INNER,
+        GRAPH_LEFT_W - PAD_L - PAD_R,
+        GRAPH_LEFT_H - 2 * INNER,
     ], zorder=3)
- 
+
     ax_gr = fig.add_axes([
-        GRAPH_RIGHT_L + INNER,
+        GRAPH_RIGHT_L + PAD_L,
         GRAPH_RIGHT_B + INNER,
-        GRAPH_RIGHT_W - 2 * INNER,
+        GRAPH_RIGHT_W - PAD_L - PAD_R,
         GRAPH_RIGHT_H - 2 * INNER,
     ], zorder=3)
- 
+
     ax_gb = fig.add_axes([
-        GRAPH_BIG_L  + INNER,
-        GRAPH_BIG_B  + INNER,
-        GRAPH_BIG_W  - 2 * INNER,
-        GRAPH_BIG_H  - 2 * INNER,
+        GRAPH_BIG_L + PAD_L,
+        GRAPH_BIG_B + INNER,
+        GRAPH_BIG_W - PAD_L - PAD_R,
+        GRAPH_BIG_H - 2 * INNER,
     ], zorder=3)
 
     # ── Création des 3 axes commentaires ─────────────────────────────
@@ -1134,7 +1000,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df))
-    full_text = "\n ".join(texts)
+    full_text = "\n".join(texts)
 
     largeur = ax.get_position().width
     chars_par_ligne = int(largeur * 120)  # ← réduit de 160 à 120
@@ -1229,7 +1095,7 @@ def generate_all_figures(evol_df, moy_annuelle=None):
 #  GÉNÉRATION DU PDF
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generate_pdf(evol_df, NOM_ETAB, PERIODE,
+def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
                  custom_comments=None, moy_annuelle=None):
     """
     Génère le PDF complet — retourne des bytes pour st.download_button.
@@ -1248,7 +1114,7 @@ def generate_pdf(evol_df, NOM_ETAB, PERIODE,
  
         # ── Page 1 : Garde + KPIs ────────────────────────────────────
         fig = _page_garde_with_data(
-            nom_etablissement=NOM_ETAB,
+            nom_etablissement=NOM_ETAB_LAYOUT,
             periode=PERIODE,
             dernier=dernier,
             avant_dernier=avant_dernier,

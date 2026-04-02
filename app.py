@@ -87,6 +87,7 @@ if not NOM_ETAB:
     st.warning("Veuillez saisir le nom de l'établissement.")
     st.stop()
 
+NOM_ETAB_LAYOUT = f"Centre Médical de \n{NOM_ETAB}"
 NOM_ETAB = f"Centre Médical de {NOM_ETAB}"
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -239,6 +240,7 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
         pdf_bytes = core.generate_pdf(
             evol_df=evol_df,
             NOM_ETAB=NOM_ETAB,
+            NOM_ETAB_LAYOUT=NOM_ETAB_LAYOUT,
             PERIODE=PERIODE,
             custom_comments=comments,
             moy_annuelle=moy_annuelle,
