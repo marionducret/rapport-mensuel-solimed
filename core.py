@@ -17,7 +17,7 @@ import re
 import zipfile
 import tempfile
 import io
-import os as _os
+import os
 from PIL import Image as _Image
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
