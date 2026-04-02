@@ -942,7 +942,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         title  = subplot["title"]
 
         if t == "bar":
-            make_ax_bar(ax, series[0][0], series[0][1], title, evol_df)
+            make_ax_bar(ax, series[0][0], title, evol_df)
         elif t == "single_hlines":
             col, _ = series[0]
             moy = moy_annuelle.get(col) if moy_annuelle else None
