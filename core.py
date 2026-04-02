@@ -20,6 +20,8 @@ import io
 import os
 from PIL import Image
 import textwrap
+from matplotlib import font_manager
+
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION CONFIGURATION — tout ce qui est paramétrable est ici
@@ -575,6 +577,10 @@ def load_annee_precedente(uploaded_zip):
 #  FONCTIONS GRAPHIQUES
 # ══════════════════════════════════════════════════════════════════════════════
 
+barlow_bold = font_manager.FontProperties(
+    fname="/Users/marionducret/opt/anaconda3/envs/solimed/lib/python3.10/site-packages/matplotlib/mpl-data/fonts/ttf/Barlow-Bold.ttf",
+    size=11)
+
 def style_xticklabels(ax, x_vals, y_vals):
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -635,7 +641,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=VIOLET, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({moy_annuelle:,.0f})")
-    ax.set_title(title, pad=10,fontweight="bold",fontsize=11, fontname="Barlow")
+    ax.set_title(title, pad=10,  fontproperties=barlow_bold)
     ax.legend(fontsize=9, framealpha=0.9, loc="best")
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
@@ -662,7 +668,7 @@ def make_ax_bar(ax, col, title, evol_df, fmt="{:,.0f}"):
             color=VERT if val >= 0 else ROUGE,
         )
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8, linestyle="-")
-    ax.set_title(title, pad=10,fontweight="bold",fontsize=11, fontname="Barlow")
+    ax.set_title(title, pad=10, fontproperties=barlow_bold)
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -680,7 +686,7 @@ def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
-    ax.set_title(title, pad=10,fontweight="bold",fontsize=11,fontname="Barlow")
+    ax.set_title(title, pad=10, fontproperties=barlow_bold)
     ax.legend(fontsize=9, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
@@ -770,11 +776,14 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
     ax.patch.set_alpha(0)
  
     # Nom établissement dans la box
+    barlow_title = font_manager.FontProperties(fname="/chemin/vers/Barlow-Bold.ttf", size=34)
+
     ax.text(
         COVER_ETAB_X, COVER_ETAB_Y,
         nom_etablissement_layout,
         ha="center", va="center",
-        fontsize=34, fontweight="bold", color=TEAL, zorder=3, fontname="Barlow"
+        color=TEAL, zorder=3, 
+        fontproperties=barlow_title
     )
  
     def _fleche(val, ref):
