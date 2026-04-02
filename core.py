@@ -289,8 +289,6 @@ def load_data(uploaded_zip, uploaded_excel):
     evol_df = evol_df.reset_index()
     evol_df["jour_tot_supp"] = 0
 
-    evol_df = evol_df[~evol_df["Mois"].isin(MOIS_EXCLUS)]#supp 2026
-
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
     return {
@@ -453,7 +451,6 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     )
     brut_df["recette_BR_moy_sej"]  = brut_df["montantBR_valorise_HC"] / brut_df["effectif_valorise_HC"]
     brut_df["recette_BR_moy_jour"] = brut_df["montantBR_valorise_HC"] / brut_df["jour_valo_HC"]
-    brut_df = brut_df[~brut_df["Mois"].isin(MOIS_EXCLUS)]
 
     return {"brut_df": brut_df, "_tmp_dir": tmp}
 
@@ -711,438 +708,378 @@ def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
 # ══════════════════════════════════════════════════════════════════════════════
 #  MISE EN FORME PDF — pages avec template Canva
 # ══════════════════════════════════════════════════════════════════════════════
-
-# ── Dimensions calibrées sur les PNG Canva 1414×2000 px ──────────────────────
 #
-# PAGE DE GARDE/KPI
-COVER_NOM_ETAB_Y    = 0.624   # y de la valeur NOM_ETAB (sous le "Centre Médical de")
-KPI_BOX_LEFT        = 0.091  # !! à adapter !!
-KPI_BOX_BOTTOM      = 0.091  
-KPI_BOX_WIDTH       = 0.091  
-KPI_BOX_HEIGHT      = 0.091 
+# ── Page garde ────────────────────────────────────────────────────────────────
+COVER_ETAB_Y        = 0.742   # centre vertical de la box "Centre Médical de"
+COVER_ETAB_X        = 0.500   # centré horizontalement
+ 
+# Grand bloc KPI (zone teal pointillée)
+KPI_BOX_LEFT        = 0.039
+KPI_BOX_BOTTOM      = 0.062
+KPI_BOX_WIDTH       = 0.921
+KPI_BOX_HEIGHT      = 0.556
+ 
+# ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
+# Bloc graphique GAUCHE (teal dashed, haut)
+GRAPH_LEFT_L        = 0.042
+GRAPH_LEFT_B        = 0.612
+GRAPH_LEFT_W        = 0.454
+GRAPH_LEFT_H        = 0.276
+ 
+# Bloc graphique DROIT (teal dashed, haut)
+GRAPH_RIGHT_L       = 0.506
+GRAPH_RIGHT_B       = 0.612
+GRAPH_RIGHT_W       = 0.454
+GRAPH_RIGHT_H       = 0.276
+ 
+# Blocs commentaire petit GAUCHE (gris, milieu)
+COMMENT_SMALL_L_L   = 0.042
+COMMENT_SMALL_L_B   = 0.492
+COMMENT_SMALL_L_W   = 0.434
+COMMENT_SMALL_L_H   = 0.086
+ 
+# Blocs commentaire petit DROIT (gris, milieu)
+COMMENT_SMALL_R_L   = 0.514
+COMMENT_SMALL_R_B   = 0.492
+COMMENT_SMALL_R_W   = 0.446
+COMMENT_SMALL_R_H   = 0.086
+ 
+# Grand bloc graphique BAS (teal dashed)
+GRAPH_BIG_L         = 0.042
+GRAPH_BIG_B         = 0.183
+GRAPH_BIG_W         = 0.918
+GRAPH_BIG_H         = 0.275
+ 
+# Grand bloc commentaire BAS (gris)
+COMMENT_BIG_L       = 0.042
+COMMENT_BIG_B       = 0.074
+COMMENT_BIG_W       = 0.918
+COMMENT_BIG_H       = 0.071
+ 
+# Pied de page
+PAGE_NUM_Y          = 0.020
+PAGE_NUM_X          = 0.970
 
-# PAGE GRAPHIQUE (même disposition pour HC et HTP)
-# Bloc graphique 1 
-PAGE_GRAPH_LEFT     = 0.100
-PAGE_GRAPH_BOTTOM   = 0.375
-PAGE_GRAPH_WIDTH    = 0.840
-PAGE_GRAPH_HEIGHT   = 0.460
-# Bloc graphique 2 
-PAGE_GRAPH2_LEFT     = 0.100
-PAGE_GRAPH2_BOTTOM   = 0.375
-PAGE_GRAPH2_WIDTH    = 0.840
-PAGE_GRAPH2_HEIGHT   = 0.460
-# Bloc graphique 3 
-PAGE_GRAPH3_LEFT     = 0.100
-PAGE_GRAPH3_BOTTOM   = 0.375
-PAGE_GRAPH3_WIDTH    = 0.840
-PAGE_GRAPH3_HEIGHT   = 0.460
-# Bloc commentaire 1 
-PAGE_COMMENT_LEFT   = 0.070
-PAGE_COMMENT_BOTTOM = 0.075
-PAGE_COMMENT_WIDTH  = 0.840
-PAGE_COMMENT_HEIGHT = 0.220
-# Bloc commentaire 2 
-PAGE_COMMENT2_LEFT   = 0.070
-PAGE_COMMENT2_BOTTOM = 0.075
-PAGE_COMMENT2_WIDTH  = 0.840
-PAGE_COMMENT2_HEIGHT = 0.220
-# Bloc commentaire 3
-PAGE_COMMENT3_LEFT   = 0.070
-PAGE_COMMENT3_BOTTOM = 0.075
-PAGE_COMMENT3_WIDTH  = 0.840
-PAGE_COMMENT3_HEIGHT = 0.220
-
-def page_garde(nom_etablissement: str, periode: str,
-               date_generation: str | None = None,
-               cover_kpi: dict | None = None) -> plt.Figure:
-    if date_generation is None:
-        date_generation = datetime.today().strftime("%d/%m/%Y")
-
-    fig = plt.figure(figsize=(12, 17))
-    fig.patch.set_facecolor(BLANC)
-
-    bg = _charger_bg(CANVA_COVER_PATH)
-
-    if bg is not None:
-        # ── Mode Canva ─────────────────────────────────────────────────
-        _appliquer_bg(fig, bg)
-
-        ax = fig.add_axes([0, 0, 1, 1], zorder=1)
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        ax.axis("off")
-        ax.patch.set_alpha(0)
-
-        # Valeur "Etablissement" — bien en-dessous du label
-        ax.text(
-            COVER_TEXT_X, COVER_PRES_LABEL_Y - 0.0605,
-            nom_etablissement,
-            ha="left", va="center",
-            fontsize=30, fontweight="bold", color=NOIR,
-            zorder=2,
-        )
-
-## KPI à adapter sur page 1 ##
-    # ── Axe principal transparent ─────────────────────────────────────
-    ax = fig.add_axes([0, 0, 1, 1], zorder=1)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.axis("off")
-    ax.patch.set_alpha(0)
-
-    def fleche_et_couleur(val, ref):
-        if ref is None or np.isnan(ref):
-            return "–", GRIS_TEXTE
-        delta = val - ref
-        if delta > 0:   return f"▲ +{delta:,.0f}", VERT
-        elif delta < 0: return f"▼ {delta:,.0f}", ROUGE
-        return "= stable", GRIS_TEXTE
-
-    def badge_objectif(val, objectif):
-        if objectif is None: return None, None
-        if val >= objectif:  return f"✓ Objectif atteint ({objectif:,.0f} €)", VERT
-        pct = (1 - val / objectif) * 100
-        return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
-
-    # ── Cartes KPI dans le grand bloc Canva ──────────────────────────
-    MARGIN  = 0.018 #à tester et définir proprement
-    box_l   = KPI_BOX_LEFT   + MARGIN
-    box_b   = KPI_BOX_BOTTOM + MARGIN
-    box_w   = KPI_BOX_WIDTH  - MARGIN
-    box_h   = KPI_BOX_HEIGHT - MARGIN
-
-    n_kpi      = len(KPI_CONFIG)
-    card_h     = box_h / n_kpi
-    card_gap   = 0.006
-
-    for i, (col, label, fmt, obj_key) in enumerate(KPI_CONFIG):
-        # Coordonnées de la carte (de haut en bas)
-        card_top    = box_b + box_h - i * card_h
-        card_bottom = card_top - card_h + card_gap
-        card_cy     = (card_top + card_bottom) / 2
-
-        couleur_fond, couleur_bord = KPI_COULEURS[i % len(KPI_COULEURS)]
-        val = dernier.get(col, float("nan"))
-        ref = avant_dernier.get(col) if avant_dernier is not None else None
-
-        # Fond de carte
-        ax.add_patch(mpatches.FancyBboxPatch(
-            (box_l + 0.004, card_bottom + card_gap * 0.3),
-            box_w - 0.008, card_h - card_gap * 1.8,
-            boxstyle="round,pad=0.003", linewidth=1.2,
-            edgecolor=couleur_bord, facecolor=couleur_fond, zorder=2,
-            clip_on=True,
-        ))
-
-        # Label
-        ax.text(box_l + 0.018, card_cy,
-                label,
-                ha="left", va="center", fontsize=16, color=GRIS_TEXTE, zorder=3)
-
-        # Valeur — centré dans la moitié gauche du cadre
-        val_x = box_l + box_w * 0.52
-        try:    val_str = fmt.format(val)
-        except: val_str = "N/A"
-        ax.text(val_x, card_cy,
-                val_str,
-                ha="center", va="center", fontsize=20,
-                fontweight="bold", color=BLEU_FONCE, zorder=3)
-
-        # Flèche évolution — dans le dernier tiers du cadre
-        fleche_x = box_l + box_w * 0.82
-        try:    fleche, couleur_fl = fleche_et_couleur(val, ref)
-        except: fleche, couleur_fl = "–", GRIS_TEXTE
-        ax.text(fleche_x, card_cy,
-                fleche,
-                ha="center", va="center", fontsize=18,
-                fontweight="bold", color=couleur_fl, zorder=3)
-
-        # Badge objectif
-        if obj_key and OBJECTIFS.get(obj_key) is not None:
-            try:
-                badge_txt, badge_col = badge_objectif(val, OBJECTIFS[obj_key])
-                if badge_txt:
-                    ax.text(val_x, card_cy - card_h * 0.22,
-                            badge_txt,
-                            ha="center", va="center", fontsize=12,
-                            color=badge_col, style="italic", zorder=3)
-            except: pass
-
-    # Numéro de page
-    ax.text(0.03, PAGE_NUM_Y,
-        f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
-        ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=2)
-    ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 2",
-            ha="right", va="center", fontsize=11,
-            fontweight="bold", color=GRIS_TEXTE, zorder=2)
-
-    return fig
+# ══════════════════════════════════════════════════════════════════════════════
+#  PAGE DE GARDE (ancienne version)
+# ══════════════════════════════════════════════════════════════════════════════
+ 
+# def page_garde(nom_etablissement: str, periode: str,
+#                date_generation: str | None = None,
+#                cover_kpi: dict | None = None) -> plt.Figure:
+#     """
+#     Page de garde avec background Canva.
+#     - Nom de l'établissement dans la box grise "Centre Médical de"
+#     - 5 cartes KPI dans le grand bloc teal pointillé
+#     - Pied de page auteur / date
+#     """
+#     if date_generation is None:
+#         date_generation = datetime.today().strftime("%d/%m/%Y")
+ 
+#     fig = plt.figure(figsize=(12, 17))
+#     fig.patch.set_facecolor(BLANC)
+ 
+#     bg = _charger_bg(CANVA_COVER_PATH)
+#     if bg is not None:
+#         _appliquer_bg(fig, bg)
+ 
+#     # ── Axe transparent pleine page ──────────────────────────────────
+#     ax = fig.add_axes([0, 0, 1, 1], zorder=2)
+#     ax.set_xlim(0, 1)
+#     ax.set_ylim(0, 1)
+#     ax.axis("off")
+#     ax.patch.set_alpha(0)
+ 
+#     # Nom de l'établissement dans la box "Centre Médical de"
+#     ax.text(
+#         COVER_ETAB_X, COVER_ETAB_Y,
+#         nom_etablissement,
+#         ha="center", va="center",
+#         fontsize=28, fontweight="bold", color=NOIR,
+#         zorder=3,
+#     )
+ 
+#     # ── Helpers ──────────────────────────────────────────────────────
+#     def fleche_et_couleur(val, ref):
+#         try:
+#             if ref is None or np.isnan(float(ref)):
+#                 return "–", GRIS_TEXTE
+#             delta = float(val) - float(ref)
+#             if delta > 0:   return f"▲ +{delta:,.0f}", VERT
+#             elif delta < 0: return f"▼ {delta:,.0f}", ROUGE
+#             return "= stable", GRIS_TEXTE
+#         except Exception:
+#             return "–", GRIS_TEXTE
+ 
+#     def badge_objectif(val, objectif):
+#         if objectif is None:
+#             return None, None
+#         try:
+#             val = float(val)
+#             if val >= objectif:
+#                 return f"✓ Objectif atteint ({objectif:,.0f} €)", VERT
+#             pct = (1 - val / objectif) * 100
+#             return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
+#         except Exception:
+#             return None, None
+ 
+#     # ── Récupération dernière ligne de données (appelant doit passer evol_df) ──
+#     # NOTE : evol_df n'est pas un paramètre direct de page_garde pour rester
+#     # compatible avec l'interface existante.  Les valeurs sont lues via la
+#     # closure sur les variables `dernier` / `avant_dernier` définies dans
+#     # generate_pdf() — exactement comme dans l'original.
+ 
+#     # ── Cartes KPI ───────────────────────────────────────────────────
+#     n_kpi   = len(KPI_CONFIG)
+#     card_h  = KPI_BOX_HEIGHT / n_kpi
+#     card_gap = 0.006
+#     box_l   = KPI_BOX_LEFT
+#     box_b   = KPI_BOX_BOTTOM
+ 
+#     for i, (col, label, fmt, obj_key) in enumerate(KPI_CONFIG):
+#         # Coordonnées (de haut en bas)
+#         card_top    = box_b + KPI_BOX_HEIGHT - i * card_h
+#         card_bottom = card_top - card_h + card_gap
+#         card_cy     = (card_top + card_bottom) / 2
+ 
+#         couleur_fond, couleur_bord = KPI_COULEURS[i % len(KPI_COULEURS)]
+ 
+#         val = dernier.get(col, float("nan"))
+#         ref = avant_dernier.get(col) if avant_dernier is not None else None
+ 
+#         # Fond de carte
+#         ax.add_patch(mpatches.FancyBboxPatch(
+#             (box_l + 0.006, card_bottom + card_gap * 0.3),
+#             KPI_BOX_WIDTH - 0.012, card_h - card_gap * 1.8,
+#             boxstyle="round,pad=0.003", linewidth=1.2,
+#             edgecolor=couleur_bord, facecolor=couleur_fond,
+#             zorder=2, clip_on=True,
+#         ))
+ 
+#         # Label
+#         ax.text(box_l + 0.020, card_cy,
+#                 label,
+#                 ha="left", va="center", fontsize=15, color=GRIS_TEXTE, zorder=3)
+ 
+#         # Valeur
+#         val_x = box_l + KPI_BOX_WIDTH * 0.52
+#         try:    val_str = fmt.format(val)
+#         except: val_str = "N/A"
+#         ax.text(val_x, card_cy,
+#                 val_str,
+#                 ha="center", va="center", fontsize=19,
+#                 fontweight="bold", color=BLEU_FONCE, zorder=3)
+ 
+#         # Flèche évolution
+#         fleche_x = box_l + KPI_BOX_WIDTH * 0.82
+#         fleche, couleur_fl = fleche_et_couleur(val, ref)
+#         ax.text(fleche_x, card_cy,
+#                 fleche,
+#                 ha="center", va="center", fontsize=16,
+#                 fontweight="bold", color=couleur_fl, zorder=3)
+ 
+#         # Badge objectif
+#         if obj_key and OBJECTIFS.get(obj_key) is not None:
+#             try:
+#                 badge_txt, badge_col = badge_objectif(val, OBJECTIFS[obj_key])
+#                 if badge_txt:
+#                     ax.text(val_x, card_cy - card_h * 0.22,
+#                             badge_txt,
+#                             ha="center", va="center", fontsize=11,
+#                             color=badge_col, style="italic", zorder=3)
+#             except Exception:
+#                 pass
+ 
+#     # Pied de page
+#     ax.text(0.03, PAGE_NUM_Y,
+#             f"{AUTEUR}  |  {nom_etablissement}  |  {date_generation}",
+#             ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=3)
+#     ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 1",
+#             ha="right", va="center", fontsize=11,
+#             fontweight="bold", color=GRIS_TEXTE, zorder=3)
+ 
+#     return fig
 
 
-def _build_page_graphique_HC(fig: plt.Figure, theme: str, config: dict,
+# ══════════════════════════════════════════════════════════════════════════════
+#  PAGE GRAPHIQUE GÉNÉRIQUE  (HC ou HTP selon le background passé)
+# ══════════════════════════════════════════════════════════════════════════════
+ 
+def _build_page_graphique(fig: plt.Figure, theme: str, config: dict,
                           evol_df, page_num: int, NOM_ETAB: str,
-                          PERIODE: str, custom_comments=None,
+                          PERIODE: str, canva_path: str,
+                          custom_comments=None,
                           moy_annuelle=None) -> None:
     """
-    Construit une page graphique sur la figure `fig` déjà créée,
-    en utilisant le template Canva si disponible.
-    Les graphiques vont dans PAGE_GRAPH_*, les commentaires dans PAGE_COMMENT_*.
+    Remplit `fig` avec :
+      - background Canva (HC ou HTP selon `canva_path`)
+      - 4 graphiques dans les 3 blocs teal pointillés
+          • haut-gauche   : plots[0]   (1 courbe)
+          • haut-droit    : plots[1]   (1 courbe en barres)
+          • bas large     : plots[2]   (1 courbe)
+          • (plots[3] sert uniquement au commentaire multi-séries)
+      - commentaires dans les blocs gris
     """
-    bg = _charger_bg(CANVA_PAGE_PATH)
-    plots = config["plots"]
-
+    bg    = _charger_bg(canva_path)
+    plots = config["plots"]   # liste de listes [[col,titre], ...]
+ 
     if bg is not None:
         _appliquer_bg(fig, bg)
-
+ 
     # ── Titre dans le bandeau teal ────────────────────────────────────
+    ax_titre = fig.add_axes([0, 0, 1, 1], zorder=2)
+    ax_titre.set_xlim(0, 1)
+    ax_titre.set_ylim(0, 1)
+    ax_titre.axis("off")
+    ax_titre.patch.set_alpha(0)
+ 
     if bg is not None:
-        ax_titre = fig.add_axes([0, 0, 1, 1], zorder=2)
-        ax_titre.set_xlim(0, 1)
-        ax_titre.set_ylim(0, 1)
-        ax_titre.axis("off")
-        ax_titre.patch.set_alpha(0)
         ax_titre.text(
-            0.055, PAGE_TITRE_Y,
-            theme.upper(),
+            0.055, 0.955,
+            theme.strip().upper(),
             ha="left", va="center",
             fontsize=20, fontweight="bold", color=BLANC, zorder=3,
         )
-
+        ax_titre.text(
+            0.970, 0.955,
+            f"{NOM_ETAB}  |  {PERIODE}",
+            ha="right", va="center",
+            fontsize=10, color=BLANC, zorder=3,
+        )
     else:
-        # Entête matplotlib originale
-        ax_h = fig.add_axes([0, 0.91, 1, 0.09])
-        ax_h.set_xlim(0, 1)
-        ax_h.set_ylim(0, 1)
-        ax_h.axis("off")
+        # Entête de secours sans image
+        ax_h = fig.add_axes([0, 0.94, 1, 0.06])
+        ax_h.set_xlim(0, 1); ax_h.set_ylim(0, 1); ax_h.axis("off")
         ax_h.add_patch(mpatches.FancyBboxPatch(
             (0, 0), 1, 1, boxstyle="square,pad=0",
-            linewidth=0, facecolor=BLEU_FONCE,
-        ))
-        ax_h.axhline(y=0, xmin=0, xmax=1, color=BLEU, linewidth=3)
-        ax_h.text(0.03, 0.55, theme.upper(),
-                  ha="left", va="center", fontsize=14, fontweight="bold", color=BLANC)
-        ax_h.text(0.97, 0.65, NOM_ETAB,
-                  ha="right", va="center", fontsize=10, color=BLEU_CLAIR)
-        ax_h.text(0.97, 0.30, PERIODE,
-                  ha="right", va="center", fontsize=9, color=GRIS_TEXTE)
-
-    # ── Zone graphique ────────────────────────────────────────────────
-    n = len(plots)
-    is_multi = config["type"] == "multi"
-
-    # Marges internes pour rester bien dans le cadre Canva
-    MARGIN = 0.012
-    graph_left   = PAGE_GRAPH_LEFT   + MARGIN
-    graph_bottom = PAGE_GRAPH_BOTTOM + MARGIN
-    graph_width  = PAGE_GRAPH_WIDTH  - 2 * MARGIN
-    graph_height = PAGE_GRAPH_HEIGHT - 2 * MARGIN
-
-    if is_multi:
-        # Un seul axe couvrant toute la zone graphique
-        ax_g = fig.add_axes(
-            [graph_left, graph_bottom, graph_width, graph_height],
-            zorder=3,
-        )
-        make_ax_multi(ax_g, plots, theme, evol_df, moy_annuelle=moy_annuelle)
-    else:
-        hspace = 0.05
-        h_plot = graph_height / n
-        for i, (col, titre) in enumerate(plots):
-            bottom = graph_bottom + (n - 1 - i) * h_plot + hspace / 2
-            height = h_plot - hspace
-            ax_g = fig.add_axes(
-                [graph_left, bottom, graph_width, height],
-                zorder=3,
-            )
-            if config["type"] == "bar":
-                make_ax_bar(ax_g, col, titre, evol_df)
-            elif config["type"] == "single_hlines":
-                moy = moy_annuelle.get(col) if moy_annuelle else None
-                make_ax_hlines(ax_g, col, titre, config["objectif"][i], evol_df, moy_annuelle=moy)
-            else:
-                make_ax(ax_g, col, titre, evol_df)
-
-    # ── Zone commentaire ──────────────────────────────────────────────
-    comment_texts = []
-    for col, titre in plots:
-        if custom_comments and (theme, col) in custom_comments:
-            comment_texts.append(custom_comments[(theme, col)])
-        else:
-            comment_texts.append(generate_comment(col, titre, evol_df))
-    full_comment = "\n\n".join(comment_texts)
-
-    CMARGIN = 0.005
-    ax_c = fig.add_axes(
-        [PAGE_COMMENT_LEFT + CMARGIN,
-         PAGE_COMMENT_BOTTOM + CMARGIN,
-         PAGE_COMMENT_WIDTH  - 2 * CMARGIN,
-         PAGE_COMMENT_HEIGHT - 2 * CMARGIN],
-        zorder=3,
-    )
-    ax_c.axis("off")
-    ax_c.patch.set_facecolor("#F9FAFB")
-    ax_c.patch.set_alpha(0.95)
-
-    if bg is None:
-        ax_c.add_patch(mpatches.FancyBboxPatch(
-            (0, 0), 1, 1,
-            boxstyle="round,pad=0.02",
-            facecolor="#F9FAFB", edgecolor="#E5E7EB",
-        ))
-
-    # Formater le texte avec textwrap pour éviter débordements
-    import textwrap as _tw
-    max_chars_per_line = 85
-    wrapped_lines = []
-    for para in full_comment.split("\n\n"):
-        lines = _tw.wrap(para, width=max_chars_per_line)
-        wrapped_lines.extend(lines)
-        wrapped_lines.append("")
-    # Max 6 lignes de contenu
-    content_lines = [l for l in wrapped_lines if l][:6]
-    display_comment = "\n".join(content_lines)
-    ax_c.text(
-        0.01, 0.80,
-        "Analyse :\n\n" + display_comment,
-        fontsize=15, color="#374151", va="top",
-        transform=ax_c.transAxes,
-        linespacing=1.5,
-        clip_on=True,
-    )
-
-    # ── Pied de page ────────────────────────────────────────────────
+            linewidth=0, facecolor=BLEU_FONCE))
+        ax_h.text(0.03, 0.55, theme.strip().upper(),
+                  ha="left", va="center", fontsize=14,
+                  fontweight="bold", color=BLANC)
+        ax_h.text(0.97, 0.40, f"{NOM_ETAB}  |  {PERIODE}",
+                  ha="right", va="center", fontsize=9, color=BLEU_CLAIR)
+ 
+    # ── Graphique HAUT GAUCHE  →  plots[0] ───────────────────────────
+    ax_gl = fig.add_axes(
+        [GRAPH_LEFT_L, GRAPH_LEFT_B, GRAPH_LEFT_W, GRAPH_LEFT_H],
+        zorder=3)
+    _draw_subplot(ax_gl, plots[0], evol_df, moy_annuelle)
+ 
+    # ── Graphique HAUT DROIT  →  plots[1] ────────────────────────────
+    ax_gr = fig.add_axes(
+        [GRAPH_RIGHT_L, GRAPH_RIGHT_B, GRAPH_RIGHT_W, GRAPH_RIGHT_H],
+        zorder=3)
+    _draw_subplot_bar(ax_gr, plots[1], evol_df)
+ 
+    # ── Commentaire PETIT GAUCHE (sous haut-gauche) ───────────────────
+    ax_cl = fig.add_axes(
+        [COMMENT_SMALL_L_L, COMMENT_SMALL_L_B,
+         COMMENT_SMALL_L_W, COMMENT_SMALL_L_H],
+        zorder=3)
+    _draw_comment(ax_cl, plots[0], theme, evol_df, custom_comments, fontsize=11)
+ 
+    # ── Commentaire PETIT DROIT (sous haut-droit) ─────────────────────
+    ax_cr = fig.add_axes(
+        [COMMENT_SMALL_R_L, COMMENT_SMALL_R_B,
+         COMMENT_SMALL_R_W, COMMENT_SMALL_R_H],
+        zorder=3)
+    _draw_comment(ax_cr, plots[1], theme, evol_df, custom_comments, fontsize=11)
+ 
+    # ── Graphique BAS (large)  →  plots[2] + plots[3] ─────────────────
+    ax_gb = fig.add_axes(
+        [GRAPH_BIG_L, GRAPH_BIG_B, GRAPH_BIG_W, GRAPH_BIG_H],
+        zorder=3)
+    # plots[2] et plots[3] sont des multi-séries sur le même axe
+    combined_plots = plots[2] + (plots[3] if len(plots) > 3 else [])
+    make_ax_multi(ax_gb, combined_plots, theme, evol_df, moy_annuelle=moy_annuelle)
+ 
+    # ── Commentaire BAS (large) ────────────────────────────────────────
+    ax_cb = fig.add_axes(
+        [COMMENT_BIG_L, COMMENT_BIG_B, COMMENT_BIG_W, COMMENT_BIG_H],
+        zorder=3)
+    _draw_comment(ax_cb, combined_plots, theme, evol_df, custom_comments, fontsize=11)
+ 
+    # ── Pied de page ───────────────────────────────────────────────────
     ax_num = fig.add_axes([0, 0, 1, 1], zorder=4)
-    ax_num.set_xlim(0, 1)
-    ax_num.set_ylim(0, 1)
-    ax_num.axis("off")
-    ax_num.patch.set_alpha(0)
-    ax_num.text(
-        0.03, PAGE_NUM_Y,
-        f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
-        ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=5,
-    )
-    ax_num.text(
-        PAGE_NUM_X, PAGE_NUM_Y,
-        f"Page {page_num}",
-        ha="right", va="center", fontsize=11, color=GRIS_TEXTE, zorder=5,
-    )
+    ax_num.set_xlim(0, 1); ax_num.set_ylim(0, 1)
+    ax_num.axis("off"); ax_num.patch.set_alpha(0)
+    ax_num.text(0.03, PAGE_NUM_Y,
+                f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
+                ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=5)
+    ax_num.text(PAGE_NUM_X, PAGE_NUM_Y, f"Page {page_num}",
+                ha="right", va="center", fontsize=11,
+                fontweight="bold", color=GRIS_TEXTE, zorder=5)
 
-def _build_page_graphique_HTP(fig: plt.Figure, theme: str, config: dict,
-                          evol_df, page_num: int, NOM_ETAB: str,
-                          PERIODE: str, custom_comments=None,
-                          moy_annuelle=None) -> None:
-    """
-    Construit une page graphique sur la figure `fig` déjà créée,
-    en utilisant le template Canva si disponible.
-    Les graphiques vont dans PAGE_GRAPH_*, les commentaires dans PAGE_COMMENT_*.
-    """
-    bg = _charger_bg(CANVA_PAGE_PATH)
-    plots = config["plots"]
-
-    if bg is not None:
-        _appliquer_bg(fig, bg)
-
-    # ── Zone graphique ────────────────────────────────────────────────
-    n = len(plots)
-    is_multi = config["type"] == "multi"
-
-    # Marges internes pour rester bien dans le cadre Canva
-    MARGIN = 0.012
-    graph_left   = PAGE_GRAPH_LEFT   + MARGIN
-    graph_bottom = PAGE_GRAPH_BOTTOM + MARGIN
-    graph_width  = PAGE_GRAPH_WIDTH  - 2 * MARGIN
-    graph_height = PAGE_GRAPH_HEIGHT - 2 * MARGIN
-
-    if is_multi:
-        # Un seul axe couvrant toute la zone graphique
-        ax_g = fig.add_axes(
-            [graph_left, graph_bottom, graph_width, graph_height],
-            zorder=3,
-        )
-        make_ax_multi(ax_g, plots, theme, evol_df, moy_annuelle=moy_annuelle)
+# ── Helpers graphiques internes ───────────────────────────────────────────────
+ 
+def _draw_subplot(ax, plot_list, evol_df, moy_annuelle):
+    """Trace une courbe simple (1 série) dans `ax`."""
+    col, titre = plot_list[0]
+    moy = moy_annuelle.get(col) if moy_annuelle else None
+    # Détection auto format
+    if "taux" in col:
+        fmt = "{:.1f} %"
+    elif "recette" in col or "ecart" in col or "montant" in col.lower():
+        fmt = "{:,.0f} €"
     else:
-        hspace = 0.05
-        h_plot = graph_height / n
-        for i, (col, titre) in enumerate(plots):
-            bottom = graph_bottom + (n - 1 - i) * h_plot + hspace / 2
-            height = h_plot - hspace
-            ax_g = fig.add_axes(
-                [graph_left, bottom, graph_width, height],
-                zorder=3,
-            )
-            if config["type"] == "bar":
-                make_ax_bar(ax_g, col, titre, evol_df)
-            elif config["type"] == "single_hlines":
-                moy = moy_annuelle.get(col) if moy_annuelle else None
-                make_ax_hlines(ax_g, col, titre, config["objectif"][i], evol_df, moy_annuelle=moy)
-            else:
-                make_ax(ax_g, col, titre, evol_df)
-
-    # ── Zone commentaire ──────────────────────────────────────────────
-    comment_texts = []
-    for col, titre in plots:
-        if custom_comments and (theme, col) in custom_comments:
-            comment_texts.append(custom_comments[(theme, col)])
-        else:
-            comment_texts.append(generate_comment(col, titre, evol_df))
-    full_comment = "\n\n".join(comment_texts)
-
-    CMARGIN = 0.005
-    ax_c = fig.add_axes(
-        [PAGE_COMMENT_LEFT + CMARGIN,
-         PAGE_COMMENT_BOTTOM + CMARGIN,
-         PAGE_COMMENT_WIDTH  - 2 * CMARGIN,
-         PAGE_COMMENT_HEIGHT - 2 * CMARGIN],
-        zorder=3,
-    )
-    ax_c.axis("off")
-    ax_c.patch.set_facecolor("#F9FAFB")
-    ax_c.patch.set_alpha(0.95)
-
-    if bg is None:
-        ax_c.add_patch(mpatches.FancyBboxPatch(
-            (0, 0), 1, 1,
-            boxstyle="round,pad=0.02",
-            facecolor="#F9FAFB", edgecolor="#E5E7EB",
-        ))
-
-    # Formater le texte avec textwrap pour éviter débordements
+        fmt = "{:.0f}"
+    make_ax_hlines(ax, col, titre, OBJECTIFS.get(col), evol_df,
+                   fmt=fmt, moy_annuelle=moy)
+ 
+ 
+def _draw_subplot_bar(ax, plot_list, evol_df):
+    """Trace un graphique en barres (écarts) dans `ax`."""
+    col, titre = plot_list[0]
+    if "recette" in col or "ecart" in col or "montant" in col.lower():
+        fmt = "{:,.0f} €"
+    else:
+        fmt = "{:.0f}"
+    make_ax_bar(ax, col, titre, evol_df, fmt=fmt)
+ 
+ 
+def _draw_comment(ax, plot_list, theme, evol_df, custom_comments, fontsize=11):
+    """Affiche un commentaire auto-généré (ou personnalisé) dans `ax`."""
     import textwrap as _tw
-    max_chars_per_line = 85
-    wrapped_lines = []
-    for para in full_comment.split("\n\n"):
-        lines = _tw.wrap(para, width=max_chars_per_line)
-        wrapped_lines.extend(lines)
-        wrapped_lines.append("")
-    # Max 6 lignes de contenu
-    content_lines = [l for l in wrapped_lines if l][:6]
-    display_comment = "\n".join(content_lines)
-    ax_c.text(
-        0.01, 0.80,
-        "Analyse :\n\n" + display_comment,
-        fontsize=15, color="#374151", va="top",
-        transform=ax_c.transAxes,
-        linespacing=1.5,
-        clip_on=True,
-    )
+    ax.axis("off")
+    ax.patch.set_facecolor("#F9FAFB")
+    ax.patch.set_alpha(0.95)
+ 
+    texts = []
+    for col, titre in plot_list:
+        key = (theme.strip(), col)
+        if custom_comments and key in custom_comments:
+            texts.append(custom_comments[key])
+        else:
+            texts.append(generate_comment(col, titre, evol_df))
+ 
+    raw = "  |  ".join(texts)
+    lines = _tw.wrap(raw, width=110)[:4]
+    ax.text(0.01, 0.88, "\n".join(lines),
+            fontsize=fontsize, color="#374151", va="top",
+            transform=ax.transAxes, linespacing=1.4, clip_on=True)
 
-    # ── Pied de page ────────────────────────────────────────────────
-    ax_num = fig.add_axes([0, 0, 1, 1], zorder=4)
-    ax_num.set_xlim(0, 1)
-    ax_num.set_ylim(0, 1)
-    ax_num.axis("off")
-    ax_num.patch.set_alpha(0)
-    ax_num.text(
-        0.03, PAGE_NUM_Y,
-        f"{AUTEUR}  |  {NOM_ETAB}  |  {DATE_RAPPORT}",
-        ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=5,
-    )
-    ax_num.text(
-        PAGE_NUM_X, PAGE_NUM_Y,
-        f"Page {page_num}",
-        ha="right", va="center", fontsize=11, color=GRIS_TEXTE, zorder=5,
-    )
+# ══════════════════════════════════════════════════════════════════════════════
+#  WRAPPERS HC / HTP  (rétrocompatibilité)
+# ══════════════════════════════════════════════════════════════════════════════
+ 
+def _build_page_graphique_HC(fig, theme, config, evol_df, page_num,
+                              NOM_ETAB, PERIODE,
+                              custom_comments=None, moy_annuelle=None):
+    _build_page_graphique(fig, theme, config, evol_df, page_num,
+                          NOM_ETAB, PERIODE,
+                          canva_path=CANVA_PAGE_HC_PATH,
+                          custom_comments=custom_comments,
+                          moy_annuelle=moy_annuelle)
+ 
+ 
+def _build_page_graphique_HTP(fig, theme, config, evol_df, page_num,
+                               NOM_ETAB, PERIODE,
+                               custom_comments=None, moy_annuelle=None):
+    _build_page_graphique(fig, theme, config, evol_df, page_num,
+                          NOM_ETAB, PERIODE,
+                          canva_path=CANVA_PAGE_HTP_PATH,
+                          custom_comments=custom_comments,
+                          moy_annuelle=moy_annuelle)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES COMMENTAIRES
@@ -1207,58 +1144,173 @@ def generate_all_figures(evol_df, moy_annuelle=None):
 #  GÉNÉRATION DU PDF
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generate_pdf(evol_df, NOM_ETAB, PERIODE, custom_comments=None, moy_annuelle=None):
+def generate_pdf(evol_df, NOM_ETAB, PERIODE,
+                 custom_comments=None, moy_annuelle=None):
     """
-    Génère le PDF et le retourne sous forme de bytes (pour st.download_button).
+    Génère le PDF complet et retourne des bytes (pour st.download_button).
+ 
+    Structure :
+      Page 1  — Page de garde + KPIs
+      Page 2  — HC  (4 graphiques + commentaires)
+      Page 3  — HTP (4 graphiques + commentaires)
     """
     buf = io.BytesIO()
-
+ 
+    # Valeurs pour les KPI de la page de garde
+    dernier       = evol_df.iloc[-1].to_dict()
+    avant_dernier = evol_df.iloc[-2].to_dict() if len(evol_df) > 1 else None
+ 
     with pdf_backend.PdfPages(buf) as pdf:
-
-        # ── 1. Page de garde
-        # Calcul KPI recette BR dernier mois pour la page de garde
-        dernier = evol_df.iloc[-1]
-        avant_dernier = evol_df.iloc[-2] if len(evol_df) > 1 else None
-        try:
-            val_br = dernier["recette_BR_moy_mois"]
-            val_str = f"{val_br:,.0f} €"
-            if avant_dernier is not None:
-                delta = val_br - avant_dernier["recette_BR_moy_mois"]
-                evo_str = f"{'▲' if delta >= 0 else '▼'} {delta:+,.0f} €"
-            else:
-                evo_str = ""
-            cover_kpi = {"valeur": val_str, "evolution": evo_str}
-        except Exception:
-            cover_kpi = None
-        fig = page_garde(NOM_ETAB, PERIODE, cover_kpi=cover_kpi)
+ 
+        # ── Page 1 : Garde + KPIs ────────────────────────────────────
+        # On injecte dernier/avant_dernier dans le scope local de page_garde
+        # via une sous-fonction pour éviter de changer sa signature publique.
+        fig = _page_garde_with_data(
+            nom_etablissement=NOM_ETAB,
+            periode=PERIODE,
+            dernier=dernier,
+            avant_dernier=avant_dernier,
+        )
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
-
-        # ── 2. Synthèse KPIs
-        fig = page_synthese(evol_df)
-        pdf.savefig(fig, bbox_inches="tight")
-        plt.close(fig)
-
-        # ── 3+. Pages graphiques
-        page_num = 3
+ 
+        # ── Pages graphiques ─────────────────────────────────────────
+        page_num = 2
         for theme, config in THEMES.items():
             fig = plt.figure(figsize=(12, 17))
             fig.patch.set_facecolor(BLANC)
+ 
+            # Sélection du bon template Canva selon le thème
+            if "HTP" in theme.upper():
+                canva_path = CANVA_PAGE_HTP_PATH
+            else:
+                canva_path = CANVA_PAGE_HC_PATH
+ 
             _build_page_graphique(
                 fig, theme, config, evol_df,
-                page_num, NOM_ETAB, PERIODE, custom_comments,
+                page_num, NOM_ETAB, PERIODE,
+                canva_path=canva_path,
+                custom_comments=custom_comments,
                 moy_annuelle=moy_annuelle,
             )
             pdf.savefig(fig, bbox_inches="tight")
             plt.close(fig)
             page_num += 1
-
+ 
         # Métadonnées PDF
         d = pdf.infodict()
         d["Title"]        = f"Rapport mensuel – {NOM_ETAB}"
         d["Author"]       = AUTEUR
         d["Subject"]      = f"Évolution mensuelle SSR – {PERIODE}"
         d["CreationDate"] = datetime.today()
-
+ 
     buf.seek(0)
     return buf.read()
+ 
+ 
+def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
+    """
+    Variante interne de page_garde() qui reçoit directement les dicts
+    de données pour les KPI (évite une variable globale).
+    """
+    fig = plt.figure(figsize=(12, 17))
+    fig.patch.set_facecolor(BLANC)
+ 
+    bg = _charger_bg(CANVA_COVER_PATH)
+    if bg is not None:
+        _appliquer_bg(fig, bg)
+ 
+    ax = fig.add_axes([0, 0, 1, 1], zorder=2)
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.axis("off"); ax.patch.set_alpha(0)
+ 
+    # Nom établissement dans la box "Centre Médical de"
+    ax.text(
+        COVER_ETAB_X, COVER_ETAB_Y,
+        nom_etablissement,
+        ha="center", va="center",
+        fontsize=28, fontweight="bold", color=NOIR, zorder=3,
+    )
+ 
+    def _fleche(val, ref):
+        try:
+            if ref is None or np.isnan(float(ref)):
+                return "–", GRIS_TEXTE
+            d = float(val) - float(ref)
+            if d > 0:  return f"▲ +{d:,.0f}", VERT
+            if d < 0:  return f"▼ {d:,.0f}", ROUGE
+            return "= stable", GRIS_TEXTE
+        except Exception:
+            return "–", GRIS_TEXTE
+ 
+    def _badge(val, objectif):
+        try:
+            val = float(val)
+            if val >= objectif:
+                return f"✓ Objectif atteint ({objectif:,.0f} €)", VERT
+            pct = (1 - val / objectif) * 100
+            return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
+        except Exception:
+            return None, None
+ 
+    n_kpi   = len(KPI_CONFIG)
+    card_h  = KPI_BOX_HEIGHT / n_kpi
+    card_gap = 0.006
+    box_l   = KPI_BOX_LEFT
+    box_b   = KPI_BOX_BOTTOM
+ 
+    for i, (col, label, fmt, obj_key) in enumerate(KPI_CONFIG):
+        card_top    = box_b + KPI_BOX_HEIGHT - i * card_h
+        card_bottom = card_top - card_h + card_gap
+        card_cy     = (card_top + card_bottom) / 2
+ 
+        couleur_fond, couleur_bord = KPI_COULEURS[i % len(KPI_COULEURS)]
+        val = dernier.get(col, float("nan"))
+        ref = avant_dernier.get(col) if avant_dernier else None
+ 
+        # Fond de carte
+        ax.add_patch(mpatches.FancyBboxPatch(
+            (box_l + 0.006, card_bottom + card_gap * 0.3),
+            KPI_BOX_WIDTH - 0.012, card_h - card_gap * 1.8,
+            boxstyle="round,pad=0.003", linewidth=1.2,
+            edgecolor=couleur_bord, facecolor=couleur_fond,
+            zorder=2, clip_on=True,
+        ))
+ 
+        # Label
+        ax.text(box_l + 0.020, card_cy, label,
+                ha="left", va="center", fontsize=15, color=GRIS_TEXTE, zorder=3)
+ 
+        # Valeur
+        val_x = box_l + KPI_BOX_WIDTH * 0.52
+        try:    val_str = fmt.format(val)
+        except: val_str = "N/A"
+        ax.text(val_x, card_cy, val_str,
+                ha="center", va="center", fontsize=19,
+                fontweight="bold", color=BLEU_FONCE, zorder=3)
+ 
+        # Flèche
+        fleche_x = box_l + KPI_BOX_WIDTH * 0.82
+        fleche, couleur_fl = _fleche(val, ref)
+        ax.text(fleche_x, card_cy, fleche,
+                ha="center", va="center", fontsize=16,
+                fontweight="bold", color=couleur_fl, zorder=3)
+ 
+        # Badge objectif
+        if obj_key and OBJECTIFS.get(obj_key) is not None:
+            badge_txt, badge_col = _badge(val, OBJECTIFS[obj_key])
+            if badge_txt:
+                ax.text(val_x, card_cy - card_h * 0.22, badge_txt,
+                        ha="center", va="center", fontsize=11,
+                        color=badge_col, style="italic", zorder=3)
+ 
+    # Pied de page
+    ax.text(0.03, PAGE_NUM_Y,
+            f"{AUTEUR}  |  {nom_etablissement}  |  {DATE_RAPPORT}",
+            ha="left", va="center", fontsize=9, color=GRIS_TEXTE, zorder=3)
+    ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 1",
+            ha="right", va="center", fontsize=11,
+            fontweight="bold", color=GRIS_TEXTE, zorder=3)
+ 
+    return fig
+ 
