@@ -722,13 +722,13 @@ KPI_BOX_HEIGHT      = 0.556
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Bloc graphique GAUCHE (teal dashed, haut)
-GRAPH_LEFT_L        = 0.046#4
+GRAPH_LEFT_L        = 0.050
 GRAPH_LEFT_B        = 0.616
 GRAPH_LEFT_W        = 0.450
 GRAPH_LEFT_H        = 0.272
  
 # Bloc graphique DROIT (teal dashed, haut)
-GRAPH_RIGHT_L       = 0.512#6
+GRAPH_RIGHT_L       = 0.516
 GRAPH_RIGHT_B       = 0.618
 GRAPH_RIGHT_W       = 0.448
 GRAPH_RIGHT_H       = 0.270
@@ -746,7 +746,7 @@ COMMENT_SMALL_R_W   = 0.446
 COMMENT_SMALL_R_H   = 0.086
  
 # Grand bloc graphique BAS (teal dashed)
-GRAPH_BIG_L         = 0.050#8
+GRAPH_BIG_L         = 0.054
 GRAPH_BIG_B         = 0.191
 GRAPH_BIG_W         = 0.910
 GRAPH_BIG_H         = 0.267
@@ -924,7 +924,7 @@ def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
         COVER_ETAB_X, COVER_ETAB_Y,
         nom_etablissement,
         ha="center", va="center",
-        fontsize=28, fontweight="bold", color=TEAL, zorder=3,
+        fontsize=34, fontweight="bold", color=TEAL, zorder=3,
     )
  
     def _fleche(val, ref):
@@ -1134,7 +1134,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df))
-    full_text = "  |  ".join(texts)
+    full_text = "\n ".join(texts)
 
     largeur = ax.get_position().width
     chars_par_ligne = int(largeur * 120)  # ← réduit de 160 à 120
