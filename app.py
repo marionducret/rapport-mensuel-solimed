@@ -214,8 +214,8 @@ st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
 comments = {}
 figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle)
 
-for theme, fig, plots in figures:
-    st.header(theme)
+for theme, graphe_label, fig, plots in figures:
+    st.subheader(f"{theme.strip()} — {graphe_label}")
     col1, col2 = st.columns([2, 1])
     with col1:
         st.pyplot(fig)
