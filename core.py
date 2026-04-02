@@ -921,7 +921,7 @@ def _page_garde_with_data(nom_etablissement, periode, dernier, avant_dernier):
         COVER_ETAB_X, COVER_ETAB_Y,
         nom_etablissement,
         ha="center", va="center",
-        fontsize=28, fontweight="bold", color=NOIR, zorder=3,
+        fontsize=28, fontweight="bold", color=TEAL, zorder=3,
     )
  
     def _fleche(val, ref):
@@ -1014,42 +1014,54 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
     if bg is not None:
         _appliquer_bg(fig, bg)
 
-    # ── Titre bandeau teal ────────────────────────────────────────────
-    ax_t = fig.add_axes([0, 0, 1, 1], zorder=2)
-    ax_t.set_xlim(0, 1); ax_t.set_ylim(0, 1)
-    ax_t.axis("off"); ax_t.patch.set_alpha(0)
-    if bg is not None:
-        ax_t.text(0.055, 0.955, theme.strip().upper(),
-                  ha="left", va="center",
-                  fontsize=20, fontweight="bold", color=BLANC, zorder=3)
-        ax_t.text(0.970, 0.955, f"{NOM_ETAB}  |  {PERIODE}",
-                  ha="right", va="center", fontsize=10, color=BLANC, zorder=3)
-    else:
-        ax_t.add_patch(mpatches.FancyBboxPatch(
-            (0, 0.94), 1, 0.06, boxstyle="square,pad=0",
-            linewidth=0, facecolor=BLEU_FONCE))
-        ax_t.text(0.03, 0.97, theme.strip().upper(),
-                  ha="left", va="center", fontsize=14,
-                  fontweight="bold", color=BLANC)
-
     # ── Création des 3 axes graphiques ────────────────────────────────
-    ax_gl = fig.add_axes(
-        [GRAPH_LEFT_L, GRAPH_LEFT_B, GRAPH_LEFT_W, GRAPH_LEFT_H], zorder=3)
-    ax_gr = fig.add_axes(
-        [GRAPH_RIGHT_L, GRAPH_RIGHT_B, GRAPH_RIGHT_W, GRAPH_RIGHT_H], zorder=3)
-    ax_gb = fig.add_axes(
-        [GRAPH_BIG_L, GRAPH_BIG_B, GRAPH_BIG_W, GRAPH_BIG_H], zorder=3)
+    INNER = 0.018  # marge interne supplémentaire
+ 
+    ax_gl = fig.add_axes([
+        GRAPH_LEFT_L  + INNER,
+        GRAPH_LEFT_B  + INNER,
+        GRAPH_LEFT_W  - 2 * INNER,
+        GRAPH_LEFT_H  - 2 * INNER,
+    ], zorder=3)
+ 
+    ax_gr = fig.add_axes([
+        GRAPH_RIGHT_L + INNER,
+        GRAPH_RIGHT_B + INNER,
+        GRAPH_RIGHT_W - 2 * INNER,
+        GRAPH_RIGHT_H - 2 * INNER,
+    ], zorder=3)
+ 
+    ax_gb = fig.add_axes([
+        GRAPH_BIG_L  + INNER,
+        GRAPH_BIG_B  + INNER,
+        GRAPH_BIG_W  - 2 * INNER,
+        GRAPH_BIG_H  - 2 * INNER,
+    ], zorder=3)
 
     # ── Création des 3 axes commentaires ─────────────────────────────
-    ax_cl = fig.add_axes(
-        [COMMENT_SMALL_L_L, COMMENT_SMALL_L_B,
-         COMMENT_SMALL_L_W, COMMENT_SMALL_L_H], zorder=3)
-    ax_cr = fig.add_axes(
-        [COMMENT_SMALL_R_L, COMMENT_SMALL_R_B,
-         COMMENT_SMALL_R_W, COMMENT_SMALL_R_H], zorder=3)
-    ax_cb = fig.add_axes(
-        [COMMENT_BIG_L, COMMENT_BIG_B, COMMENT_BIG_W, COMMENT_BIG_H], zorder=3)
+    CINNER = 0.008
 
+    ax_cl = fig.add_axes([
+        COMMENT_SMALL_L_L + CINNER,
+        COMMENT_SMALL_L_B + CINNER,
+        COMMENT_SMALL_L_W - 2 * CINNER,
+        COMMENT_SMALL_L_H - 2 * CINNER,
+    ], zorder=3)
+ 
+    ax_cr = fig.add_axes([
+        COMMENT_SMALL_R_L + CINNER,
+        COMMENT_SMALL_R_B + CINNER,
+        COMMENT_SMALL_R_W - 2 * CINNER,
+        COMMENT_SMALL_R_H - 2 * CINNER,
+    ], zorder=3)
+ 
+    ax_cb = fig.add_axes([
+        COMMENT_BIG_L + CINNER,
+        COMMENT_BIG_B + CINNER,
+        COMMENT_BIG_W - 2 * CINNER,
+        COMMENT_BIG_H - 2 * CINNER,
+    ], zorder=3)
+ 
     graph_axes   = [ax_gl, ax_gr, ax_gb]
     comment_axes = [ax_cl, ax_cr, ax_cb]
 
@@ -1108,9 +1120,7 @@ def _draw_subplot_bar(ax, plot_list, evol_df):
         fmt = "{:.0f}"
     make_ax_bar(ax, col, titre, evol_df, fmt=fmt)
  
-def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=11):
-    """Commentaire auto ou personnalisé dans un axe gris."""
-    import textwrap as _tw
+def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=10):
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
@@ -1121,11 +1131,17 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df))
-    raw   = "  |  ".join(texts)
-    lines = _tw.wrap(raw, width=110)[:4]
-    ax.text(0.01, 0.88, "\n".join(lines),
-            fontsize=fontsize, color="#374151", va="top",
-            transform=ax.transAxes, linespacing=1.4, clip_on=True)
+    full_text = "  |  ".join(texts)
+    ax.text(
+        0.01, 0.95,
+        full_text,
+        fontsize=fontsize, color="#374151", va="top",
+        transform=ax.transAxes,
+        linespacing=1.4,
+        clip_on=True,
+        wrap=True,          
+        multialignment="left",
+    )
  
 
 # ══════════════════════════════════════════════════════════════════════════════
