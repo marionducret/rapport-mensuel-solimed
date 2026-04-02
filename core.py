@@ -103,16 +103,12 @@ THEMES = {
 COLORS     = ["#2563EB", "#16A34A", "#16A34A", "#E11D48", "#E11D48"]
 BLEU_FONCE = "#1E3A5F"
 BLEU       = "#2563EB"
-BLEU_CLAIR = "#DBEAFE"
 GRIS_TEXTE = "#6B7280"
-GRIS_CLAIR = "#F3F4F6"
 ROUGE      = "#E11D48"
 VERT       = "#16A34A"
 BLANC      = "#FFFFFF"
-TEAL       = "#007B7B"
-NOIR       = "#1A1A1A"
+TEAL       = "##028181"
 VIOLET     = "#7C3AED"
-ORANGE     = "#F97316"
 
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
@@ -581,7 +577,6 @@ def style_xticklabels(ax, x_vals, y_vals):
         else:
             label.set_color(GRIS_TEXTE)
 
-
 def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
     y_vals = y_vals.reset_index(drop=True)
     for i, val in enumerate(y_vals):
@@ -600,12 +595,11 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
             xy=(i, v),
             xytext=(0, 12),
             textcoords="offset points",
-            fontsize=10, fontweight="bold", color=couleur,
+            fontsize=9, fontweight="bold", color=couleur,
             ha="center", va="bottom",
             bbox=dict(boxstyle="round,pad=0.2", facecolor=BLANC,
                       edgecolor=couleur, alpha=0.85, linewidth=0.7),
         )
-
 
 def _style_ax(ax):
     ax.patch.set_facecolor("white")
@@ -619,7 +613,6 @@ def _style_ax(ax):
     ax.tick_params(axis="y", labelsize=8, colors=GRIS_TEXTE)
     ax.yaxis.set_tick_params(pad=1)
     ax.xaxis.set_tick_params(pad=1)
-
 
 def make_ax(ax, col, titre, evol_df, fmt="{:,.0f}"):
     x_vals = list(evol_df["Mois"])
@@ -652,7 +645,6 @@ def make_ax_hlines(ax, col, titre, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
-
 def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
     x_vals   = list(evol_df["Mois"])
     y_vals   = evol_df[col].reset_index(drop=True)
@@ -680,7 +672,6 @@ def make_ax_bar(ax, col, titre, evol_df, fmt="{:,.0f}"):
     ax.set_xticklabels(x_vals)
     style_xticklabels(ax, x_vals, y_vals)
 
-
 def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
     for i, (col, label) in enumerate(plots):
@@ -694,7 +685,7 @@ def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
     ax.set_title("", pad=0)
-    ax.legend(fontsize=12, framealpha=0.9, loc="best")
+    ax.legend(fontsize=9, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -704,7 +695,6 @@ def make_ax_multi(ax, plots, theme_title, evol_df, moy_annuelle=None):
             label.set_color(VIOLET if all_down else GRIS_TEXTE)
         else:
             label.set_color(GRIS_TEXTE)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MISE EN FORME PDF — pages avec template Canva
@@ -1003,7 +993,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
     full_text = "\n".join(texts)
 
     largeur = ax.get_position().width
-    chars_par_ligne = int(largeur * 120)  # ← réduit de 160 à 120
+    chars_par_ligne = int(largeur * 160) 
     lignes = textwrap.fill(full_text, width=max(chars_par_ligne, 30))
 
     ax.text(
