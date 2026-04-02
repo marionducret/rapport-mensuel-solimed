@@ -12,13 +12,8 @@ st.set_page_config(layout="wide")
 st.title("Générateur de rapport mensuel SSR")
 
 #debug background
-st.write("test bg:", str(Path(core.__file__).parent / core.CANVA_COVER_PATH))
-from PIL import Image
-try:
-    img = Image.open(str(Path(core.__file__).parent / core.CANVA_COVER_PATH))
-    st.write("✅ Image ouverte:", img.size)
-except Exception as e:
-    st.write("❌ Erreur:", e)
+bg = core._charger_bg(core.CANVA_COVER_PATH)
+st.write("bg result:", bg is not None, type(bg))
 # ══════════════════════════════════════════════════════════════════════════════
 #  GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
