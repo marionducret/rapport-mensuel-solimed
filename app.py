@@ -11,11 +11,13 @@ st.set_page_config(layout="wide")
 st.title("Générateur de rapport mensuel SSR")
 
 #debug background
-import os
-from pathlib import Path
-st.write("CWD:", os.getcwd())
-st.write("__file__ parent:", str(Path(core.__file__).parent))
-st.write("Fichiers design:", list((Path(core.__file__).parent / "design").glob("*")))
+st.write("test bg:", str(Path(core.__file__).parent / core.CANVA_COVER_PATH))
+from PIL import Image
+try:
+    img = Image.open(str(Path(core.__file__).parent / core.CANVA_COVER_PATH))
+    st.write("✅ Image ouverte:", img.size)
+except Exception as e:
+    st.write("❌ Erreur:", e)
 # ══════════════════════════════════════════════════════════════════════════════
 #  GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
