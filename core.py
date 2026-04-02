@@ -949,7 +949,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
             make_ax_hlines(ax, col, title, subplot.get("objectif"),
                            evol_df, moy_annuelle=moy)
         elif t == "multi":
-            make_ax_multi(ax, series, theme, title, evol_df, moy_annuelle=moy_annuelle)
+            make_ax_multi(ax, series, title, evol_df, moy_annuelle=moy_annuelle)
 
         _draw_comment(ax_c, series, theme, evol_df, custom_comments)
 
