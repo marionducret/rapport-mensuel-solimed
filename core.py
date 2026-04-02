@@ -18,7 +18,7 @@ import zipfile
 import tempfile
 import io
 import os
-from PIL import Image as _Image
+from PIL import Image
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION CONFIGURATION — tout ce qui est paramétrable est ici
