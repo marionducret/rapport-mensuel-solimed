@@ -718,7 +718,7 @@ def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # ── Page garde ────────────────────────────────────────────────────────────────
-COVER_ETAB_Y        = 0.712   # centre vertical de la box "Centre Médical de"
+COVER_ETAB_Y        = 0.702   # centre vertical de la box "Centre Médical de"
 COVER_ETAB_X        = 0.500   # centré horizontalement
  
 # Grand bloc KPI (zone teal pointillée)

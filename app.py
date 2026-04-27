@@ -87,7 +87,7 @@ if not NOM_ETAB:
     st.warning("Veuillez saisir le nom de l'établissement.")
     st.stop()
 
-NOM_ETAB_LAYOUT = f"Centre Médical de \n{NOM_ETAB}"
+NOM_ETAB_LAYOUT = f"Centre Médical de \n\n{NOM_ETAB}"
 NOM_ETAB = f"Centre Médical de {NOM_ETAB}"
 
 # ══════════════════════════════════════════════════════════════════════════════
