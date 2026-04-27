@@ -48,11 +48,14 @@ OBJECTIFS = {
 }
 
 KPI_CONFIG = [
-    ("recette_BR_period",   "Recette brute pour la période", "{:,.0f} €",  "obj_BR_mois"),
-    ("montantAM_valorise_HC",   "Recette AM pour la période en HC", "{:,.0f} €",  "obj_AM_mois"),
-    ("recette_BR_moy_sej",    "Recette brute par séjour", "{:,.0f} €",  None),
-    ("taux_valorisation_HC",  "Taux de valorisation HC",  "{:.1f} %",   None),
-    ("effectif_transmis_HC",  "Séjours transmis HC",      "{:.0f}",     None),
+    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:,.0f} €",  "obj_BR_mois"),
+    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:,.0f} €",  "obj_AM_mois"),
+    ("recette_BR_moy_sej",    "Recette Base Remboursement moyenne par jour (HC)", "{:,.0f} €",  None),
+    ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HTP)", "{:,.0f} €",  None),
+    ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
+    ("taux_valorisation_HTP",  "Taux de valorisation jours HTP",  "{:.1f} %",   None),
+    ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
+    ("effectif_transmis_HTP",  "Jours HTP transmis",      "{:.0f}",     None),
 ]
 
 KPI_COULEURS = [
@@ -66,45 +69,45 @@ KPI_COULEURS = [
 THEMES = {
     "HC ": {
         "plots": [
-            {
-                "type": "bar",
-                "series": [("taux_valorisation_HC", "Taux de valorisation"),
-                           ("ecart_valo", "Écart avec M-1")],
-                "title": "Valorisation",
-            },
-            {
-                "type": "single_hlines",
-                "objectif": None,
-                "series": [("recette_BR_moy_sej", "Evolution de la recette brute moyenne par séjour")],
-                "title": "Evolution de la recette brute moyenne par séjour",
-            },
-            {
+             {
                 "type": "multi",
                 "series": [("sejour_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
                            ("sejour_supp",      "Séjour supplémentaire par rapport à M-1")],
                 "title": "Evolution de l'activité (séjours)",
             },
+            {
+                "type": "bar",
+                "series": [("taux_valorisation_HC", "Taux de valorisation"),
+                           ("ecart_valo", "Écart avec M-1")],
+                "title": "Taux de Valorisation",
+            },
+            {
+                "type": "single_hlines",
+                "objectif": None,
+                "series": [("recette_BR_moy_sej", "Evolution de la recette brute moyenne par séjour")],
+                "title": "Evolution de la recette Base Remboursement moyenne par séjour",
+            },
         ]
     },
     "HTP ": {
         "plots": [
+              {
+                "type": "multi",
+                "series": [("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
+                           ("jour_tot_supp",  "Jour supplémentaire par rapport à M-1")],
+                "title": "Evolution de l'activité (jours)",
+            },
             {
                 "type": "bar",
                 "series": [("taux_valorisation_HTP", "Taux de valorisation"),
                            ("ecart_valo",             "Écart de valorisation avec M-1")],
-                "title": "Valorisation",
+                "title": "Taux de Valorisation",
             },
             {
                 "type": "single_hlines",
                 "objectif": None,
                 "series": [("recette_BR_moy_jour", "Evolution de la recette brute moyenne par jour")],
-                "title": "Evolution de la recette brute moyenne par jour",
-            },
-            {
-                "type": "multi",
-                "series": [("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
-                           ("jour_tot_supp",  "Jour supplémentaire par rapport à M-1")],
-                "title": "Evolution de l'activité (jours)",
+                "title": "Evolution de la recette Base Remboursement moyenne par jour",
             },
         ]
     },
