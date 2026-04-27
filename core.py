@@ -768,7 +768,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
     Page de garde avec background Canva + KPIs.
     Appelée uniquement depuis generate_pdf().
     """
-    fig = plt.figure(figsize=(12, 17))
+    fig = plt.figure(figsize=(17, 12))
     fig.patch.set_facecolor(BLANC)
 
     cover_path = CANVA_COVER_PATH if inclure_htp else CANVA_COVER_PATH_HC
