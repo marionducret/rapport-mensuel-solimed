@@ -180,7 +180,6 @@ if not uploaded_zip or not uploaded_csv:
 def charger_brut(zip_bytes, csv_bytes):
     return core.load_data_brut(io.BytesIO(zip_bytes), io.BytesIO(csv_bytes))
 
-
 nouveau         = charger_brut(uploaded_zip.read(), uploaded_csv.read())
 nouveau_brut_df = nouveau["brut_df"]
 
@@ -202,6 +201,22 @@ brut_complet = brut_complet.iloc[
     brut_complet["Mois"].map(month_key).argsort()
 ].reset_index(drop=True)
 
+#détecter HTP
+inclure_htp = (
+    brut_complet[
+        ["effectif_transmis_HTP", "effectif_valorise_HTP"]
+    ]
+    .fillna(0)
+    .sum()
+    .sum()
+    > 0
+)
+
+if inclure_htp:
+    st.info("✅ Activité HTP détectée : le rapport inclura les pages HC et HTP.")
+else:
+    st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
+
 evol_df    = core.recalculer_derives(brut_complet)
 mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)
 PERIODE    = f"{mois_tries[-1]}"
@@ -214,7 +229,7 @@ st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
 # ══════════════════════════════════════════════════════════════════════════════
 
 comments = {}
-figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle)
+figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle, inclure_htp=inclure_htp)
 
 for theme, graphe_label, fig, plots in figures:
     st.subheader(f"{theme.strip()} — {graphe_label}")
@@ -244,6 +259,7 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
             PERIODE=PERIODE,
             custom_comments=comments,
             moy_annuelle=moy_annuelle,
+            inclure_htp=inclure_htp
         )
 
     with st.spinner("Sauvegarde de l'historique sur GitHub…"):

@@ -33,9 +33,10 @@ OUTPUT_PDF  = "rapport_mensuel.pdf"
 
 # ── Templates Canva ───────────────────────────────────────────────────────────
 # Déposer les PNG exportés depuis Canva dans ./design/
-CANVA_COVER_PATH = "design/page_garde.png"
-CANVA_PAGE_HC_PATH  = "design/page_graph_HC.png"
-CANVA_PAGE_HTP_PATH   = "design/page_graph_HTP.png"
+CANVA_COVER_PATH = "design/page_garde_all.png"
+CANVA_COVER_PATH_HC = "design/page_garde_HC.png"
+CANVA_PAGE_HC_PATH  = "design/page_graph_HC_pays.png"
+CANVA_PAGE_HTP_PATH   = "design/page_graph_HTP_pays.png"
 
 AUTEUR = "Dr Nathalie DUCRET"
 DATE_RAPPORT = datetime.today().strftime("%d/%m/%Y")
@@ -762,15 +763,16 @@ PAGE_NUM_X          = 0.970
 #  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, dernier, avant_dernier):
+def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, dernier, avant_dernier, inclure_htp=True):
     """
     Page de garde avec background Canva + KPIs.
     Appelée uniquement depuis generate_pdf().
     """
     fig = plt.figure(figsize=(12, 17))
     fig.patch.set_facecolor(BLANC)
- 
-    bg = _charger_bg(CANVA_COVER_PATH)
+
+    cover_path = CANVA_COVER_PATH if inclure_htp else CANVA_COVER_PATH_HC
+    bg = _charger_bg(cover_path)
     if bg is not None:
         _appliquer_bg(fig, bg)
  
@@ -1098,7 +1100,7 @@ def generate_all_figures(evol_df, moy_annuelle=None):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
-                 custom_comments=None, moy_annuelle=None):
+                 custom_comments=None, moy_annuelle=None, inclure_htp=True):
    
     buf = io.BytesIO()
  
@@ -1114,6 +1116,7 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
             periode=PERIODE,
             dernier=dernier,
             avant_dernier=avant_dernier,
+            inclure_htp=inclure_htp
         )
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
@@ -1121,20 +1124,23 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
         # ── Pages graphiques ─────────────────────────────────────────
         page_num = 2
         for theme, config in THEMES.items():
-            fig = plt.figure(figsize=(12, 17))
-            fig.patch.set_facecolor(BLANC)
-            canva_path = CANVA_PAGE_HTP_PATH if "HTP" in theme.upper() \
-                         else CANVA_PAGE_HC_PATH
-            _build_page_graphique(
-                fig, theme, config, evol_df,
-                page_num, NOM_ETAB, PERIODE,
-                canva_path=canva_path,
-                custom_comments=custom_comments,
-                moy_annuelle=moy_annuelle,
-            )
-            pdf.savefig(fig, bbox_inches="tight")
-            plt.close(fig)
-            page_num += 1
+            if not inclure_htp and "HTP" in theme.upper():
+                continue
+            else:
+                fig = plt.figure(figsize=(17, 12))
+                fig.patch.set_facecolor(BLANC)
+                canva_path = CANVA_PAGE_HTP_PATH if "HTP" in theme.upper() \
+                            else CANVA_PAGE_HC_PATH
+                _build_page_graphique(
+                    fig, theme, config, evol_df,
+                    page_num, NOM_ETAB, PERIODE,
+                    canva_path=canva_path,
+                    custom_comments=custom_comments,
+                    moy_annuelle=moy_annuelle,
+                )
+                pdf.savefig(fig, bbox_inches="tight")
+                plt.close(fig)
+                page_num += 1
  
         # Métadonnées
         d = pdf.infodict()
