@@ -666,7 +666,7 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
 
 barlow_bold = font_manager.FontProperties(
     fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
-    size=11)
+    size=14)
 
 def style_xticklabels(ax, x_vals, y_vals):
     ax.set_xticks(range(len(x_vals)))
@@ -709,8 +709,8 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=45, labelsize=8)
-    ax.tick_params(axis="y", labelsize=8, colors=GRIS_TEXTE)
+    ax.tick_params(axis="x", rotation=45, labelsize=10)
+    ax.tick_params(axis="y", labelsize=10, colors=GRIS_TEXTE)
     ax.yaxis.set_tick_params(pad=1)
     ax.xaxis.set_tick_params(pad=1)
 
@@ -729,7 +729,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
         ax.axhline(moy_annuelle, color=VIOLET, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({moy_annuelle:,.0f})")
     ax.set_title(title, pad=10,  fontproperties=barlow_bold)
-    ax.legend(fontsize=9, framealpha=0.9, loc="best")
+    ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
@@ -751,7 +751,7 @@ def make_ax_bar(ax, col, title, evol_df, fmt="{:,.0f}"):
         y_pos  = val + offset if val >= 0 else val - offset
         ax.text(
             bar.get_x() + bar.get_width() / 2, y_pos, label,
-            ha="center", va=va, fontsize=9, fontweight="bold",
+            ha="center", va=va, fontsize=10, fontweight="bold",
             color=VERT if val >= 0 else ROUGE,
         )
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8, linestyle="-")
@@ -774,7 +774,7 @@ def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
     ax.set_title(title, pad=10, fontproperties=barlow_bold)
-    ax.legend(fontsize=9, framealpha=0.9, loc="best")
+    ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -817,41 +817,41 @@ KPI_POS_HC = {
 
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
-# Bloc graphique GAUCHE (teal dashed, haut)
-GRAPH_LEFT_L        = 0.044
-GRAPH_LEFT_B        = 0.616
-GRAPH_LEFT_W        = 0.450
-GRAPH_LEFT_H        = 0.272
- 
-# Bloc graphique DROIT (teal dashed, haut)
-GRAPH_RIGHT_L       = 0.516
-GRAPH_RIGHT_B       = 0.618
-GRAPH_RIGHT_W       = 0.448
-GRAPH_RIGHT_H       = 0.270
- 
-# Blocs commentaire petit GAUCHE (gris, milieu)
-COMMENT_SMALL_L_L   = 0.042
-COMMENT_SMALL_L_B   = 0.492
-COMMENT_SMALL_L_W   = 0.434
-COMMENT_SMALL_L_H   = 0.086
- 
-# Blocs commentaire petit DROIT (gris, milieu)
-COMMENT_SMALL_R_L   = 0.514
-COMMENT_SMALL_R_B   = 0.492
-COMMENT_SMALL_R_W   = 0.446
-COMMENT_SMALL_R_H   = 0.086
- 
-# Grand bloc graphique BAS (teal dashed)
-GRAPH_BIG_L         = 0.054
-GRAPH_BIG_B         = 0.191
-GRAPH_BIG_W         = 0.910
-GRAPH_BIG_H         = 0.267
- 
-# Grand bloc commentaire BAS (gris)
-COMMENT_BIG_L       = 0.042
-COMMENT_BIG_B       = 0.074
-COMMENT_BIG_W       = 0.918
-COMMENT_BIG_H       = 0.071
+# Graphique haut gauche
+GRAPH_LEFT_L  = 0.055
+GRAPH_LEFT_B  = 0.645
+GRAPH_LEFT_W  = 0.405
+GRAPH_LEFT_H  = 0.235
+
+# Graphique haut droit
+GRAPH_RIGHT_L = 0.535
+GRAPH_RIGHT_B = 0.645
+GRAPH_RIGHT_W = 0.405
+GRAPH_RIGHT_H = 0.235
+
+# Commentaire haut gauche
+COMMENT_SMALL_L_L = 0.055
+COMMENT_SMALL_L_B = 0.505
+COMMENT_SMALL_L_W = 0.405
+COMMENT_SMALL_L_H = 0.105
+
+# Commentaire haut droit
+COMMENT_SMALL_R_L = 0.535
+COMMENT_SMALL_R_B = 0.505
+COMMENT_SMALL_R_W = 0.405
+COMMENT_SMALL_R_H = 0.105
+
+# Grand graphique bas
+GRAPH_BIG_L = 0.085
+GRAPH_BIG_B = 0.235
+GRAPH_BIG_W = 0.825
+GRAPH_BIG_H = 0.205
+
+# Grand commentaire bas
+COMMENT_BIG_L = 0.070
+COMMENT_BIG_B = 0.085
+COMMENT_BIG_W = 0.860
+COMMENT_BIG_H = 0.105
  
 # Pied de page
 PAGE_NUM_Y          = 0.020
@@ -993,9 +993,9 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         _appliquer_bg(fig, bg)
 
     # ── Création des 3 axes graphiques ────────────────────────────────
-    INNER = 0.018 #marge interne supp
-    PAD_L = 0.036
-    PAD_R = 0.010
+    INNER = 0.010 #marge interne supp
+    PAD_L = 0.030
+    PAD_R = 0.012
 
     ax_gl = fig.add_axes([
         GRAPH_LEFT_L + PAD_L,
@@ -1019,7 +1019,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
     ], zorder=3)
 
     # ── Création des 3 axes commentaires ─────────────────────────────
-    CINNER = 0.008
+    CINNER = 0.012
 
     ax_cl = fig.add_axes([
         COMMENT_SMALL_L_L + CINNER,
@@ -1101,7 +1101,7 @@ def _draw_subplot_bar(ax, plot_list, evol_df):
         fmt = "{:.0f}"
     make_ax_bar(ax, col, titre, evol_df, fmt=fmt)
  
-def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=11):
+def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12):
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
@@ -1119,7 +1119,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
     lignes = textwrap.fill(full_text, width=max(chars_par_ligne, 30))
 
     ax.text(
-        0.01, 0.95,
+        0.025, 0.92,
         lignes,
         fontsize=fontsize, 
         color="#374151", 
