@@ -1072,9 +1072,12 @@ def generate_comment(col, titre, evol_df):
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generate_all_figures(evol_df, moy_annuelle=None):
+def generate_all_figures(evol_df, moy_annuelle=None, inclure_htp=True):
     figures = []
     for theme, config in THEMES.items():
+        if not inclure_htp and "HTP" in theme.upper():
+                    continue
+
         for i, subplot in enumerate(config["plots"]):
             fig, ax = plt.subplots(figsize=(10, 5))
             t      = subplot["type"]
@@ -1151,14 +1154,6 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
  
     buf.seek(0)
     return buf.read() 
-
-
-for theme, config in THEMES.items():
-    print(f"theme : {theme}")
-    print(f"config : {config}")
-    print("\n\n")
-
-     
      
 
 
