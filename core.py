@@ -818,40 +818,40 @@ KPI_POS_HC = {
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Graphique haut gauche
-GRAPH_LEFT_L  = 0.055
-GRAPH_LEFT_B  = 0.620
-GRAPH_LEFT_W  = 0.410
-GRAPH_LEFT_H  = 0.250
+GRAPH_LEFT_L  = 0.050 #horizontal
+GRAPH_LEFT_B  = 0.600 #vertical
+GRAPH_LEFT_W  = 0.410 #largeur
+GRAPH_LEFT_H  = 0.250 #hauteur
 
 # Commentaire haut gauche
-COMMENT_SMALL_L_L = 0.055
-COMMENT_SMALL_L_B = 0.485
+COMMENT_SMALL_L_L = 0.050
+COMMENT_SMALL_L_B = 0.460
 COMMENT_SMALL_L_W = 0.410
 COMMENT_SMALL_L_H = 0.110
 
 # Graphique haut droit
-GRAPH_RIGHT_L = 0.535
-GRAPH_RIGHT_B = 0.620
+GRAPH_RIGHT_L = 0.530
+GRAPH_RIGHT_B = 0.600
 GRAPH_RIGHT_W = 0.410
 GRAPH_RIGHT_H = 0.250
 
 # Commentaire haut droit
-COMMENT_SMALL_R_L = 0.535
-COMMENT_SMALL_R_B = 0.485
+COMMENT_SMALL_R_L = 0.530
+COMMENT_SMALL_R_B = 0.460
 COMMENT_SMALL_R_W = 0.410
 COMMENT_SMALL_R_H = 0.110
 
 # Grand graphique bas À GAUCHE
-GRAPH_BIG_L = 0.055
+GRAPH_BIG_L = 0.050
 GRAPH_BIG_B = 0.170
-GRAPH_BIG_W = 0.540
+GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.250
 
 # Commentaire bas À DROITE
-COMMENT_BIG_L = 0.635
+COMMENT_BIG_L = 0.630
 COMMENT_BIG_B = 0.190
-COMMENT_BIG_W = 0.310
-COMMENT_BIG_H = 0.205
+COMMENT_BIG_W = 0.410
+COMMENT_BIG_H = 0.250
  
 # Pied de page
 PAGE_NUM_Y          = 0.020
