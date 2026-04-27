@@ -470,7 +470,7 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     )
     brut_df["recette_BR_moy_sej"]  = brut_df["montantBR_valorise_HC"] / brut_df["effectif_valorise_HC"]
     brut_df["recette_BR_moy_jour"] = brut_df["montantBR_valorise_HC"] / brut_df["jour_valo_HC"]
-    brut_df["recette_BR_period"] = brut_df["montantBR_valorise_HC"] + brut_df["montantBR_valorise_HTP"]
+    brut_df["recette_BR_period"] = brut_df["montantBR_valorise_HC"].fillna(0) + brut_df["montantBR_valorise_HTP"].fillna(0)
 
     return {"brut_df": brut_df, "_tmp_dir": tmp}
 
@@ -735,12 +735,12 @@ KPI_POS_ALL = {
 }
 
 KPI_POS_HC = {
-    "recette_BR_period":       (0.275, 0.495),
-    "montantAM_valorise_HC":   (0.500, 0.495),
-    "effectif_transmis_HC":    (0.725, 0.495),
+    "recette_BR_period":       (0.275, 0.382),
+    "montantAM_valorise_HC":   (0.500, 0.382),
+    "effectif_transmis_HC":    (0.725, 0.382),
 
-    "recette_BR_moy_sej":      (0.390, 0.235),
-    "taux_valorisation_HC":    (0.610, 0.235),
+    "recette_BR_moy_sej":      (0.390, 0.158),
+    "taux_valorisation_HC":    (0.610, 0.158),
 }
 
  
@@ -865,7 +865,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
             val_str,
             ha="center",
             va="center",
-            fontsize=26,
+            fontsize=18,
             fontweight="bold",
             color=GRIS_TEXTE,
             zorder=3,
@@ -875,11 +875,11 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         fleche, couleur_fl = _fleche(val, ref)
 
         ax.text(
-            x, y - 0.060,
+            x, y - 0.040,
             fleche,
             ha="center",
             va="center",
-            fontsize=14,
+            fontsize=10,
             fontweight="bold",
             color=couleur_fl,
             zorder=3,
@@ -891,11 +891,11 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
 
             if badge_txt:
                 ax.text(
-                    x, y - 0.095,
+                    x, y - 0.068,
                     badge_txt,
                     ha="center",
                     va="center",
-                    fontsize=10,
+                    fontsize=8,
                     color=badge_col,
                     style="italic",
                     zorder=3,
