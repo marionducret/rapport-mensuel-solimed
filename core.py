@@ -71,43 +71,43 @@ KPI_CONFIG = [
 
 KPI_CONFIG_HC = [
     (
-        "recette_BR_mois_total",
-        "Recette BR du mois",
-        "{:.0f} €",
         "recette_BR_cumule_total",
-        "{:.0f} € cumulés",
+        "Recette BR cumulée",
+        "{:,.0f} €",
+        "recette_BR_mois_total",
+        "{:,.0f} € sur le mois",
         "obj_BR_mois",
     ),
     (
-        "montantAM_mois_HC",
-        "Recette AM du mois",
-        "{:.0f} €",
         "montantAM_valorise_HC",
-        "{:.0f} € cumulés",
+        "Recette AM cumulée",
+        "{:,.0f} €",
+        "montantAM_mois_HC",
+        "{:,.0f} € sur le mois",
         "obj_AM_mois",
     ),
     (
-        "sejours_transmis_mois_HC",
-        "Séjours transmis du mois",
-        "{:.0f}",
         "effectif_transmis_HC",
-        "{:.0f} cumulés",
+        "Séjours HC transmis cumulés",
+        "{:,.0f}",
+        "sejours_transmis_mois_HC",
+        "{:,.0f} sur le mois",
         None,
     ),
     (
-        "recette_BR_moy_jour_mois_HC",
-        "BR moyen / jour du mois",
-        "{:.0f} €",
         "recette_BR_moy_jour_cumule_HC",
-        "{:.0f} € cumulés",
+        "BR moyen / jour cumulé",
+        "{:,.0f} €",
+        "recette_BR_moy_jour_mois_HC",
+        "{:,.0f} € sur le mois",
         None,
     ),
     (
-        "taux_valorisation_mois_HC",
-        "Taux valo du mois",
-        "{:.1f} %",
         "taux_valorisation_cumule_HC",
-        "{:.1f} % cumulé",
+        "Taux de valorisation cumulé",
+        "{:.1f} %",
+        "taux_valorisation_mois_HC",
+        "{:.1f} % sur le mois",
         None,
     ),
 ]
@@ -134,7 +134,11 @@ THEMES = {
                 "series": [
                     (
                         "taux_valorisation_mois_HC",
-                        "Taux de valorisation du mois"
+                        "Taux du mois"
+                    ),
+                    (
+                        "taux_valorisation_cumule_HC",
+                        "Taux cumulé"
                     ),
                 ],
                 "title": "Taux de valorisation du mois (séjours valorisés/séjour transmis)",
@@ -185,6 +189,12 @@ BLANC      = "#FFFFFF"
 TEAL       = "#028181"
 VIOLET     = "#7C3AED"
 ORANGE     = "#F09516"
+
+def format_fr(val, fmt="{:,.0f}"):
+    try:
+        return fmt.format(float(val)).replace(",", " ")
+    except Exception:
+        return "N/A"
 
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
@@ -756,32 +766,52 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
-def make_ax_bar(ax, col, title, evol_df, fmt="{:,.0f}"):
-    x_vals   = list(evol_df["Mois"])
-    y_vals   = evol_df[col].reset_index(drop=True)
-    couleurs = [VERT if v >= 0 else ROUGE for v in y_vals]
-    bars     = ax.bar(range(len(x_vals)), y_vals, color=couleurs, alpha=0.85, zorder=3)
-    for bar, val in zip(bars, y_vals):
-        if np.isnan(val):
-            continue
-        try:
-            label = fmt.format(val)
-        except (ValueError, TypeError):
-            label = str(val)
-        va     = "bottom" if val >= 0 else "top"
-        offset = abs(y_vals.abs().max()) * 0.015 if y_vals.abs().max() != 0 else 1
-        y_pos  = val + offset if val >= 0 else val - offset
-        ax.text(
-            bar.get_x() + bar.get_width() / 2, y_pos, label,
-            ha="center", va=va, fontsize=10, fontweight="bold",
-            color=VERT if val >= 0 else ROUGE,
+def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
+    x_vals = list(evol_df["Mois"])
+    x = np.arange(len(x_vals))
+
+    n_series = len(series)
+    width = 0.35 if n_series == 2 else 0.55
+
+    for i, (col, label) in enumerate(series):
+        y_vals = evol_df[col].reset_index(drop=True)
+
+        offset = (i - (n_series - 1) / 2) * width
+
+        bars = ax.bar(
+            x + offset,
+            y_vals,
+            width=width,
+            label=label,
+            alpha=0.85,
+            zorder=3,
         )
-    ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8, linestyle="-")
+
+        for bar, val in zip(bars, y_vals):
+            if pd.isna(val):
+                continue
+
+            label_txt = format_fr(val, fmt)
+
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                val + max(y_vals.max() * 0.02, 1),
+                label_txt,
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                fontweight="bold",
+                color=GRIS_TEXTE,
+            )
+
+    ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8)
     ax.set_title(title, pad=10, fontproperties=barlow_bold)
+
     _style_ax(ax)
-    ax.set_xticks(range(len(x_vals)))
+
+    ax.set_xticks(x)
     ax.set_xticklabels(x_vals)
-    style_xticklabels(ax, x_vals, y_vals)
+    ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
 def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
@@ -838,12 +868,12 @@ KPI_POS_ALL = {
 # }
 
 KPI_POS_HC = {
-    "recette_BR_mois_total":           (0.275, 0.430),
-    "montantAM_mois_HC":               (0.500, 0.430),
-    "sejours_transmis_mois_HC":        (0.725, 0.430),
+    "recette_BR_cumule_total":           (0.275, 0.430),
+    "montantAM_valorise_HC":             (0.500, 0.430),
+    "effectif_transmis_HC":              (0.725, 0.430),
 
-    "recette_BR_moy_jour_mois_HC":     (0.390, 0.176),
-    "taux_valorisation_mois_HC":       (0.610, 0.176),
+    "recette_BR_moy_jour_cumule_HC":     (0.390, 0.176),
+    "taux_valorisation_cumule_HC":       (0.610, 0.176),
 }
 
  
@@ -874,13 +904,13 @@ COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
 GRAPH_BIG_L = 0.050
-GRAPH_BIG_B = 0.130
+GRAPH_BIG_B = 0.105
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.530
-COMMENT_BIG_B = 0.150
+COMMENT_BIG_B = 0.105
 COMMENT_BIG_W = 0.420
 COMMENT_BIG_H = 0.090
  
@@ -948,28 +978,26 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
     kpi_config = KPI_CONFIG_ALL if inclure_htp else KPI_CONFIG_HC
     kpi_pos = KPI_POS_ALL if inclure_htp else KPI_POS_HC
 
-    #for col, label, fmt, obj_key in kpi_config:
     for item in kpi_config:
         if len(item) == 4:
             col, label, fmt, obj_key = item
-            col_cumul, fmt_cumul = None, None
+            col_mois, fmt_mois = None, None
         else:
-            col, label, fmt, col_cumul, fmt_cumul, obj_key = item
+            col, label, fmt, col_mois, fmt_mois, obj_key = item
 
         if col not in kpi_pos:
             continue
 
         x, y = kpi_pos[col]
 
-        val = dernier.get(col, float("nan"))
-        ref = avant_dernier.get(col) if avant_dernier else None
+        val_cumul = dernier.get(col, float("nan"))
+        val_mois = dernier.get(col_mois, float("nan")) if col_mois else None
 
-        try:
-            val_str = fmt.format(val)
-        except Exception:
-            val_str = "N/A"
+        ref_cumul = avant_dernier.get(col) if avant_dernier else None
 
-        # Valeur principale centrée dans la carte
+        val_str = format_fr(val_cumul, fmt)
+
+        # Valeur principale = CUMUL
         ax.text(
             x, y,
             val_str,
@@ -981,17 +1009,13 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
             zorder=3,
         )
 
-        # Valeur cumulée en petit sous la valeur principale
-        if col_cumul:
-            cumul_val = dernier.get(col_cumul, float("nan"))
-            try:
-                cumul_str = fmt_cumul.format(cumul_val)
-            except Exception:
-                cumul_str = "Cumul indisponible"
+        # Valeur secondaire = MOIS
+        if col_mois:
+            mois_str = format_fr(val_mois, fmt_mois)
 
             ax.text(
-                x, y - 0.028,
-                cumul_str,
+                x, y - 0.030,
+                mois_str,
                 ha="center",
                 va="center",
                 fontsize=8.5,
@@ -999,31 +1023,35 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
                 zorder=3,
             )
 
-        # Évolution vs mois précédent
-        fleche, couleur_fl = _fleche(val, ref)
+        # Évolution du cumul vs période précédente
+        fleche, couleur_fl = _fleche(val_cumul, ref_cumul)
+        fleche = fleche.replace(",", " ")
 
         ax.text(
-            x, y - 0.052,
+            x, y - 0.055,
             fleche,
             ha="center",
             va="center",
-            fontsize=10,
+            fontsize=9.5,
             fontweight="bold",
             color=couleur_fl,
             zorder=3,
         )
 
-        # Objectif seulement si pertinent
+        # Objectif : appliqué à la valeur du mois si elle existe, sinon au cumul
         if obj_key and OBJECTIFS.get(obj_key) is not None:
-            badge_txt, badge_col = _badge(val, OBJECTIFS[obj_key])
+            valeur_obj = val_mois if val_mois is not None else val_cumul
+            badge_txt, badge_col = _badge(valeur_obj, OBJECTIFS[obj_key])
 
             if badge_txt:
+                badge_txt = badge_txt.replace(",", " ")
+
                 ax.text(
-                    x, y - 0.073,
+                    x, y - 0.076,
                     badge_txt,
                     ha="center",
                     va="center",
-                    fontsize=8,
+                    fontsize=7.5,
                     color=badge_col,
                     style="italic",
                     zorder=3,
@@ -1110,7 +1138,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         title  = subplot["title"]
 
         if t == "bar":
-            make_ax_bar(ax, series[0][0], title, evol_df)
+            make_ax_bar(ax, series, title, evol_df)
         elif t == "single_hlines":
             col, _ = series[0]
             moy = moy_annuelle.get(col) if moy_annuelle else None
@@ -1215,20 +1243,33 @@ def _build_page_graphique_HTP(fig, theme, config, evol_df, page_num,
 
 def generate_comment(col, titre, evol_df):
     series = evol_df[col].dropna()
+
     if len(series) < 2:
         return "Données insuffisantes pour analyse."
-    trend     = series.iloc[-1] - series.iloc[0]
-    trend_pct = (trend / series.iloc[0]) * 100 if series.iloc[0] != 0 else 0
+
+    debut = series.iloc[0]
+    fin = series.iloc[-1]
+
+    if "taux" in col:
+        return (
+            f"{titre} : le taux passe de {debut:.1f} % à {fin:.1f} % "
+            f"sur la période. La moyenne observée est de {series.mean():.1f} %."
+        )
+
+    trend = fin - debut
+    trend_pct = (trend / debut) * 100 if debut != 0 else 0
+
     if trend > 0:
         tendance = "hausse"
     elif trend < 0:
         tendance = "baisse"
     else:
         tendance = "stabilité"
+
     return (
-        f"{titre} : On observe une {tendance} globale de {trend_pct:.1f}% "
-        f"sur la période. La valeur moyenne est de {series.mean():,.0f}, "
-        f"avec un minimum de {series.min():,.0f} et un maximum de {series.max():,.0f}."
+        f"{titre} : on observe une {tendance} de {trend_pct:.1f} % "
+        f"sur la période. La valeur moyenne est de {format_fr(series.mean())}, "
+        f"avec un minimum de {format_fr(series.min())} et un maximum de {format_fr(series.max())}."
     )
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1247,8 +1288,7 @@ def generate_all_figures(evol_df, moy_annuelle=None, inclure_htp=True):
             series = subplot["series"]
 
             if t == "bar":
-                # plusieurs barres sur le même axe
-                make_ax_bar(ax, series[0][0], series[0][1], evol_df)
+                make_ax_bar(ax, series, subplot["title"], evol_df)
             elif t == "single_hlines":
                 col, titre = series[0]
                 moy = moy_annuelle.get(col) if moy_annuelle else None
