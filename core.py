@@ -922,7 +922,7 @@ PAGE_NUM_X          = 0.970
 #  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, dernier, avant_dernier, inclure_htp=True):
+def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, dernier, avant_dernier, evol_df, inclure_htp=True):
     """
     Page de garde avec background Canva + KPIs.
     Appelée uniquement depuis generate_pdf().
@@ -1014,7 +1014,11 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         val_cumul = dernier.get(col, float("nan"))
         val_mois = dernier.get(col_mois, float("nan")) if col_mois else None
 
-        ref_cumul = avant_dernier.get(col) if avant_dernier else None
+        # recalcul robuste basé sur evol_df
+        if len(evol_df) >= 2:
+            val_prev = evol_df.iloc[-2][col]
+        else:
+            val_prev = None
 
         val_str = format_fr(val_cumul, fmt)
 
@@ -1044,20 +1048,34 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
                 zorder=3,
             )
 
-        # Évolution du cumul vs période précédente
-        fleche, couleur_fl = _fleche(val_cumul, ref_cumul, fmt)
-        fleche = fleche.replace(",", " ")
+        # Évolution du mois vs mois précédent
 
-        ax.text(
-            x, y - 0.055,
-            fleche,
-            ha="center",
-            va="center",
-            fontsize=9.5,
-            fontweight="bold",
-            color=couleur_fl,
-            zorder=3,
-        )
+    if len(evol_df) >= 2:
+
+        # CAS 1 — KPI taux → utiliser directement la version "mois"
+        if "taux" in col and col_mois:
+            val_now = evol_df.iloc[-1][col_mois]
+            val_prev = evol_df.iloc[-2][col_mois]
+
+        # CAS 2 — KPI cumul → reconstruire les mois
+        else:
+            cumul_now = evol_df.iloc[-1][col]
+            cumul_prev = evol_df.iloc[-2][col]
+
+            # mois actuel
+            val_now = cumul_now - cumul_prev
+
+            # mois précédent
+            if len(evol_df) == 2:
+                val_prev = cumul_prev
+            else:
+                cumul_prev2 = evol_df.iloc[-3][col]
+                val_prev = cumul_prev - cumul_prev2
+
+        fleche, couleur_fl = _fleche(val_now, val_prev, fmt)
+
+    else:
+        fleche, couleur_fl = "–", GRIS_TEXTE
 
         # Objectif : appliqué à la valeur du mois si elle existe, sinon au cumul
         if obj_key and OBJECTIFS.get(obj_key) is not None:
@@ -1357,6 +1375,7 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
             periode=PERIODE,
             dernier=dernier,
             avant_dernier=avant_dernier,
+            evol_df=evol_df,
             inclure_htp=inclure_htp
         )
         pdf.savefig(fig, bbox_inches="tight")
