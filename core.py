@@ -741,10 +741,10 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=0, labelsize=12, pad=10)
+    ax.tick_params(axis="x", rotation=0, labelsize=12)
     ax.tick_params(axis="y", labelsize=12, colors=GRIS_TEXTE)
-    ax.yaxis.set_tick_params(pad=1)
-    ax.xaxis.set_tick_params(pad=1)
+    ax.yaxis.set_tick_params(pad=5)
+    ax.xaxis.set_tick_params(pad=5)
 
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
@@ -753,7 +753,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
     moyenne = y_vals.mean()
     ax.axhline(moyenne, color="#9CA3AF", linestyle="--", linewidth=1.5,
-               label=f"Moyenne globale ({format_fr(moyenne)})")
+               label=f"Moyenne période ({format_fr(moyenne)})")
     if objectif is not None:
         ax.axhline(objectif, color=ORANGE, linestyle="--", linewidth=1.5,
                    label=f"Objectif mensuel ({objectif:,.0f})")
@@ -1215,30 +1215,55 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
-    texts = []
+
+    x_cursor = 0.025
+    y_cursor = 0.92
+
     for col, titre in subplot_plots:
         key = (theme, col)
+
         if custom_comments and key in custom_comments:
-            texts.append(custom_comments[key])
-        else:
-            texts.append(generate_comment(col, titre, evol_df))
-    full_text = "\n".join(texts)
+            ax.text(
+                0.025, y_cursor,
+                custom_comments[key],
+                fontsize=fontsize,
+                color="#374151",
+                va="top",
+                transform=ax.transAxes,
+                wrap=True,
+            )
+            return
 
-    largeur = ax.get_position().width
-    chars_par_ligne = int(largeur * 160) 
-    lignes = textwrap.fill(full_text, width=max(chars_par_ligne, 30))
+        parts = generate_comment(col, titre, evol_df)
 
-    ax.text(
-        0.025, 0.92,
-        lignes,
-        fontsize=fontsize, 
-        color="#374151", 
-        va="top",
-        transform=ax.transAxes,
-        linespacing=1.3,
-        clip_on=False,
-        wrap=True
-    )
+        for text, is_bold, is_underline in parts:
+            txt = ax.text(
+                x_cursor,
+                y_cursor,
+                text,
+                fontsize=fontsize,
+                fontweight="bold" if is_bold else "normal",
+                color="#374151",
+                va="top",
+                transform=ax.transAxes,
+            )
+
+            if is_underline:
+                try:
+                    txt.set_underline(True)
+                except:
+                    pass
+
+            # avancer le curseur en X (approximation largeur texte)
+            renderer = ax.figure.canvas.get_renderer()
+            bbox = txt.get_window_extent(renderer=renderer)
+            inv = ax.transAxes.inverted()
+            bbox_axes = bbox.transformed(inv)
+
+            x_cursor += bbox_axes.width
+
+        y_cursor -= 0.18  # saut de ligne entre blocs
+        x_cursor = 0.025
  
 # ══════════════════════════════════════════════════════════════════════════════
 #  WRAPPERS HC / HTP  (rétrocompatibilité)
@@ -1271,16 +1296,22 @@ def generate_comment(col, titre, evol_df):
     series = evol_df[col].dropna()
 
     if len(series) < 2:
-        return "Données insuffisantes pour analyse."
+        return [("Données insuffisantes pour analyse.", False, False)]
 
     debut = series.iloc[0]
     fin = series.iloc[-1]
 
     if "taux" in col:
-        return (
-            f"{titre} : le taux passe de {debut:.1f} % à {fin:.1f} % "
-            f"sur la période. La moyenne observée est de {series.mean():.1f} %."
-        )
+        return [
+            (f"{titre}", True, True),
+            (f" : le taux passe de ", False, False),
+            (f"{debut:.1f} %", True, False),
+            (f" à ", False, False),
+            (f"{fin:.1f} %", True, False),
+            (f" sur la période. La moyenne observée est de ", False, False),
+            (f"{series.mean():.1f} %", True, False),
+            (".", False, False),
+        ]
 
     trend = fin - debut
     trend_pct = (trend / debut) * 100 if debut != 0 else 0
@@ -1292,11 +1323,20 @@ def generate_comment(col, titre, evol_df):
     else:
         tendance = "stabilité"
 
-    return (
-        f"{titre} : on observe une {tendance} de {trend_pct:.1f} % "
-        f"sur la période. La valeur moyenne est de {format_fr(series.mean())}, "
-        f"avec un minimum de {format_fr(series.min())} et un maximum de {format_fr(series.max())}."
-    )
+    return [
+        (f"{titre}", True, True),
+        (f" : on observe une ", False, False),
+        (f"{tendance}", True, False),
+        (f" de ", False, False),
+        (f"{trend_pct:.1f} %", True, False),
+        (f" sur la période. La valeur moyenne est de ", False, False),
+        (f"{format_fr(series.mean())}", True, False),
+        (f", avec un minimum de ", False, False),
+        (f"{format_fr(series.min())}", True, False),
+        (f" et un maximum de ", False, False),
+        (f"{format_fr(series.max())}", True, False),
+        (".", False, False),
+    ]
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
