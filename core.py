@@ -49,31 +49,23 @@ OBJECTIFS = {
 }
 
 KPI_CONFIG = [
-    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:,.0f} €",  "obj_BR_mois"),
-    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:,.0f} €",  "obj_AM_mois"),
+    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:.0f} €",  "obj_BR_mois"),
+    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:.0f} €",  "obj_AM_mois"),
     ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
     ("effectif_transmis_HTP",  "Jours HTP transmis",      "{:.0f}",     None),
-    ("recette_BR_moy_sej",    "Recette Base Remboursement moyenne par jour (HC)", "{:,.0f} €",  None),
-    ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HTP)", "{:,.0f} €",  None),
+    ("recette_BR_moy_sej",    "Recette Base Remboursement moyenne par jour (HC)", "{:.0f} €",  None),
+    ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HTP)", "{:.0f} €",  None),
     ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
     ("taux_valorisation_HTP",  "Taux de valorisation jours HTP",  "{:.1f} %",   None),
   
 ]
 
 KPI_CONFIG_HC = [
-    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:,.0f} €",  "obj_BR_mois"),
-    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:,.0f} €",  "obj_AM_mois"),
+    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:.0f} €",  "obj_BR_mois"),
+    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:.0f} €",  "obj_AM_mois"),
     ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
-    ("recette_BR_moy_sej",    "Recette Base Remboursement moyenne par jour (HC)", "{:,.0f} €",  None),
+    ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HC)", "{:.0f} €",  None),
     ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
-]
-
-KPI_COULEURS = [
-    ("#DCFCE7", "#16A34A"),
-    ("#DCFCE7", "#16A34A"),
-    ("#DCFCE7", "#16A34A"),
-    ("#DBEAFE", "#2563EB"),
-    ("#FEF9C3", "#E0CE09")
 ]
 
 THEMES = {
@@ -83,19 +75,19 @@ THEMES = {
                 "type": "multi",
                 "series": [("sejour_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
                            ("sejour_supp",      "Séjour supplémentaire par rapport à M-1")],
-                "title": "Evolution de l'activité (séjours)",
+                "title": "Activité cumulée (séjour)",
             },
             {
                 "type": "bar",
-                "series": [("taux_valorisation_HC", "Taux de valorisation"),
-                           ("ecart_valo", "Écart avec M-1")],
+                "series": [("taux_valorisation_HC"),
+                           ("ecart_valo")],
                 "title": "Taux de Valorisation",
             },
             {
                 "type": "single_hlines",
                 "objectif": None,
-                "series": [("recette_BR_moy_sej", "Evolution de la recette brute moyenne par séjour")],
-                "title": "Evolution de la recette Base Remboursement moyenne par séjour",
+                "series": [("recette_BR_moy_jour", "Evolution de la recette Base Remboursement moyenne par jour")],
+                "title": "Recette Base Remboursement moyenne par jour",
             },
         ]
     },
@@ -109,8 +101,7 @@ THEMES = {
             },
             {
                 "type": "bar",
-                "series": [("taux_valorisation_HTP", "Taux de valorisation"),
-                           ("ecart_valo",             "Écart de valorisation avec M-1")],
+                "series": [("taux_valorisation_HTP", "Taux de valorisation")],
                 "title": "Taux de Valorisation",
             },
             {
@@ -741,9 +732,9 @@ GRAPH_LEFT_H  = 0.235 #hauteur
 
 # Commentaire haut gauche
 COMMENT_SMALL_L_L = 0.050
-COMMENT_SMALL_L_B = 0.455
+COMMENT_SMALL_L_B = 0.450
 COMMENT_SMALL_L_W = 0.420
-COMMENT_SMALL_L_H = 0.100
+COMMENT_SMALL_L_H = 0.090
 
 # Graphique haut droit
 GRAPH_RIGHT_L = 0.530
@@ -753,21 +744,21 @@ GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
 COMMENT_SMALL_R_L = 0.530
-COMMENT_SMALL_R_B = 0.455
+COMMENT_SMALL_R_B = 0.450
 COMMENT_SMALL_R_W = 0.420
-COMMENT_SMALL_R_H = 0.100
+COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
 GRAPH_BIG_L = 0.050
-GRAPH_BIG_B = 0.145
+GRAPH_BIG_B = 0.140
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.530
-COMMENT_BIG_B = 0.135
+COMMENT_BIG_B = 0.140
 COMMENT_BIG_W = 0.420
-COMMENT_BIG_H = 0.100
+COMMENT_BIG_H = 0.090
  
 # Pied de page
 PAGE_NUM_Y          = 0.020
@@ -1001,7 +992,7 @@ def _draw_subplot(ax, plot_list, evol_df, moy_annuelle):
     if "taux" in col:
         fmt = "{:.1f} %"
     elif "recette" in col or "ecart" in col or "montant" in col.lower():
-        fmt = "{:,.0f} €"
+        fmt = "{:.0f} €"
     else:
         fmt = "{:.0f}"
     make_ax_hlines(ax, col, titre, OBJECTIFS.get(col), evol_df,
@@ -1012,7 +1003,7 @@ def _draw_subplot_bar(ax, plot_list, evol_df):
     """Trace un graphique en barres (écarts) dans `ax`."""
     col, titre = plot_list[0]
     if "recette" in col or "ecart" in col or "montant" in col.lower():
-        fmt = "{:,.0f} €"
+        fmt = "{:.0f} €"
     else:
         fmt = "{:.0f}"
     make_ax_bar(ax, col, titre, evol_df, fmt=fmt)
