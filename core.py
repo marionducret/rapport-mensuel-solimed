@@ -744,7 +744,7 @@ def _style_ax(ax):
     ax.tick_params(axis="x", rotation=0, labelsize=12, pad=10)
     ax.tick_params(axis="y", labelsize=12, colors=GRIS_TEXTE)
     ax.yaxis.set_tick_params(pad=5)
-    ax.xaxis.set_tick_params(pad=)
+    ax.xaxis.set_tick_params(pad=5)
 
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
