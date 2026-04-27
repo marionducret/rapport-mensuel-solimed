@@ -735,12 +735,12 @@ KPI_POS_ALL = {
 }
 
 KPI_POS_HC = {
-    "recette_BR_period":       (0.275, 0.382),
-    "montantAM_valorise_HC":   (0.500, 0.382),
-    "effectif_transmis_HC":    (0.725, 0.382),
+    "recette_BR_period":       (0.275, 0.410),
+    "montantAM_valorise_HC":   (0.500, 0.410),
+    "effectif_transmis_HC":    (0.725, 0.410),
 
-    "recette_BR_moy_sej":      (0.390, 0.158),
-    "taux_valorisation_HC":    (0.610, 0.158),
+    "recette_BR_moy_sej":      (0.390, 0.186),
+    "taux_valorisation_HC":    (0.610, 0.186),
 }
 
  
@@ -875,7 +875,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         fleche, couleur_fl = _fleche(val, ref)
 
         ax.text(
-            x, y - 0.040,
+            x, y - 0.030,
             fleche,
             ha="center",
             va="center",
@@ -891,7 +891,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
 
             if badge_txt:
                 ax.text(
-                    x, y - 0.068,
+                    x, y - 0.058,
                     badge_txt,
                     ha="center",
                     va="center",
