@@ -709,8 +709,8 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=45, labelsize=10)
-    ax.tick_params(axis="y", labelsize=10, colors=GRIS_TEXTE)
+    ax.tick_params(axis="x", rotation=0, labelsize=12)
+    ax.tick_params(axis="y", labelsize=12, colors=GRIS_TEXTE)
     ax.yaxis.set_tick_params(pad=1)
     ax.xaxis.set_tick_params(pad=1)
 
@@ -825,9 +825,9 @@ GRAPH_LEFT_H  = 0.235 #hauteur
 
 # Commentaire haut gauche
 COMMENT_SMALL_L_L = 0.050
-COMMENT_SMALL_L_B = 0.460
-COMMENT_SMALL_L_W = 0.410
-COMMENT_SMALL_L_H = 0.110
+COMMENT_SMALL_L_B = 0.455
+COMMENT_SMALL_L_W = 0.420
+COMMENT_SMALL_L_H = 0.100
 
 # Graphique haut droit
 GRAPH_RIGHT_L = 0.530
@@ -837,21 +837,21 @@ GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
 COMMENT_SMALL_R_L = 0.530
-COMMENT_SMALL_R_B = 0.460
-COMMENT_SMALL_R_W = 0.410
-COMMENT_SMALL_R_H = 0.110
+COMMENT_SMALL_R_B = 0.455
+COMMENT_SMALL_R_W = 0.420
+COMMENT_SMALL_R_H = 0.100
 
 # Grand graphique bas À GAUCHE
 GRAPH_BIG_L = 0.050
-GRAPH_BIG_B = 0.155
+GRAPH_BIG_B = 0.145
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.530
-COMMENT_BIG_B = 0.125
-COMMENT_BIG_W = 0.410
-COMMENT_BIG_H = 0.110
+COMMENT_BIG_B = 0.135
+COMMENT_BIG_W = 0.420
+COMMENT_BIG_H = 0.100
  
 # Pied de page
 PAGE_NUM_Y          = 0.020
