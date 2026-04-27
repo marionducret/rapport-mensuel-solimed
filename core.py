@@ -60,34 +60,95 @@ KPI_CONFIG = [
   
 ]
 
+# KPI_CONFIG_HC = [
+#     ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:.0f} €",  "obj_BR_mois"),
+#     ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:.0f} €",  "obj_AM_mois"),
+#     ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
+#     ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HC)", "{:.0f} €",  None),
+#     ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
+# ]
+
+
 KPI_CONFIG_HC = [
-    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:.0f} €",  "obj_BR_mois"),
-    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:.0f} €",  "obj_AM_mois"),
-    ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
-    ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HC)", "{:.0f} €",  None),
-    ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
+    (
+        "recette_BR_mois_total",
+        "Recette BR du mois",
+        "{:.0f} €",
+        "recette_BR_cumule_total",
+        "{:.0f} € cumulés",
+        "obj_BR_mois",
+    ),
+    (
+        "montantAM_mois_HC",
+        "Recette AM du mois",
+        "{:.0f} €",
+        "montantAM_valorise_HC",
+        "{:.0f} € cumulés",
+        "obj_AM_mois",
+    ),
+    (
+        "sejours_transmis_mois_HC",
+        "Séjours transmis du mois",
+        "{:.0f}",
+        "effectif_transmis_HC",
+        "{:.0f} cumulés",
+        None,
+    ),
+    (
+        "recette_BR_moy_jour_mois_HC",
+        "BR moyen / jour du mois",
+        "{:.0f} €",
+        "recette_BR_moy_jour_cumule_HC",
+        "{:.0f} € cumulés",
+        None,
+    ),
+    (
+        "taux_valorisation_mois_HC",
+        "Taux valo du mois",
+        "{:.1f} %",
+        "taux_valorisation_cumule_HC",
+        "{:.1f} % cumulé",
+        None,
+    ),
 ]
 
 THEMES = {
     "HC ": {
         "plots": [
-             {
+            {
                 "type": "multi",
-                "series": [("sejour_valo_supp", "Séjour valorisé supplémentaire par rapport à M-1"),
-                           ("sejour_supp",      "Séjour supplémentaire par rapport à M-1")],
-                "title": "Activité cumulée (séjour)",
+                "series": [
+                    (
+                        "sejours_valorises_mois_HC",
+                        "Séjours HC valorisés sur le mois"
+                    ),
+                    (
+                        "sejours_transmis_mois_HC",
+                        "Séjours HC transmis sur le mois"
+                    ),
+                ],
+                "title": "Activité du mois : séjours transmis et valorisés",
             },
             {
                 "type": "bar",
-                "series": [("taux_valorisation_HC"),
-                           ("ecart_valo")],
-                "title": "Taux de Valorisation",
+                "series": [
+                    (
+                        "taux_valorisation_mois_HC",
+                        "Taux de valorisation du mois"
+                    ),
+                ],
+                "title": "Taux de valorisation HC du mois",
             },
             {
                 "type": "single_hlines",
                 "objectif": None,
-                "series": [("recette_BR_moy_jour", "Evolution de la recette Base Remboursement moyenne par jour")],
-                "title": "Recette Base Remboursement moyenne par jour",
+                "series": [
+                    (
+                        "recette_BR_moy_jour_cumule_HC",
+                        "BR cumulé / jours valorisés cumulés"
+                    ),
+                ],
+                "title": "Recette Base Remboursement moyenne par jour (cumul sur la période)",
             },
         ]
     },
@@ -111,8 +172,8 @@ THEMES = {
                 "title": "Evolution de la recette Base Remboursement moyenne par jour",
             },
         ]
-    },
-}
+    },}
+
 
 COLORS     = ["#2563EB", "#16A34A", "#16A34A", "#E11D48", "#E11D48"]
 BLEU_FONCE = "#1E3A5F"
@@ -467,26 +528,80 @@ def load_data_brut(uploaded_zip, uploaded_csv):
 
 def recalculer_derives(brut_df):
     """
-    Calcule toutes les colonnes dérivées par .diff() sur la série COMPLÈTE
-    (historique + nouveau mois fusionnés et triés).
-    Réplique exactement les lignes 287-296 de load_data().
-    Retourne un evol_df prêt pour generate_all_figures() et generate_pdf().
+    Les fichiers M sont des cumuls depuis le début de l'année.
+    Exemple :
+      M1 = cumul 01/01 → 01/02
+      M2 = cumul 01/01 → 01/03
+
+    Pour le rapport mensuel, on calcule les valeurs DU MOIS par différence :
+      mois M2 = cumul M2 - cumul M1
+
+    On conserve aussi les valeurs cumulées pour les KPI secondaires
+    et pour la recette BR moyenne par jour sur la période totale.
     """
     df = brut_df.copy().reset_index(drop=True)
-    if df.empty:
-        raise ValueError("❌ Aucune donnée à traiter — vérifiez que le mois n'est pas dans MOIS_EXCLUS.")
-    df["ecart_valo"]          = df["montantBR_valorise_HC"].diff()
-    df["sejour_supp"]         = df["effectif_transmis_HC"].diff()
-    df["sejour_valo_supp"]    = df["effectif_valorise_HC"].diff()
-    df["jour_valo_supp"]      = df["jour_valo_HC"].diff()
-    #df["jour_tot_supp"] = 0 #à calculer
 
-    # Pour le premier mois affiché, pas de M-1 disponible :
-    # on met la valeur brute du mois pour éviter un point vide.
-    df.loc[df.index[0], "sejour_supp"] = df.loc[df.index[0], "effectif_transmis_HC"]
-    df.loc[df.index[0], "sejour_valo_supp"] = df.loc[df.index[0], "effectif_valorise_HC"]
-    df.loc[df.index[0], "jour_valo_supp"] = df.loc[df.index[0], "jour_valo_HC"]
-    #df.loc[df.index[0], "jour_tot_supp"] = df.loc[df.index[0], "jour_tot_supp"]
+    if df.empty:
+        raise ValueError("❌ Aucune donnée à traiter.")
+
+    # ── Valeurs du mois = différence entre deux périodes cumulées ─────
+    df["sejours_transmis_mois_HC"] = df["effectif_transmis_HC"].diff()
+    df["sejours_valorises_mois_HC"] = df["effectif_valorise_HC"].diff()
+
+    df["montantBR_mois_HC"] = df["montantBR_valorise_HC"].diff()
+    df["montantAM_mois_HC"] = df["montantAM_valorise_HC"].diff()
+    df["jours_valorises_mois_HC"] = df["jour_valo_HC"].diff()
+
+    # HTP si présent
+    df["jours_transmis_mois_HTP"] = df["effectif_transmis_HTP"].diff()
+    df["jours_valorises_mois_HTP"] = df["effectif_valorise_HTP"].diff()
+    df["montantBR_mois_HTP"] = df["montantBR_valorise_HTP"].diff()
+
+    # ── Premier mois : pas de période précédente, donc M1 = valeur cumulée M1 ──
+    first = df.index[0]
+
+    df.loc[first, "sejours_transmis_mois_HC"] = df.loc[first, "effectif_transmis_HC"]
+    df.loc[first, "sejours_valorises_mois_HC"] = df.loc[first, "effectif_valorise_HC"]
+
+    df.loc[first, "montantBR_mois_HC"] = df.loc[first, "montantBR_valorise_HC"]
+    df.loc[first, "montantAM_mois_HC"] = df.loc[first, "montantAM_valorise_HC"]
+    df.loc[first, "jours_valorises_mois_HC"] = df.loc[first, "jour_valo_HC"]
+
+    df.loc[first, "jours_transmis_mois_HTP"] = df.loc[first, "effectif_transmis_HTP"]
+    df.loc[first, "jours_valorises_mois_HTP"] = df.loc[first, "effectif_valorise_HTP"]
+    df.loc[first, "montantBR_mois_HTP"] = df.loc[first, "montantBR_valorise_HTP"]
+
+    # ── Indicateurs DU MOIS ───────────────────────────────────────────
+    df["taux_valorisation_mois_HC"] = (
+        df["sejours_valorises_mois_HC"] / df["sejours_transmis_mois_HC"] * 100
+    )
+
+    df["recette_BR_moy_jour_mois_HC"] = (
+        df["montantBR_mois_HC"] / df["jours_valorises_mois_HC"]
+    )
+
+    # ── Indicateurs CUMULÉS sur toute la période ──────────────────────
+    df["taux_valorisation_cumule_HC"] = (
+        df["effectif_valorise_HC"] / df["effectif_transmis_HC"] * 100
+    )
+
+    df["recette_BR_moy_jour_cumule_HC"] = (
+        df["montantBR_valorise_HC"] / df["jour_valo_HC"]
+    )
+
+    df["recette_BR_mois_total"] = (
+        df["montantBR_mois_HC"].fillna(0) + df["montantBR_mois_HTP"].fillna(0)
+    )
+
+    df["recette_BR_cumule_total"] = (
+        df["montantBR_valorise_HC"].fillna(0) + df["montantBR_valorise_HTP"].fillna(0)
+    )
+
+    # ── Compatibilité avec tes anciens noms si utilisés ailleurs ──────
+    df["sejour_supp"] = df["sejours_transmis_mois_HC"]
+    df["sejour_valo_supp"] = df["sejours_valorises_mois_HC"]
+    df["jour_valo_supp"] = df["jours_valorises_mois_HC"]
+    df["ecart_valo"] = df["montantBR_mois_HC"]
 
     return df
 
@@ -713,13 +828,22 @@ KPI_POS_ALL = {
     "taux_valorisation_HTP":   (0.835, 0.235),
 }
 
-KPI_POS_HC = {
-    "recette_BR_period":       (0.275, 0.430),
-    "montantAM_valorise_HC":   (0.500, 0.430),
-    "effectif_transmis_HC":    (0.725, 0.430),
+# KPI_POS_HC = {
+#     "recette_BR_period":       (0.275, 0.430),
+#     "montantAM_valorise_HC":   (0.500, 0.430),
+#     "effectif_transmis_HC":    (0.725, 0.430),
 
-    "recette_BR_moy_sej":      (0.390, 0.176),
-    "taux_valorisation_HC":    (0.610, 0.176),
+#     "recette_BR_moy_sej":      (0.390, 0.176),
+#     "taux_valorisation_HC":    (0.610, 0.176),
+# }
+
+KPI_POS_HC = {
+    "recette_BR_mois_total":           (0.275, 0.430),
+    "montantAM_mois_HC":               (0.500, 0.430),
+    "sejours_transmis_mois_HC":        (0.725, 0.430),
+
+    "recette_BR_moy_jour_mois_HC":     (0.390, 0.176),
+    "taux_valorisation_mois_HC":       (0.610, 0.176),
 }
 
  
@@ -824,7 +948,14 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
     kpi_config = KPI_CONFIG_ALL if inclure_htp else KPI_CONFIG_HC
     kpi_pos = KPI_POS_ALL if inclure_htp else KPI_POS_HC
 
-    for col, label, fmt, obj_key in kpi_config:
+    #for col, label, fmt, obj_key in kpi_config:
+    for item in kpi_config:
+        if len(item) == 4:
+            col, label, fmt, obj_key = item
+            col_cumul, fmt_cumul = None, None
+        else:
+            col, label, fmt, col_cumul, fmt_cumul, obj_key = item
+
         if col not in kpi_pos:
             continue
 
@@ -850,11 +981,29 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
             zorder=3,
         )
 
+        # Valeur cumulée en petit sous la valeur principale
+        if col_cumul:
+            cumul_val = dernier.get(col_cumul, float("nan"))
+            try:
+                cumul_str = fmt_cumul.format(cumul_val)
+            except Exception:
+                cumul_str = "Cumul indisponible"
+
+            ax.text(
+                x, y - 0.028,
+                cumul_str,
+                ha="center",
+                va="center",
+                fontsize=8.5,
+                color=GRIS_TEXTE,
+                zorder=3,
+            )
+
         # Évolution vs mois précédent
         fleche, couleur_fl = _fleche(val, ref)
 
         ax.text(
-            x, y - 0.040,
+            x, y - 0.052,
             fleche,
             ha="center",
             va="center",
@@ -870,7 +1019,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
 
             if badge_txt:
                 ax.text(
-                    x, y - 0.063,
+                    x, y - 0.073,
                     badge_txt,
                     ha="center",
                     va="center",
