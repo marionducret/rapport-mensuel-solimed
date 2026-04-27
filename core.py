@@ -496,15 +496,104 @@ def recalculer_derives(brut_df):
 #  MOYENNES ANNÉE PRÉCÉDENTE
 # ══════════════════════════════════════════════════════════════════════════════
 
-def load_annee_precedente(uploaded_zip):
-    """
-    Parse un ZIP contenant tous les dossiers mois d'une année passée
-    (sans CSV de jours valo — on ne calcule que les colonnes disponibles).
-    Debug : uploaded_zip = '/Users/marionducret/Desktop/SOLIMED/Rapport évolution mensuelle/Ceyrat/Ceyrat.zip'
-    """
-    tmp      = tempfile.TemporaryDirectory()
+# def load_annee_precedente(uploaded_zip):
+#     """
+#     Parse un ZIP contenant tous les dossiers mois d'une année passée
+#     (sans CSV de jours valo — on ne calcule que les colonnes disponibles).
+#     Debug : uploaded_zip = '/Users/marionducret/Desktop/SOLIMED/Rapport évolution mensuelle/Ceyrat/Ceyrat.zip'
+#     """
+#     tmp      = tempfile.TemporaryDirectory()
+#     tmp_path = Path(tmp.name)
+
+#     if hasattr(uploaded_zip, "read"):
+#         with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
+#             zf.extractall(tmp_path)
+#     else:
+#         with zipfile.ZipFile(uploaded_zip, "r") as zf:
+#             zf.extractall(tmp_path)
+
+#     def extract_month(folder_name):
+#         match = re.search(r"(202\d)_M(\d+)$", folder_name)
+#         if match:
+#             return f"{match.group(1)}_M{match.group(2)}"
+#         match = re.search(r"M(\d+)$", folder_name)
+#         if match:
+#             return f"2025_M{match.group(1)}"
+#         return None
+
+#     def month_key(m):
+#         year, month = m.split("_M")
+#         return (int(year), int(month))
+
+#     month_dirs_dict = {}
+#     for p in tmp_path.rglob("*"):
+#         if not p.is_dir() or "__MACOSX" in str(p):
+#             continue
+#         m = extract_month(p.name)
+#         if m:
+#             month_dirs_dict[m] = p
+
+#     if not month_dirs_dict:
+#         raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
+
+#     data = {}
+#     for month in sorted(month_dirs_dict.keys(), key=month_key):
+#         folder     = month_dirs_dict[month]
+#         html_files = list(folder.glob("*.html"))
+#         sv   = next((f for f in html_files if "sv"   in f.name), None)
+#         if not sv:
+#             continue
+#         try:
+#             data[month] = {"sv": pd.read_html(sv)[0]}
+#         except Exception:
+#             continue
+
+#     if not data:
+#         raise ValueError("❌ Aucun mois exploitable")
+
+#     rows = []
+#     for curr_mois in sorted(data.keys(), key=month_key):
+#         curr2        = data[curr_mois]['sv']
+#         curr2        = curr2.iloc[[0, 11]].copy()
+#         col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
+#         curr2        = curr2.rename(columns={
+#             col_ssrha_br: "Séjour en HC - Montant BR"
+#         })
+#         curr2["Séjour en HC - Montant BR"] = pd.to_numeric(
+#             curr2["Séjour en HC - Montant BR"].astype(str).str.replace(" ", "", regex=False).str.replace(",", ".", regex=False),
+#             errors="coerce",
+#         )
+#         curr2["Mois"] = curr_mois
+#         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
+#         df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
+#         # Le sv de l'année précédente n'a pas de Montant AM — 8 colonnes seulement
+#         df_month.columns = [
+#             "effectif_transmis_HC", "effectif_valorise_HC",
+#             "montantBR_transmis_HC", "montantBR_valorise_HC",
+#             "effectif_transmis_HTP", "effectif_valorise_HTP",
+#             "montantBR_transmis_HTP", "montantBR_valorise_HTP",
+#         ]
+#         rows.append(df_month)
+
+#     if not rows:
+#         raise ValueError("❌ Aucun mois valide")
+
+#     df = pd.concat(rows).reset_index()
+
+#     df["recette_BR_moy_sej"] = df["montantBR_valorise_HC"]/df["effectif_valorise_HC"]
+
+#     # Moyennes mensuelles
+#     moyennes = {}
+#     moyennes["recette_BR_moy_sej"] = float(df["recette_BR_moy_sej"].mean())
+
+#     return moyennes
+
+def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
+   
+    tmp = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
 
+    # ── Extraction ZIP ───────────────────────────────────────────────
     if hasattr(uploaded_zip, "read"):
         with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
             zf.extractall(tmp_path)
@@ -512,79 +601,62 @@ def load_annee_precedente(uploaded_zip):
         with zipfile.ZipFile(uploaded_zip, "r") as zf:
             zf.extractall(tmp_path)
 
-    def extract_month(folder_name):
-        match = re.search(r"(202\d)_M(\d+)$", folder_name)
-        if match:
-            return f"{match.group(1)}_M{match.group(2)}"
-        match = re.search(r"M(\d+)$", folder_name)
-        if match:
-            return f"2025_M{match.group(1)}"
-        return None
+    # ── Recherche des fichiers HTML dans tout le ZIP ─────────────────
+    html_files = list(tmp_path.rglob("*.html"))
 
-    def month_key(m):
-        year, month = m.split("_M")
-        return (int(year), int(month))
+    sv = next((f for f in html_files if "sv" in f.name.lower()), None)
 
-    month_dirs_dict = {}
-    for p in tmp_path.rglob("*"):
-        if not p.is_dir() or "__MACOSX" in str(p):
-            continue
-        m = extract_month(p.name)
-        if m:
-            month_dirs_dict[m] = p
+    if not sv:
+        raise ValueError("❌ Fichier SV introuvable dans le ZIP M12")
 
-    if not month_dirs_dict:
-        raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
+    # ── Lecture du SV M12 ────────────────────────────────────────────
+    try:
+        curr2 = pd.read_html(sv)[0]
+    except Exception as e:
+        raise ValueError(f"❌ Erreur lecture SV M12 : {e}")
 
-    data = {}
-    for month in sorted(month_dirs_dict.keys(), key=month_key):
-        folder     = month_dirs_dict[month]
-        html_files = list(folder.glob("*.html"))
-        sv   = next((f for f in html_files if "sv"   in f.name), None)
-        if not sv:
-            continue
-        try:
-            data[month] = {"sv": pd.read_html(sv)[0]}
-        except Exception:
-            continue
+    # Lignes Activité transmise + Activité valorisée
+    curr2 = curr2.iloc[[0, 11]].copy()
 
-    if not data:
-        raise ValueError("❌ Aucun mois exploitable")
+    col_ssrha_br = [
+        c for c in curr2.columns
+        if "SSRHA" in c and "Montant BR" in c
+    ][0]
 
-    rows = []
-    for curr_mois in sorted(data.keys(), key=month_key):
-        curr2        = data[curr_mois]['sv']
-        curr2        = curr2.iloc[[0, 11]].copy()
-        col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
-        curr2        = curr2.rename(columns={
-            col_ssrha_br: "Séjour en HC - Montant BR"
-        })
-        curr2["Séjour en HC - Montant BR"] = pd.to_numeric(
-            curr2["Séjour en HC - Montant BR"].astype(str).str.replace(" ", "", regex=False).str.replace(",", ".", regex=False),
-            errors="coerce",
-        )
-        curr2["Mois"] = curr_mois
-        df_month = curr2.pivot(index="Mois", columns="Type d'activité")
-        df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
-        # Le sv de l'année précédente n'a pas de Montant AM — 8 colonnes seulement
-        df_month.columns = [
-            "effectif_transmis_HC", "effectif_valorise_HC",
-            "montantBR_transmis_HC", "montantBR_valorise_HC",
-            "effectif_transmis_HTP", "effectif_valorise_HTP",
-            "montantBR_transmis_HTP", "montantBR_valorise_HTP",
-        ]
-        rows.append(df_month)
+    curr2 = curr2.rename(columns={
+        col_ssrha_br: "SSRHA en HC - Montant BR"
+    })
 
-    if not rows:
-        raise ValueError("❌ Aucun mois valide")
+    curr2["SSRHA en HC - Montant BR"] = pd.to_numeric(
+        curr2["SSRHA en HC - Montant BR"]
+        .astype(str)
+        .str.replace(" ", "", regex=False)
+        .str.replace(",", ".", regex=False),
+        errors="coerce",
+    )
 
-    df = pd.concat(rows).reset_index()
+    # ── Récupérer uniquement l'activité valorisée ────────────────────
+    ligne_valorisee = curr2[
+        curr2["Type d'activité"] == "Activité valorisée"
+    ]
 
-    df["recette_BR_moy_sej"] = df["montantBR_valorise_HC"]/df["effectif_valorise_HC"]
+    if ligne_valorisee.empty:
+        raise ValueError("❌ Ligne 'Activité valorisée' introuvable dans le SV M12")
 
-    # Moyennes mensuelles
-    moyennes = {}
-    moyennes["recette_BR_moy_sej"] = float(df["recette_BR_moy_sej"].mean())
+    montantBR_valorise_HC = float(
+        ligne_valorisee["SSRHA en HC - Montant BR"].iloc[0]
+    )
+
+    # ── VisualValo M12 cumulé : jours valorisés HC ───────────────────
+    jours_valo_HC = _calc_jours_valo(uploaded_csv_m12)
+
+    if jours_valo_HC == 0 or pd.isna(jours_valo_HC):
+        raise ValueError("❌ Nombre de jours valorisés nul ou invalide dans le VisualValo M12")
+
+    # ── Moyenne annuelle par jour HC ─────────────────────────────────
+    moyennes = {
+        "recette_BR_moy_jour": float(montantBR_valorise_HC / jours_valo_HC)
+    }
 
     return moyennes
 

@@ -134,31 +134,39 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
         "Pas besoin du fichier CSV VisualValo."
     )
     uploaded_zip_annee = st.file_uploader(
-        "📁 ZIP année précédente (tous les mois)",
+        "📁 ZIP année précédente (M12 2025)",
         type=["zip"],
         key="zip_annee",
     )
-    if uploaded_zip_annee is not None:
-        if st.button("⚙️ Calculer et sauvegarder les moyennes"):
-            with st.spinner("Calcul des moyennes…"):
+    uploaded_csv_annee = st.file_uploader(
+        "📊 VisualValoSejours M12 année précédente",
+        type=["csv"],
+        key="csv_annee",
+    )
+
+    if uploaded_zip_annee is not None and uploaded_csv_annee is not None:
+        if st.button("⚙️ Calculer et sauvegarder la moyenne"):
+            with st.spinner("Calcul de la moyenne…"):
                 try:
-                    nouvelles_moy = core.load_annee_precedente(io.BytesIO(uploaded_zip_annee.read()))
+                    nouvelles_moy = core.load_annee_precedente(
+                        io.BytesIO(uploaded_zip_annee.read()),
+                        io.BytesIO(uploaded_csv_annee.read()))
                     _, sha_actuel = github_lire_moy(NOM_ETAB)
                     github_ecrire_moy(nouvelles_moy, sha_actuel, NOM_ETAB)
                     moy_annuelle = nouvelles_moy
                     recuperer_moy_annuelle.clear()
                     st.success(
                         f"✅ Moyenne sauvegardée : "
-                        f"Recette brute par séjour (2025) ={nouvelles_moy['recette_BR_moy_sej']:,.0f} € · "
+                        f"Recette brute par séjour (2025) ={nouvelles_moy['recette_BR_moy_jour']:,.0f} € · "
                     )
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
     elif moy_annuelle is not None:
         st.success(
             f"✅ Moyenne déjà enregistrée : "
-            f"recette_BR_moy_sej={moy_annuelle['recette_BR_moy_sej']:,.0f} € · "
+            f"recette_BR_moy_sej={moy_annuelle['recette_BR_moy_jour']:,.0f} € · "
         )
-
+    
 # ══════════════════════════════════════════════════════════════════════════════
 #  UPLOADS MOIS COURANT
 # ══════════════════════════════════════════════════════════════════════════════
