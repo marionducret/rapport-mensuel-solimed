@@ -700,14 +700,14 @@ barlow_bold = font_manager.FontProperties(
     fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
     size=14)
 
-def style_xticklabels(ax, x_vals, y_vals):
-    ax.set_xticks(range(len(x_vals)))
-    ax.set_xticklabels(x_vals)
-    for i, label in enumerate(ax.get_xticklabels()):
-        if i > 0 and y_vals.iloc[i] < y_vals.iloc[i - 1]:
-            label.set_color(VIOLET)
-        else:
-            label.set_color(GRIS_TEXTE)
+# def style_xticklabels(ax, x_vals, y_vals):
+#     ax.set_xticks(range(len(x_vals)))
+#     ax.set_xticklabels(x_vals)
+#     for i, label in enumerate(ax.get_xticklabels()):
+#         if i > 0 and y_vals.iloc[i] < y_vals.iloc[i - 1]:
+#             label.set_color(VIOLET)
+#         else:
+#             label.set_color(GRIS_TEXTE)
 
 def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
     y_vals = y_vals.reset_index(drop=True)
@@ -763,7 +763,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     ax.set_title(title, pad=10,  fontproperties=barlow_bold)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
-    style_xticklabels(ax, x_vals, y_vals)
+    #style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
 def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
