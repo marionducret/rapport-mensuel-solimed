@@ -718,7 +718,7 @@ def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
 # ══════════════════════════════════════════════════════════════════════════════
 #
 # ── Page garde ────────────────────────────────────────────────────────────────
-COVER_ETAB_Y        = 0.742   # centre vertical de la box "Centre Médical de"
+COVER_ETAB_Y        = 0.712   # centre vertical de la box "Centre Médical de"
 COVER_ETAB_X        = 0.500   # centré horizontalement
  
 # Grand bloc KPI (zone teal pointillée)
@@ -875,7 +875,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         fleche, couleur_fl = _fleche(val, ref)
 
         ax.text(
-            x, y - 0.030,
+            x, y - 0.040,
             fleche,
             ha="center",
             va="center",
@@ -891,7 +891,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
 
             if badge_txt:
                 ax.text(
-                    x, y - 0.058,
+                    x, y - 0.063,
                     badge_txt,
                     ha="center",
                     va="center",
