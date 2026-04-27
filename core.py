@@ -735,12 +735,12 @@ KPI_POS_ALL = {
 }
 
 KPI_POS_HC = {
-    "recette_BR_period":       (0.275, 0.410),
-    "montantAM_valorise_HC":   (0.500, 0.410),
-    "effectif_transmis_HC":    (0.725, 0.410),
+    "recette_BR_period":       (0.275, 0.430),
+    "montantAM_valorise_HC":   (0.500, 0.430),
+    "effectif_transmis_HC":    (0.725, 0.430),
 
-    "recette_BR_moy_sej":      (0.390, 0.186),
-    "taux_valorisation_HC":    (0.610, 0.186),
+    "recette_BR_moy_sej":      (0.390, 0.176),
+    "taux_valorisation_HC":    (0.610, 0.176),
 }
 
  
