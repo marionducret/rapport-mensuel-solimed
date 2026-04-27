@@ -910,7 +910,7 @@ GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.530
-COMMENT_BIG_B = 0.170
+COMMENT_BIG_B = 0.180
 COMMENT_BIG_W = 0.420
 COMMENT_BIG_H = 0.090
  
@@ -979,11 +979,20 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
  
     def _badge(val, objectif):
         try:
+            # Cas 1 — objectif non défini (0 ou None)
+            if objectif is None or objectif == 0:
+                return "Objectif à définir", GRIS_TEXTE
+
             val = float(val)
+
+            # Cas 2 — objectif atteint
             if val >= objectif:
-                return f"✓ Objectif atteint ({objectif:,.0f} €)", VERT
+                return f"✓ Objectif atteint ({format_fr(objectif)} €)", VERT
+
+            # Cas 3 — objectif non atteint
             pct = (1 - val / objectif) * 100
-            return f"✗ -{pct:.1f}% de l'objectif ({objectif:,.0f} €)", ROUGE
+            return f"✗ -{pct:.1f}% de l'objectif ({format_fr(objectif)} €)", ROUGE
+
         except Exception:
             return None, None
  
