@@ -120,11 +120,11 @@ THEMES = {
                 "series": [
                     (
                         "sejours_valorises_mois_HC",
-                        "Séjours HC valorisés sur le mois"
+                        "Séjours valorisés"
                     ),
                     (
                         "sejours_transmis_mois_HC",
-                        "Séjours HC transmis sur le mois"
+                        "Séjours transmis"
                     ),
                 ],
                 "title": "Activité du mois : séjours transmis et valorisés",
@@ -137,7 +137,7 @@ THEMES = {
                         "Taux de valorisation du mois"
                     ),
                 ],
-                "title": "Taux de valorisation HC du mois",
+                "title": "Taux de valorisation du mois (séjours valorisés/séjour transmis)",
             },
             {
                 "type": "single_hlines",
@@ -874,13 +874,13 @@ COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
 GRAPH_BIG_L = 0.050
-GRAPH_BIG_B = 0.140
+GRAPH_BIG_B = 0.130
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.530
-COMMENT_BIG_B = 0.140
+COMMENT_BIG_B = 0.150
 COMMENT_BIG_W = 0.420
 COMMENT_BIG_H = 0.090
  
