@@ -51,12 +51,21 @@ OBJECTIFS = {
 KPI_CONFIG = [
     ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:,.0f} €",  "obj_BR_mois"),
     ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:,.0f} €",  "obj_AM_mois"),
+    ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
+    ("effectif_transmis_HTP",  "Jours HTP transmis",      "{:.0f}",     None),
     ("recette_BR_moy_sej",    "Recette Base Remboursement moyenne par jour (HC)", "{:,.0f} €",  None),
     ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HTP)", "{:,.0f} €",  None),
     ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
     ("taux_valorisation_HTP",  "Taux de valorisation jours HTP",  "{:.1f} %",   None),
+  
+]
+
+KPI_CONFIG_HC = [
+    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:,.0f} €",  "obj_BR_mois"),
+    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:,.0f} €",  "obj_AM_mois"),
     ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
-    ("effectif_transmis_HTP",  "Jours HTP transmis",      "{:.0f}",     None),
+    ("recette_BR_moy_sej",    "Recette Base Remboursement moyenne par jour (HC)", "{:,.0f} €",  None),
+    ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
 ]
 
 KPI_COULEURS = [
@@ -713,10 +722,27 @@ COVER_ETAB_Y        = 0.742   # centre vertical de la box "Centre Médical de"
 COVER_ETAB_X        = 0.500   # centré horizontalement
  
 # Grand bloc KPI (zone teal pointillée)
-KPI_BOX_LEFT        = 0.039
-KPI_BOX_BOTTOM      = 0.062
-KPI_BOX_WIDTH       = 0.921
-KPI_BOX_HEIGHT      = 0.556
+KPI_POS_ALL = {
+    "recette_BR_period":       (0.160, 0.495),
+    "montantAM_valorise_HC":   (0.385, 0.495),
+    "effectif_transmis_HC":    (0.610, 0.495),
+    "effectif_transmis_HTP":   (0.835, 0.495),
+
+    "recette_BR_moy_sej":      (0.160, 0.235),
+    "recette_BR_moy_jour":     (0.385, 0.235),
+    "taux_valorisation_HC":    (0.610, 0.235),
+    "taux_valorisation_HTP":   (0.835, 0.235),
+}
+
+KPI_POS_HC = {
+    "recette_BR_period":       (0.275, 0.495),
+    "montantAM_valorise_HC":   (0.500, 0.495),
+    "effectif_transmis_HC":    (0.725, 0.495),
+
+    "recette_BR_moy_sej":      (0.390, 0.235),
+    "taux_valorisation_HC":    (0.610, 0.235),
+}
+
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Bloc graphique GAUCHE (teal dashed, haut)
@@ -816,55 +842,64 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         except Exception:
             return None, None
  
-    n_kpi    = len(KPI_CONFIG)
-    card_h   = KPI_BOX_HEIGHT / n_kpi
-    card_gap = 0.006
- 
-    for i, (col, label, fmt, obj_key) in enumerate(KPI_CONFIG):
-        card_top    = KPI_BOX_BOTTOM + KPI_BOX_HEIGHT - i * card_h
-        card_bottom = card_top - card_h + card_gap
-        card_cy     = (card_top + card_bottom) / 2
- 
-        couleur_fond, couleur_bord = KPI_COULEURS[i % len(KPI_COULEURS)]
+    kpi_config = KPI_CONFIG_ALL if inclure_htp else KPI_CONFIG_HC
+    kpi_pos = KPI_POS_ALL if inclure_htp else KPI_POS_HC
+
+    for col, label, fmt, obj_key in kpi_config:
+        if col not in kpi_pos:
+            continue
+
+        x, y = kpi_pos[col]
+
         val = dernier.get(col, float("nan"))
         ref = avant_dernier.get(col) if avant_dernier else None
- 
-        # Fond de carte
-        ax.add_patch(mpatches.FancyBboxPatch(
-            (KPI_BOX_LEFT + 0.006, card_bottom + card_gap * 0.3),
-            KPI_BOX_WIDTH - 0.012, card_h - card_gap * 1.8,
-            boxstyle="round,pad=0.003", linewidth=1.2,
-            edgecolor=couleur_bord, facecolor=couleur_fond,
-            zorder=2, clip_on=True,
-        ))
- 
-        # Label
-        ax.text(KPI_BOX_LEFT + 0.020, card_cy, label,
-                ha="left", va="center", fontsize=15, color=GRIS_TEXTE, zorder=3)
- 
-        # Valeur
-        val_x = KPI_BOX_LEFT + KPI_BOX_WIDTH * 0.52
-        try:    val_str = fmt.format(val)
-        except: val_str = "N/A"
-        ax.text(val_x, card_cy, val_str,
-                ha="center", va="center", fontsize=19,
-                fontweight="bold", color=BLEU_FONCE, zorder=3)
- 
-        # Flèche évolution
-        fleche_x = KPI_BOX_LEFT + KPI_BOX_WIDTH * 0.82
+
+        try:
+            val_str = fmt.format(val)
+        except Exception:
+            val_str = "N/A"
+
+        # Valeur principale centrée dans la carte
+        ax.text(
+            x, y,
+            val_str,
+            ha="center",
+            va="center",
+            fontsize=26,
+            fontweight="bold",
+            color=GRIS_TEXTE,
+            zorder=3,
+        )
+
+        # Évolution vs mois précédent
         fleche, couleur_fl = _fleche(val, ref)
-        ax.text(fleche_x, card_cy, fleche,
-                ha="center", va="center", fontsize=16,
-                fontweight="bold", color=couleur_fl, zorder=3)
- 
-        # Badge objectif
+
+        ax.text(
+            x, y - 0.060,
+            fleche,
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            color=couleur_fl,
+            zorder=3,
+        )
+
+        # Objectif seulement si pertinent
         if obj_key and OBJECTIFS.get(obj_key) is not None:
             badge_txt, badge_col = _badge(val, OBJECTIFS[obj_key])
+
             if badge_txt:
-                ax.text(val_x, card_cy - card_h * 0.22, badge_txt,
-                        ha="center", va="center", fontsize=11,
-                        color=badge_col, style="italic", zorder=3)
- 
+                ax.text(
+                    x, y - 0.095,
+                    badge_txt,
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                    color=badge_col,
+                    style="italic",
+                    zorder=3,
+                )
     # Pied de page
     ax.text(0.03, PAGE_NUM_Y,
             f"{AUTEUR}  |  {nom_etablissement}  |  {DATE_RAPPORT}",
