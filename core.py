@@ -141,7 +141,7 @@ THEMES = {
                         "Taux cumulé"
                     ),
                 ],
-                "title": "Taux de valorisation du mois (séjours valorisés/séjour transmis)",
+                "title": "Taux de valorisation (séjours valorisés/séjour transmis)",
             },
             {
                 "type": "single_hlines",
@@ -741,7 +741,7 @@ def _style_ax(ax):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.tick_params(axis="x", rotation=0, labelsize=12)
+    ax.tick_params(axis="x", rotation=0, labelsize=12, pad=10)
     ax.tick_params(axis="y", labelsize=12, colors=GRIS_TEXTE)
     ax.yaxis.set_tick_params(pad=1)
     ax.xaxis.set_tick_params(pad=1)
@@ -753,13 +753,13 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
     moyenne = y_vals.mean()
     ax.axhline(moyenne, color="#9CA3AF", linestyle="--", linewidth=1.5,
-               label=f"Moyenne globale ({moyenne:,.0f})")
+               label=f"Moyenne globale ({format_fr(moyenne)})")
     if objectif is not None:
         ax.axhline(objectif, color=ORANGE, linestyle="--", linewidth=1.5,
                    label=f"Objectif mensuel ({objectif:,.0f})")
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=VIOLET, linestyle="--", linewidth=1.5,
-                   label=f"Moy. année préc. ({moy_annuelle:,.0f})")
+                   label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
     ax.set_title(title, pad=10,  fontproperties=barlow_bold)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
@@ -910,7 +910,7 @@ GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.530
-COMMENT_BIG_B = 0.105
+COMMENT_BIG_B = 0.140
 COMMENT_BIG_W = 0.420
 COMMENT_BIG_H = 0.090
  
@@ -954,13 +954,25 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         fontproperties=barlow_title
     )
  
-    def _fleche(val, ref):
+    def _fleche(val, ref, fmt=None):
         try:
             if ref is None or np.isnan(float(ref)):
                 return "–", GRIS_TEXTE
+
             d = float(val) - float(ref)
-            if d > 0:  return f"▲ +{d:,.0f}", VERT
-            if d < 0:  return f"▼ {d:,.0f}", ROUGE
+
+            if fmt and "%" in fmt:
+                unit = " %"
+            elif fmt and "€" in fmt:
+                unit = " €"
+            else:
+                unit = ""
+
+            if d > 0:
+                return f"▲ +{format_fr(d)}{unit}", VERT
+            if d < 0:
+                return f"▼ {format_fr(d)}{unit}", ROUGE
+
             return "= stable", GRIS_TEXTE
         except Exception:
             return "–", GRIS_TEXTE
@@ -1024,7 +1036,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
             )
 
         # Évolution du cumul vs période précédente
-        fleche, couleur_fl = _fleche(val_cumul, ref_cumul)
+        fleche, couleur_fl = _fleche(val_cumul, ref_cumul, fmt)
         fleche = fleche.replace(",", " ")
 
         ax.text(
@@ -1141,9 +1153,23 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
             make_ax_bar(ax, series, title, evol_df)
         elif t == "single_hlines":
             col, _ = series[0]
-            moy = moy_annuelle.get(col) if moy_annuelle else None
-            make_ax_hlines(ax, col, title, subplot.get("objectif"),
-                           evol_df, moy_annuelle=moy)
+            # mapping explicite pour moyenne année précédente
+            if moy_annuelle:
+                if col == "recette_BR_moy_jour_cumule_HC":
+                    moy = moy_annuelle.get("recette_BR_moy_jour")
+                else:
+                    moy = moy_annuelle.get(col)
+            else:
+                moy = None
+
+            make_ax_hlines(
+                ax,
+                col,
+                title,
+                subplot.get("objectif"),
+                evol_df,
+                moy_annuelle=moy
+            )
         elif t == "multi":
             make_ax_multi(ax, series, title, evol_df, moy_annuelle=moy_annuelle)
 
