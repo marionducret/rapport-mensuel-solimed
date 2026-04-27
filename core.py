@@ -921,8 +921,8 @@ PAGE_NUM_X          = 0.970
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
-
-def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, dernier, avant_dernier, evol_df, inclure_htp=True):
+def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
+                          dernier, avant_dernier, evol_df, inclure_htp=True):
     """
     Page de garde avec background Canva + KPIs.
     Appelée uniquement depuis generate_pdf().
@@ -934,29 +934,33 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
     bg = _charger_bg(cover_path)
     if bg is not None:
         _appliquer_bg(fig, bg)
- 
+
     ax = fig.add_axes([0, 0, 1, 1], zorder=2)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
     ax.patch.set_alpha(0)
- 
-    # Nom établissement dans la box
+
+    # ── Nom établissement ────────────────────────────────────────────
     barlow_title = font_manager.FontProperties(
         fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
-        size=34)
-    
+        size=34
+    )
+
     ax.text(
         COVER_ETAB_X, COVER_ETAB_Y,
         nom_etablissement_layout,
-        ha="center", va="center",
-        color=TEAL, zorder=3, 
+        ha="center",
+        va="center",
+        color=TEAL,
+        zorder=3,
         fontproperties=barlow_title
     )
- 
+
+    # ── Helpers internes ─────────────────────────────────────────────
     def _fleche(val, ref, fmt=None):
         try:
-            if ref is None or np.isnan(float(ref)):
+            if ref is None or pd.isna(ref):
                 return "–", GRIS_TEXTE
 
             d = float(val) - float(ref)
@@ -974,31 +978,30 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
                 return f"▼ {format_fr(d)}{unit}", ROUGE
 
             return "= stable", GRIS_TEXTE
+
         except Exception:
             return "–", GRIS_TEXTE
- 
+
     def _badge(val, objectif):
         try:
-            # Cas 1 — objectif non défini (0 ou None)
-            if objectif is None or objectif == 0:
+            if objectif is None or objectif <= 0:
                 return "Objectif à définir", GRIS_TEXTE
 
             val = float(val)
 
-            # Cas 2 — objectif atteint
             if val >= objectif:
                 return f"✓ Objectif atteint ({format_fr(objectif)} €)", VERT
 
-            # Cas 3 — objectif non atteint
             pct = (1 - val / objectif) * 100
             return f"✗ -{pct:.1f}% de l'objectif ({format_fr(objectif)} €)", ROUGE
 
         except Exception:
             return None, None
- 
-    kpi_config = KPI_CONFIG_ALL if inclure_htp else KPI_CONFIG_HC
+
+    kpi_config = KPI_CONFIG if inclure_htp else KPI_CONFIG_HC
     kpi_pos = KPI_POS_ALL if inclure_htp else KPI_POS_HC
 
+    # ── KPIs ─────────────────────────────────────────────────────────
     for item in kpi_config:
         if len(item) == 4:
             col, label, fmt, obj_key = item
@@ -1014,18 +1017,10 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
         val_cumul = dernier.get(col, float("nan"))
         val_mois = dernier.get(col_mois, float("nan")) if col_mois else None
 
-        # recalcul robuste basé sur evol_df
-        if len(evol_df) >= 2:
-            val_prev = evol_df.iloc[-2][col]
-        else:
-            val_prev = None
-
-        val_str = format_fr(val_cumul, fmt)
-
-        # Valeur principale = CUMUL
+        # Valeur principale = cumul
         ax.text(
             x, y,
-            val_str,
+            format_fr(val_cumul, fmt),
             ha="center",
             va="center",
             fontsize=18,
@@ -1034,13 +1029,11 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
             zorder=3,
         )
 
-        # Valeur secondaire = MOIS
+        # Valeur secondaire = mois
         if col_mois:
-            mois_str = format_fr(val_mois, fmt_mois)
-
             ax.text(
                 x, y - 0.030,
-                mois_str,
+                format_fr(val_mois, fmt_mois),
                 ha="center",
                 va="center",
                 fontsize=8.5,
@@ -1048,43 +1041,49 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
                 zorder=3,
             )
 
-        # Évolution du mois vs mois précédent
+        # ── Flèche = évolution du mois actuel vs mois précédent ───────
+        if len(evol_df) >= 2:
 
-    if len(evol_df) >= 2:
+            # Cas taux : comparer taux du mois actuel vs taux du mois précédent
+            if "taux" in col and col_mois:
+                val_now = evol_df.iloc[-1][col_mois]
+                val_prev = evol_df.iloc[-2][col_mois]
 
-        # CAS 1 — KPI taux → utiliser directement la version "mois"
-        if "taux" in col and col_mois:
-            val_now = evol_df.iloc[-1][col_mois]
-            val_prev = evol_df.iloc[-2][col_mois]
-
-        # CAS 2 — KPI cumul → reconstruire les mois
-        else:
-            cumul_now = evol_df.iloc[-1][col]
-            cumul_prev = evol_df.iloc[-2][col]
-
-            # mois actuel
-            val_now = cumul_now - cumul_prev
-
-            # mois précédent
-            if len(evol_df) == 2:
-                val_prev = cumul_prev
+            # Cas montants / volumes cumulés : reconstruire les mois
             else:
-                cumul_prev2 = evol_df.iloc[-3][col]
-                val_prev = cumul_prev - cumul_prev2
+                cumul_now = evol_df.iloc[-1][col]
+                cumul_prev = evol_df.iloc[-2][col]
 
-        fleche, couleur_fl = _fleche(val_now, val_prev, fmt)
+                val_now = cumul_now - cumul_prev
 
-    else:
-        fleche, couleur_fl = "–", GRIS_TEXTE
+                if len(evol_df) == 2:
+                    val_prev = cumul_prev
+                else:
+                    cumul_prev2 = evol_df.iloc[-3][col]
+                    val_prev = cumul_prev - cumul_prev2
 
-        # Objectif : appliqué à la valeur du mois si elle existe, sinon au cumul
+            fleche, couleur_fl = _fleche(val_now, val_prev, fmt)
+
+        else:
+            fleche, couleur_fl = "–", GRIS_TEXTE
+
+        ax.text(
+            x, y - 0.055,
+            fleche,
+            ha="center",
+            va="center",
+            fontsize=9.5,
+            fontweight="bold",
+            color=couleur_fl,
+            zorder=3,
+        )
+
+        # ── Objectif ─────────────────────────────────────────────────
         if obj_key and OBJECTIFS.get(obj_key) is not None:
             valeur_obj = val_mois if val_mois is not None else val_cumul
             badge_txt, badge_col = _badge(valeur_obj, OBJECTIFS[obj_key])
 
             if badge_txt:
-                badge_txt = badge_txt.replace(",", " ")
-
                 ax.text(
                     x, y - 0.076,
                     badge_txt,
@@ -1095,14 +1094,29 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode, 
                     style="italic",
                     zorder=3,
                 )
-    # Pied de page
-    ax.text(0.03, PAGE_NUM_Y,
-            f"{AUTEUR}  |  {nom_etablissement}  |  {DATE_RAPPORT}",
-            ha="left", va="center", fontsize=11, color=GRIS_TEXTE, zorder=3)
-    ax.text(PAGE_NUM_X, PAGE_NUM_Y, "Page 1",
-            ha="right", va="center", fontsize=11,
-            fontweight="bold", color=GRIS_TEXTE, zorder=3)
- 
+
+    # ── Pied de page ─────────────────────────────────────────────────
+    ax.text(
+        0.03, PAGE_NUM_Y,
+        f"{AUTEUR}  |  {nom_etablissement}  |  {DATE_RAPPORT}",
+        ha="left",
+        va="center",
+        fontsize=11,
+        color=GRIS_TEXTE,
+        zorder=3
+    )
+
+    ax.text(
+        PAGE_NUM_X, PAGE_NUM_Y,
+        "Page 1",
+        ha="right",
+        va="center",
+        fontsize=11,
+        fontweight="bold",
+        color=GRIS_TEXTE,
+        zorder=3
+    )
+
     return fig
 
 # ══════════════════════════════════════════════════════════════════════════════
