@@ -699,7 +699,7 @@ barlow_bold = font_manager.FontProperties(
 #         else:
 #             label.set_color(GRIS_TEXTE)
 
-def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
+def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}"):
     y_vals = y_vals.reset_index(drop=True)
     for i, val in enumerate(y_vals):
         try:
@@ -717,7 +717,8 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}", couleur=BLEU):
             xy=(i, v),
             xytext=(0, 12),
             textcoords="offset points",
-            fontsize=9, fontweight="bold", color=couleur,
+            fontsize=9, fontweight="bold",
+            color=GRIS_TEXTE,
             ha="center", va="bottom",
             bbox=dict(boxstyle="round,pad=0.2", facecolor=BLANC,
                       edgecolor=couleur, alpha=0.85, linewidth=0.7),
@@ -803,7 +804,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
 def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
-    COLORS=[BLEU, ]
+    COLORS=[BLEU, BLEU_CLAIR]
     x_vals = list(evol_df["Mois"])
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
