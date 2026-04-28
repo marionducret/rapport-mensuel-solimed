@@ -737,7 +737,7 @@ def _style_ax(ax):
     ax.yaxis.set_tick_params(pad=5)
     ax.xaxis.set_tick_params(pad=5)
 
-def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuelle=None):
+def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
     y_vals = evol_df[col].reset_index(drop=True)
     ax.plot(x_vals, y_vals, linewidth=2.5, color=VERT,
@@ -803,7 +803,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.set_xticklabels(x_vals)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
-def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
+def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
     COLORS=[BLEU, BLEU_CLAIR]
     x_vals = list(evol_df["Mois"])
     for i, (col, label) in enumerate(plots):
