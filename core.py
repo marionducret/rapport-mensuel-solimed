@@ -892,26 +892,26 @@ GRAPH_RIGHT_W = 0.410
 GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
-COMMENT_SMALL_R_L = 0.570
+COMMENT_SMALL_R_L = 0.560
 COMMENT_SMALL_R_B = 0.450
 COMMENT_SMALL_R_W = 0.420
 COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
-GRAPH_BIG_L = 0.055
-GRAPH_BIG_B = 0.105
+GRAPH_BIG_L = 0.065
+GRAPH_BIG_B = 0.100
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.640
-COMMENT_BIG_B = 0.180
+COMMENT_BIG_B = 0.190
 COMMENT_BIG_W = 0.350
 COMMENT_BIG_H = 0.150
  
 # Pied de page
-PAGE_NUM_Y          = 0.020
-PAGE_NUM_X          = 0.970
+PAGE_NUM_Y    = 0.020
+PAGE_NUM_X    = 0.970
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE DE GARDE 
