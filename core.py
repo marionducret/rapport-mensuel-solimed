@@ -753,7 +753,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
     moyenne = y_vals.mean()
     ax.axhline(moyenne, color="#9CA3AF", linestyle="--", linewidth=1.5,
-               label=f"Moyenne globale ({format_fr(moyenne)})")
+               label=f"Moyenne période ({format_fr(moyenne)})")
     if objectif is not None:
         ax.axhline(objectif, color=ORANGE, linestyle="--", linewidth=1.5,
                    label=f"Objectif mensuel ({objectif:,.0f})")
