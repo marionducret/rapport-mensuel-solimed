@@ -1044,18 +1044,31 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
         # ── Flèche = évolution du mois actuel vs mois précédent ───────
         if len(evol_df) >= 2:
 
-            # Cas taux : comparer taux du mois actuel vs taux du mois précédent
-            if "taux" in col and col_mois:
-                val_now = evol_df.iloc[-1][col_mois]
-                val_prev = evol_df.iloc[-2][col_mois]
+            # ── 1. Cas TAUX → comparaison directe mois vs mois ─────────
+            if "taux" in col:
+                if col_mois:
+                    # taux du mois
+                    val_now = evol_df.iloc[-1][col_mois]
+                    val_prev = evol_df.iloc[-2][col_mois]
+                else:
+                    # fallback cumul
+                    val_now = evol_df.iloc[-1][col]
+                    val_prev = evol_df.iloc[-2][col]
 
-            # Cas montants / volumes cumulés : reconstruire les mois
+            # ── 2. Cas MOYENNE → comparaison directe cumul vs cumul ────
+            elif "moy" in col:
+                val_now = evol_df.iloc[-1][col]
+                val_prev = evol_df.iloc[-2][col]
+
+            # ── 3. Cas CUMUL → reconstruction du mois ──────────────────
             else:
                 cumul_now = evol_df.iloc[-1][col]
                 cumul_prev = evol_df.iloc[-2][col]
 
+                # mois actuel
                 val_now = cumul_now - cumul_prev
 
+                # mois précédent
                 if len(evol_df) == 2:
                     val_prev = cumul_prev
                 else:
@@ -1066,7 +1079,6 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
 
         else:
             fleche, couleur_fl = "–", GRIS_TEXTE
-
         ax.text(
             x, y - 0.055,
             fleche,
