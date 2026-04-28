@@ -699,7 +699,7 @@ barlow_bold = font_manager.FontProperties(
 #         else:
 #             label.set_color(GRIS_TEXTE)
 
-def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}"):
+def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}"):
     y_vals = y_vals.reset_index(drop=True)
     for i, val in enumerate(y_vals):
         try:
@@ -811,7 +811,7 @@ def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
         ax.plot(x_vals, y_vals, linewidth=2.5, color=COLORS[i % len(COLORS)],
                 marker="o", markersize=5, markerfacecolor="white",
                 markeredgewidth=2, label=label)
-        annoter_tous_les_points(ax, x_vals, y_vals, couleur=COLORS[i % len(COLORS)])
+        annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
         if moy_annuelle is not None and col in moy_annuelle and moy_annuelle[col] is not None:
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
