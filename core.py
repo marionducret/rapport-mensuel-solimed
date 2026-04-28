@@ -170,16 +170,15 @@ THEMES = {
     },}
 
 
-COLORS     = ["#2563EB", "#16A34A", "#16A34A", "#E11D48", "#E11D48"]
-BLEU_FONCE = "#1E3A5F"
-BLEU       = "#2563EB"
+BLEU_CLAIR = "#25C7EB"
+BLEU       = "#4925EB"
 GRIS_TEXTE = "#6B7280"
 ROUGE      = "#E11D48"
-VERT       = "#16A34A"
+VERT       = "#19B853"
 BLANC      = "#FFFFFF"
 TEAL       = "#028181"
 VIOLET     = "#7C3AED"
-ORANGE     = "#F09516"
+ORANGE     = "#F2A63A"
 
 def format_fr(val, fmt="{:,.0f}"):
     try:
@@ -740,13 +739,13 @@ def _style_ax(ax):
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
     y_vals = evol_df[col].reset_index(drop=True)
-    ax.plot(x_vals, y_vals, linewidth=2.5, color=BLEU,
+    ax.plot(x_vals, y_vals, linewidth=2.5, color=VERT,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
     moyenne = y_vals.mean()
     ax.axhline(moyenne, color="#9CA3AF", linestyle="--", linewidth=1.5,
                label=f"Moyenne période ({format_fr(moyenne)})")
     if moy_annuelle is not None:
-        ax.axhline(moy_annuelle, color=VERT, linestyle="--", linewidth=1.5,
+        ax.axhline(moy_annuelle, color=BLEU, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
     ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
@@ -804,6 +803,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
 def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
+    COLORS=[BLEU, ]
     x_vals = list(evol_df["Mois"])
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
@@ -820,12 +820,12 @@ def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
-    for i, label in enumerate(ax.get_xticklabels()):
-        if i > 0:
-            all_down = all(evol_df[col].iloc[i] < evol_df[col].iloc[i - 1] for col, _ in plots)
-            label.set_color(VIOLET if all_down else GRIS_TEXTE)
-        else:
-            label.set_color(GRIS_TEXTE)
+    # for i, label in enumerate(ax.get_xticklabels()):
+    #     if i > 0:
+    #         all_down = all(evol_df[col].iloc[i] < evol_df[col].iloc[i - 1] for col, _ in plots)
+    #         label.set_color(VIOLET if all_down else GRIS_TEXTE)
+    #     else:
+    #         label.set_color(GRIS_TEXTE)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MISE EN FORME PDF — pages avec template Canva
