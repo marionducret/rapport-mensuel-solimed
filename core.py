@@ -177,11 +177,11 @@ GRIS         = "#9CA3AF"
 NOIR         = "#080B12"
 ROUGE        = "#E11D48"
 VERT         = "#3D851E"
-VERT_TEXTE   = "#2C6016"
+VERT_TEXT    = "#2C6016"
 BLANC        = "#FFFFFF"
 TEAL         = "#028181"
 ORANGE       = "#EBBB00"
-ORANGE_TEXTE = "#B59002"
+ORANGE_TEXT = "#B59002"
 
 def format_fr(val, fmt="{:,.0f}"):
     try:
