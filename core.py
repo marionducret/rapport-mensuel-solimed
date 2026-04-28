@@ -751,7 +751,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
-    style_xticklabels(x_vals)
+    ax.set_xticklabels(x_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
 def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
