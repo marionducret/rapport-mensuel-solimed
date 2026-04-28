@@ -689,8 +689,7 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
 
 barlow_bold = font_manager.FontProperties(
     fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
-    size=18,
-    color=TEAL)
+    size=18)
 
 # def style_xticklabels(ax, x_vals, y_vals):
 #     ax.set_xticks(range(len(x_vals)))
@@ -749,7 +748,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=VERT, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
-    ax.set_title(title, pad=10, fontproperties=barlow_bold)
+    ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     style_xticklabels(x_vals)
@@ -796,7 +795,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
             )
 
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8)
-    ax.set_title(title, pad=10, fontproperties=barlow_bold)
+    ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
 
     _style_ax(ax)
 
@@ -816,7 +815,7 @@ def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
-    ax.set_title(title, pad=10, fontproperties=barlow_bold)
+    ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
