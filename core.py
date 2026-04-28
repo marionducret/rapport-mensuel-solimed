@@ -178,6 +178,7 @@ NOIR         = "#080B12"
 ROUGE        = "#E11D48"
 VERT         = "#3D851E"
 VERT_TEXT    = "#2C6016"
+VERT_KPI    = "#53BF24"
 BLANC        = "#FFFFFF"
 TEAL         = "#028181"
 ORANGE       = "#EBBB00"
@@ -967,7 +968,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
                 unit = ""
 
             if d > 0:
-                return f"▲ +{format_fr(d)}{unit}", VERT
+                return f"▲ +{format_fr(d)}{unit}", VERT_KPI
             if d < 0:
                 return f"▼ {format_fr(d)}{unit}", ROUGE
 
@@ -984,7 +985,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
             val = float(val)
 
             if val >= objectif:
-                return f"✓ Objectif atteint ({format_fr(objectif)} €)", VERT
+                return f"✓ Objectif atteint ({format_fr(objectif)} €)", VERT_KPI
 
             pct = (1 - val / objectif) * 100
             return f"✗ -{pct:.1f}% de l'objectif ({format_fr(objectif)} €)", ROUGE
