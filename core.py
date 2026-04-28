@@ -689,7 +689,8 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
 
 barlow_bold = font_manager.FontProperties(
     fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
-    size=18)
+    size=18,
+    color=TEAL)
 
 # def style_xticklabels(ax, x_vals, y_vals):
 #     ax.set_xticks(range(len(x_vals)))
@@ -751,7 +752,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     ax.set_title(title, pad=10, fontproperties=barlow_bold)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
-    #style_xticklabels(ax, x_vals, y_vals)
+    style_xticklabels(x_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
 def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
@@ -869,8 +870,8 @@ KPI_POS_HC = {
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Graphique haut gauche
-GRAPH_LEFT_L  = 0.050 #horizontal
-GRAPH_LEFT_B  = 0.595 #vertical
+GRAPH_LEFT_L  = 0.070 #horizontal
+GRAPH_LEFT_B  = 0.590 #vertical
 GRAPH_LEFT_W  = 0.410 #largeur
 GRAPH_LEFT_H  = 0.235 #hauteur
 
@@ -881,8 +882,8 @@ COMMENT_SMALL_L_W = 0.420
 COMMENT_SMALL_L_H = 0.090
 
 # Graphique haut droit
-GRAPH_RIGHT_L = 0.530
-GRAPH_RIGHT_B = 0.595
+GRAPH_RIGHT_L = 0.550
+GRAPH_RIGHT_B = 0.590
 GRAPH_RIGHT_W = 0.410
 GRAPH_RIGHT_H = 0.235
 
@@ -893,15 +894,15 @@ COMMENT_SMALL_R_W = 0.420
 COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
-GRAPH_BIG_L = 0.050
+GRAPH_BIG_L = 0.055
 GRAPH_BIG_B = 0.105
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
-COMMENT_BIG_L = 0.550
+COMMENT_BIG_L = 0.600
 COMMENT_BIG_B = 0.180
-COMMENT_BIG_W = 0.400
+COMMENT_BIG_W = 0.350
 COMMENT_BIG_H = 0.150
  
 # Pied de page
