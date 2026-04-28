@@ -721,7 +721,7 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{:,.0f}"):
             color=GRIS_TEXTE,
             ha="center", va="bottom",
             bbox=dict(boxstyle="round,pad=0.2", facecolor=BLANC,
-                      edgecolor=couleur, alpha=0.85, linewidth=0.7),
+                      edgecolor=GRIS_TEXTE, alpha=0.85, linewidth=0.7),
         )
 
 def _style_ax(ax):
