@@ -874,7 +874,7 @@ KPI_POS_HC = {
  
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Graphique haut gauche
-GRAPH_LEFT_L  = 0.070 #horizontal
+GRAPH_LEFT_L  = 0.060 #horizontal
 GRAPH_LEFT_B  = 0.590 #vertical
 GRAPH_LEFT_W  = 0.410 #largeur
 GRAPH_LEFT_H  = 0.235 #hauteur
@@ -886,7 +886,7 @@ COMMENT_SMALL_L_W = 0.420
 COMMENT_SMALL_L_H = 0.090
 
 # Graphique haut droit
-GRAPH_RIGHT_L = 0.550
+GRAPH_RIGHT_L = 0.540
 GRAPH_RIGHT_B = 0.590
 GRAPH_RIGHT_W = 0.410
 GRAPH_RIGHT_H = 0.235
@@ -899,7 +899,7 @@ COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
 GRAPH_BIG_L = 0.065
-GRAPH_BIG_B = 0.100
+GRAPH_BIG_B = 0.095
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
