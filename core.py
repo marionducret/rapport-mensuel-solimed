@@ -880,7 +880,7 @@ GRAPH_LEFT_W  = 0.410 #largeur
 GRAPH_LEFT_H  = 0.235 #hauteur
 
 # Commentaire haut gauche
-COMMENT_SMALL_L_L = 0.080
+COMMENT_SMALL_L_L = 0.085
 COMMENT_SMALL_L_B = 0.450
 COMMENT_SMALL_L_W = 0.420
 COMMENT_SMALL_L_H = 0.090
@@ -899,12 +899,12 @@ COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
 GRAPH_BIG_L = 0.065
-GRAPH_BIG_B = 0.100
+GRAPH_BIG_B = 0.115
 GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
-COMMENT_BIG_L = 0.640
+COMMENT_BIG_L = 0.645
 COMMENT_BIG_B = 0.190
 COMMENT_BIG_W = 0.350
 COMMENT_BIG_H = 0.150
@@ -1031,7 +1031,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
                 format_fr(val_mois, fmt_mois),
                 ha="center",
                 va="center",
-                fontsize=8.5,
+                fontsize=11,
                 color=GRIS_TEXTE,
                 zorder=3,
             )
@@ -1079,7 +1079,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
             fleche,
             ha="center",
             va="center",
-            fontsize=9.5,
+            fontsize=11,
             fontweight="bold",
             color=couleur_fl,
             zorder=3,
@@ -1096,7 +1096,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
                     badge_txt,
                     ha="center",
                     va="center",
-                    fontsize=7.5,
+                    fontsize=9,
                     color=badge_col,
                     style="italic",
                     zorder=3,
