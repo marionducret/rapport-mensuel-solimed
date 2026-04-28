@@ -170,15 +170,16 @@ THEMES = {
     },}
 
 
-BLEU_CLAIR = "#25C7EB"
-BLEU       = "#4925EB"
+BLEU_CLAIR = "#1CABB0"
+BLEU       = "#11676A"
 GRIS_TEXTE = "#6B7280"
+GRIS       = "#9CA3AF"
+NOIR       = "#080B12"
 ROUGE      = "#E11D48"
-VERT       = "#19B853"
+VERT       = "#2E6417"
 BLANC      = "#FFFFFF"
 TEAL       = "#028181"
-VIOLET     = "#7C3AED"
-ORANGE     = "#F2A63A"
+ORANGE     = "#CCA300"
 
 def format_fr(val, fmt="{:,.0f}"):
     try:
@@ -743,10 +744,10 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
     ax.plot(x_vals, y_vals, linewidth=2.5, color=VERT,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
     moyenne = y_vals.mean()
-    ax.axhline(moyenne, color="#9CA3AF", linestyle="--", linewidth=1.5,
+    ax.axhline(moyenne, color=GRIS, linestyle="--", linewidth=1.5,
                label=f"Moyenne période ({format_fr(moyenne)})")
     if moy_annuelle is not None:
-        ax.axhline(moy_annuelle, color=BLEU, linestyle="--", linewidth=1.5,
+        ax.axhline(moy_annuelle, color=NOIR, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
     ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
@@ -789,7 +790,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
                 label_txt,
                 ha="center",
                 va="bottom",
-                fontsize=9,
+                fontsize=11,
                 fontweight="bold",
                 color=GRIS_TEXTE,
             )
@@ -876,7 +877,7 @@ GRAPH_LEFT_W  = 0.410 #largeur
 GRAPH_LEFT_H  = 0.235 #hauteur
 
 # Commentaire haut gauche
-COMMENT_SMALL_L_L = 0.060
+COMMENT_SMALL_L_L = 0.080
 COMMENT_SMALL_L_B = 0.450
 COMMENT_SMALL_L_W = 0.420
 COMMENT_SMALL_L_H = 0.090
@@ -888,7 +889,7 @@ GRAPH_RIGHT_W = 0.410
 GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
-COMMENT_SMALL_R_L = 0.540
+COMMENT_SMALL_R_L = 0.560
 COMMENT_SMALL_R_B = 0.450
 COMMENT_SMALL_R_W = 0.420
 COMMENT_SMALL_R_H = 0.090
@@ -900,8 +901,8 @@ GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
-COMMENT_BIG_L = 0.600
-COMMENT_BIG_B = 0.180
+COMMENT_BIG_L = 0.640
+COMMENT_BIG_B = 0.200
 COMMENT_BIG_W = 0.350
 COMMENT_BIG_H = 0.150
  
