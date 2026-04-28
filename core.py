@@ -60,15 +60,6 @@ KPI_CONFIG = [
   
 ]
 
-# KPI_CONFIG_HC = [
-#     ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:.0f} €",  "obj_BR_mois"),
-#     ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:.0f} €",  "obj_AM_mois"),
-#     ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
-#     ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HC)", "{:.0f} €",  None),
-#     ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
-# ]
-
-
 KPI_CONFIG_HC = [
     (
         "recette_BR_cumule_total",
@@ -698,7 +689,7 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
 
 barlow_bold = font_manager.FontProperties(
     fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
-    size=14)
+    size=18)
 
 # def style_xticklabels(ax, x_vals, y_vals):
 #     ax.set_xticks(range(len(x_vals)))
@@ -754,19 +745,17 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{:,.0f}", moy_annuell
     moyenne = y_vals.mean()
     ax.axhline(moyenne, color="#9CA3AF", linestyle="--", linewidth=1.5,
                label=f"Moyenne période ({format_fr(moyenne)})")
-    if objectif is not None:
-        ax.axhline(objectif, color=ORANGE, linestyle="--", linewidth=1.5,
-                   label=f"Objectif mensuel ({objectif:,.0f})")
     if moy_annuelle is not None:
-        ax.axhline(moy_annuelle, color=VIOLET, linestyle="--", linewidth=1.5,
+        ax.axhline(moy_annuelle, color=VERT, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
-    ax.set_title(title, pad=10,  fontproperties=barlow_bold)
+    ax.set_title(title, pad=10, fontproperties=barlow_bold)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     #style_xticklabels(ax, x_vals, y_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
 def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
+    COLORS = [ORANGE, TEAL]
     x_vals = list(evol_df["Mois"])
     x = np.arange(len(x_vals))
 
@@ -783,6 +772,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
             y_vals,
             width=width,
             label=label,
+            color=COLORS,
             alpha=0.85,
             zorder=3,
         )
@@ -885,7 +875,7 @@ GRAPH_LEFT_W  = 0.410 #largeur
 GRAPH_LEFT_H  = 0.235 #hauteur
 
 # Commentaire haut gauche
-COMMENT_SMALL_L_L = 0.050
+COMMENT_SMALL_L_L = 0.060
 COMMENT_SMALL_L_B = 0.450
 COMMENT_SMALL_L_W = 0.420
 COMMENT_SMALL_L_H = 0.090
@@ -897,7 +887,7 @@ GRAPH_RIGHT_W = 0.410
 GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
-COMMENT_SMALL_R_L = 0.530
+COMMENT_SMALL_R_L = 0.540
 COMMENT_SMALL_R_B = 0.450
 COMMENT_SMALL_R_W = 0.420
 COMMENT_SMALL_R_H = 0.090
@@ -909,10 +899,10 @@ GRAPH_BIG_W = 0.410
 GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
-COMMENT_BIG_L = 0.530
+COMMENT_BIG_L = 0.550
 COMMENT_BIG_B = 0.180
-COMMENT_BIG_W = 0.420
-COMMENT_BIG_H = 0.090
+COMMENT_BIG_W = 0.400
+COMMENT_BIG_H = 0.150
  
 # Pied de page
 PAGE_NUM_Y          = 0.020
