@@ -772,6 +772,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
             y_vals,
             width=width,
             label=label,
+            color=COLORS[i % len(COLORS)], 
             alpha=0.85,
             zorder=3,
         )
@@ -800,7 +801,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
 
     ax.set_xticks(x)
     ax.set_xticklabels(x_vals)
-    ax.legend(color=COLORS,fontsize=10, framealpha=0.9, loc="best")
+    ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
 def make_ax_multi(ax, plots, title, evol_df, moy_annuelle=None):
     x_vals = list(evol_df["Mois"])
