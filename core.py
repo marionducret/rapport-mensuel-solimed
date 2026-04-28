@@ -170,16 +170,18 @@ THEMES = {
     },}
 
 
-BLEU_CLAIR = "#1CABB0"
-BLEU       = "#11676A"
-GRIS_TEXTE = "#6B7280"
-GRIS       = "#9CA3AF"
-NOIR       = "#080B12"
-ROUGE      = "#E11D48"
-VERT       = "#2E6417"
-BLANC      = "#FFFFFF"
-TEAL       = "#028181"
-ORANGE     = "#CCA300"
+BLEU_CLAIR   = "#1CABB0"
+BLEU         = "#11676A"
+GRIS_TEXTE   = "#6B7280"
+GRIS         = "#9CA3AF"
+NOIR         = "#080B12"
+ROUGE        = "#E11D48"
+VERT         = "#3D851E"
+VERT_TEXTE   = "#2C6016"
+BLANC        = "#FFFFFF"
+TEAL         = "#028181"
+ORANGE       = "#EBBB00"
+ORANGE_TEXTE = "#B59002"
 
 def format_fr(val, fmt="{:,.0f}"):
     try:
@@ -749,7 +751,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=NOIR, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
-    ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
+    ax.set_title(title, pad=20, fontproperties=barlow_bold, color=VERT_TEXT)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticklabels(x_vals)
@@ -796,7 +798,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
             )
 
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8)
-    ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
+    ax.set_title(title, pad=20, fontproperties=barlow_bold, color=ORANGE_TEXT)
 
     _style_ax(ax)
 
@@ -817,7 +819,7 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
-    ax.set_title(title, pad=10, fontproperties=barlow_bold, color=TEAL)
+    ax.set_title(title, pad=20, fontproperties=barlow_bold, color=TEAL)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
@@ -889,7 +891,7 @@ GRAPH_RIGHT_W = 0.410
 GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
-COMMENT_SMALL_R_L = 0.560
+COMMENT_SMALL_R_L = 0.570
 COMMENT_SMALL_R_B = 0.450
 COMMENT_SMALL_R_W = 0.420
 COMMENT_SMALL_R_H = 0.090
@@ -902,7 +904,7 @@ GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.640
-COMMENT_BIG_B = 0.200
+COMMENT_BIG_B = 0.180
 COMMENT_BIG_W = 0.350
 COMMENT_BIG_H = 0.150
  
