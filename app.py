@@ -7,6 +7,7 @@ import json
 import base64
 import requests
 from pathlib import Path
+from datetime import datetime, timedelta
 
 st.set_page_config(layout="wide")
 st.title("Générateur de rapport mensuel SSR")
@@ -77,7 +78,29 @@ def month_key(m):
     except Exception:
         return (9999, 9999)
 
+def excel_date_to_str(x):
+    date = datetime(1899, 12, 30) + timedelta(days=int(x))
+    return date.strftime("%d/%m/%y")
 
+CALENDRIER_PERIODES = {
+    "M1": ("29/12/25", "01/02/26"),
+    "M2": ("29/12/25", "01/03/26"),
+    "M3": ("29/12/25", "29/03/26"),
+    "M4": ("29/12/25", "26/04/26"),
+    "M5": ("29/12/25", "31/05/26"),
+    "M6": ("29/12/25", "28/06/26"),
+    "M7": ("29/12/25", "26/07/26"),
+    "M8": ("29/12/25", "30/08/26"),
+    "M9": ("29/12/25", "27/09/26"),
+    "M10": ("29/12/25", "25/10/26"),
+    "M11": ("29/12/25", "29/11/26"),
+    "M12": ("29/12/25", "03/01/27"),
+}
+
+def libelle_periode_pmsi(periode_code):
+    periode_simple = periode_code.split("_")[-1]  # 2026_M2 -> M2
+    debut, fin = CALENDRIER_PERIODES.get(periode_simple, ("", ""))
+    return f"{periode_simple} : {debut} au {fin}"
 # ══════════════════════════════════════════════════════════════════════════════
 #  NOM ÉTABLISSEMENT
 # ══════════════════════════════════════════════════════════════════════════════
@@ -87,7 +110,7 @@ if not NOM_ETAB:
     st.warning("Veuillez saisir le nom de l'établissement.")
     st.stop()
 
-NOM_ETAB_LAYOUT = f"Centre Médical de \n{NOM_ETAB..upper()}"
+NOM_ETAB_LAYOUT = f"Centre Médical de \n{NOM_ETAB.upper()}"
 NOM_ETAB = f"Centre Médical de {NOM_ETAB}"
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -226,8 +249,8 @@ else:
     st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
 
 evol_df    = core.recalculer_derives(brut_complet)
-mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)
-PERIODE    = f"{mois_tries[-1]}"
+dernier_mois_injecte = sorted(nouveau_brut_df["Mois"].unique(), key=month_key)[-1]
+PERIODE = libelle_periode_pmsi(dernier_mois_injecte)
 
 st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
 st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
