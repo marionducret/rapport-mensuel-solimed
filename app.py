@@ -252,6 +252,7 @@ else:
     st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
 
 evol_df    = core.recalculer_derives(brut_complet)
+mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)
 
 st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
 st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
