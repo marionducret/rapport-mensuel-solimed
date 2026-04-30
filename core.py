@@ -89,7 +89,7 @@ KPI_CONFIG_HC = [
         "BR moyen / jour cumulé",
         "{:,.0f} €",
         "recette_BR_moy_jour_mois_HC",
-        "dont {:,.0f} € pour le mois supplémentaire",
+        "{:,.0f} € pour le mois supplémentaire",
         None,
     ),
     (
@@ -97,7 +97,7 @@ KPI_CONFIG_HC = [
         "Taux de valorisation cumulé",
         "{:.1f} %",
         "taux_valorisation_mois_HC",
-        "dont {:.1f} % pour le mois supplémentaire",
+        "{:.1f} % pour le mois supplémentaire",
         None,
     ),
 ]
@@ -741,7 +741,7 @@ def _style_ax(ax):
     ax.xaxis.set_tick_params(pad=5)
 
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuelle=None):
-    x_vals = list(evol_df["Mois"])
+    x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]    
     y_vals = evol_df[col].reset_index(drop=True)
     ax.plot(x_vals, y_vals, linewidth=2.5, color=VERT,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
@@ -751,7 +751,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=NOIR, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
-    ax.set_title(title, pad=20, fontproperties=barlow_bold, color=VERT_TEXT)
+    ax.set_title(title, pad=25, fontproperties=barlow_bold, color=VERT_TEXT)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticklabels(x_vals)
@@ -759,7 +759,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
 
 def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     COLORS = [ORANGE, TEAL]
-    x_vals = list(evol_df["Mois"])
+    x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
     x = np.arange(len(x_vals))
 
     n_series = len(series)
@@ -798,7 +798,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
             )
 
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8)
-    ax.set_title(title, pad=20, fontproperties=barlow_bold, color=ORANGE_TEXT)
+    ax.set_title(title, pad=25, fontproperties=barlow_bold, color=ORANGE_TEXT)
 
     _style_ax(ax)
 
@@ -808,7 +808,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
 
 def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
     COLORS=[BLEU, BLEU_CLAIR]
-    x_vals = list(evol_df["Mois"])
+    x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
         ax.plot(x_vals, y_vals, linewidth=2.5, color=COLORS[i % len(COLORS)],
@@ -819,7 +819,7 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
-    ax.set_title(title, pad=20, fontproperties=barlow_bold, color=TEAL)
+    ax.set_title(title, pad=25, fontproperties=barlow_bold, color=TEAL)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
@@ -952,7 +952,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
     )
 
     barlow_period = font_manager.FontProperties(
-        fname=BASE_DIR / "design" / "Barlow-Italic.ttf",
+        fname=BASE_DIR / "design" / "Barlow-SemiBoldItalic.ttf",
         size=20
     )
 
