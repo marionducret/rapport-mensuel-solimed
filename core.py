@@ -948,7 +948,8 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
         va="center",
         color=TEAL,
         zorder=3,
-        fontproperties=barlow_title
+        fontproperties=barlow_title,
+        linespacing=1.3 
     )
 
     barlow_period = font_manager.FontProperties(
