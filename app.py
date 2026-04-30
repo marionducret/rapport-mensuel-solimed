@@ -249,13 +249,7 @@ else:
     st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
 
 evol_df    = core.recalculer_derives(brut_complet)
-mois_uploades = sorted(nouveau["brut_df"]["Mois"].unique(), key=month_key)
-
-if mois_uploades:
-    dernier_mois_injecte = mois_uploades[-1]
-else:
-    dernier_mois_injecte = mois_tries[-1]
-
+mdernier_mois_injecte = sorted(nouveau_brut_df["Mois"].unique(), key=month_key)[-1]
 PERIODE = libelle_periode_pmsi(dernier_mois_injecte)
 
 st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
