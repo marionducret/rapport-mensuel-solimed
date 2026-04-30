@@ -881,7 +881,7 @@ GRAPH_LEFT_H  = 0.235 #hauteur
 # Commentaire haut gauche
 COMMENT_SMALL_L_L = 0.085
 COMMENT_SMALL_L_B = 0.450
-COMMENT_SMALL_L_W = 0.420
+COMMENT_SMALL_L_W = 0.430
 COMMENT_SMALL_L_H = 0.090
 
 # Graphique haut droit
@@ -893,7 +893,7 @@ GRAPH_RIGHT_H = 0.235
 # Commentaire haut droit
 COMMENT_SMALL_R_L = 0.565
 COMMENT_SMALL_R_B = 0.450
-COMMENT_SMALL_R_W = 0.420
+COMMENT_SMALL_R_W = 0.430
 COMMENT_SMALL_R_H = 0.090
 
 # Grand graphique bas À GAUCHE
@@ -1283,17 +1283,17 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df))
-    full_text = "\n\n".join(texts)
+    full_text = "\n".join(texts)
 
     largeur = ax.get_position().width
     chars_par_ligne = int(largeur * 160) 
 
-    lignes = lignes = "\n\n".join(
+    lignes = lignes = "\n".join(
         textwrap.fill(paragraphe, 
                       width=chars_par_ligne, 
                       break_long_words=False,
                       replace_whitespace=False)
-        for paragraphe in full_text.split("\n\n")
+        for paragraphe in full_text.split("\n")
     )
 
     ax.text(
@@ -1361,10 +1361,8 @@ def generate_comment(col, titre, evol_df):
         tendance = "stabilité"
 
     return (
-        f"{titre} :\n"
-        f"on observe une {tendance} de {trend_pct:.1f} % "
-        f"sur la période. La valeur moyenne est de {format_fr(series.mean())}, "
-        f"avec un minimum de {format_fr(series.min())} et un maximum de {format_fr(series.max())}."
+        f"{titre} : on observe une {tendance} de {trend_pct:.1f} % "
+        f"sur la période. La moyenne observée est de {format_fr(series.mean())}."
     )
 
 # ══════════════════════════════════════════════════════════════════════════════
