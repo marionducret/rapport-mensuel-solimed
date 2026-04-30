@@ -40,7 +40,6 @@ CANVA_PAGE_HTP_PATH   = "design/page_graph_HTP_pays.png"
 
 AUTEUR = "Dr Nathalie DUCRET"
 DATE_RAPPORT = datetime.today().strftime("%d/%m/%Y")
-SERVICE = "Rapport évolution mensuelle SMR"
 
 #à automatiser
 OBJECTIFS = {
@@ -66,7 +65,7 @@ KPI_CONFIG_HC = [
         "Recette BR cumulée",
         "{:,.0f} €",
         "recette_BR_mois_total",
-        "{:,.0f} € sur le mois",
+        "dont {:,.0f} € pour le mois supplémentaire",
         "obj_BR_mois",
     ),
     (
@@ -74,7 +73,7 @@ KPI_CONFIG_HC = [
         "Recette AM cumulée",
         "{:,.0f} €",
         "montantAM_mois_HC",
-        "{:,.0f} € sur le mois",
+        "dont {:,.0f} € pour le mois supplémentaire",
         "obj_AM_mois",
     ),
     (
@@ -82,7 +81,7 @@ KPI_CONFIG_HC = [
         "Séjours HC transmis cumulés",
         "{:,.0f}",
         "sejours_transmis_mois_HC",
-        "{:,.0f} sur le mois",
+        "dont {:,.0f} pour le mois supplémentaire",
         None,
     ),
     (
@@ -90,7 +89,7 @@ KPI_CONFIG_HC = [
         "BR moyen / jour cumulé",
         "{:,.0f} €",
         "recette_BR_moy_jour_mois_HC",
-        "{:,.0f} € sur le mois",
+        "dont {:,.0f} € pour le mois supplémentaire",
         None,
     ),
     (
@@ -98,7 +97,7 @@ KPI_CONFIG_HC = [
         "Taux de valorisation cumulé",
         "{:.1f} %",
         "taux_valorisation_mois_HC",
-        "{:.1f} % sur le mois",
+        "dont {:.1f} % pour le mois supplémentaire",
         None,
     ),
 ]
@@ -118,14 +117,14 @@ THEMES = {
                         "Séjours transmis"
                     ),
                 ],
-                "title": "Activité du mois : séjours",
+                "title": "Activité : séjours supplémentaires par rapport à la période M-1",
             },
             {
                 "type": "bar",
                 "series": [
                     (
                         "taux_valorisation_mois_HC",
-                        "Taux du mois"
+                        "Taux du mois supplémentaire"
                     ),
                     (
                         "taux_valorisation_cumule_HC",
@@ -140,10 +139,10 @@ THEMES = {
                 "series": [
                     (
                         "recette_BR_moy_jour_cumule_HC",
-                        "BR cumulé / jours valorisés cumulés"
+                        "Recette BR moyenne journalière (cumulée)"
                     ),
                 ],
-                "title": "Recette Base Remboursement moyenne par jour (cumul sur la période)",
+                "title": "Recette BR moyenne journalière (cumulée)",
             },
         ]
     },
