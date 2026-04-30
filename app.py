@@ -214,6 +214,9 @@ def charger_brut(zip_bytes, csv_bytes):
 nouveau         = charger_brut(uploaded_zip.read(), uploaded_csv.read())
 nouveau_brut_df = nouveau["brut_df"]
 
+dernier_mois_injecte = nouveau_brut_df["Mois"].iloc[0]
+PERIODE = libelle_periode_pmsi(dernier_mois_injecte)
+
 if hist_brut_df is not None:
     mois_nouveaux = set(nouveau_brut_df["Mois"].unique())
     mois_hist     = set(hist_brut_df["Mois"].unique())
@@ -249,8 +252,6 @@ else:
     st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
 
 evol_df    = core.recalculer_derives(brut_complet)
-dernier_mois_injecte = sorted(nouveau_brut_df["Mois"].unique(), key=month_key)[-1]
-PERIODE = libelle_periode_pmsi(dernier_mois_injecte)
 
 st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
 st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
