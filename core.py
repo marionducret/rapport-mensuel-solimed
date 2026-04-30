@@ -935,7 +935,7 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
     ax.axis("off")
     ax.patch.set_alpha(0)
 
-    # ── Nom établissement ────────────────────────────────────────────
+    # ── Nom établissement + période ────────────────────────────────────────────
     barlow_title = font_manager.FontProperties(
         fname=BASE_DIR / "design" / "Barlow-Bold.ttf",
         size=34
@@ -951,6 +951,20 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
         fontproperties=barlow_title
     )
 
+    barlow_period = font_manager.FontProperties(
+        fname=BASE_DIR / "design" / "Barlow-Italic.ttf",
+        size=20
+    )
+
+    ax.text(
+        COVER_ETAB_X, COVER_ETAB_Y - 0.075,
+        periode,
+        ha="center",
+        va="center",
+        color=GRIS_TEXTE,
+        zorder=3,
+        fontproperties=barlow_period
+    )
     # ── Helpers internes ─────────────────────────────────────────────
     def _fleche(val, ref, fmt=None):
         try:
