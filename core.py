@@ -1283,7 +1283,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df))
-    full_text = "\n".join(texts)
+    full_text = "\n\n".join([f"{t}" for t in texts])
 
     largeur = ax.get_position().width
     chars_par_ligne = int(largeur * 160) 
@@ -1354,7 +1354,8 @@ def generate_comment(col, titre, evol_df):
         tendance = "stabilité"
 
     return (
-        f"{titre} : on observe une {tendance} de {trend_pct:.1f} % "
+        f"{titre} :\n"
+        f"on observe une {tendance} de {trend_pct:.1f} % "
         f"sur la période. La valeur moyenne est de {format_fr(series.mean())}, "
         f"avec un minimum de {format_fr(series.min())} et un maximum de {format_fr(series.max())}."
     )
