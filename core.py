@@ -881,13 +881,13 @@ GRAPH_LEFT_H  = 0.235 #hauteur
 # Commentaire haut gauche
 COMMENT_SMALL_L_L = 0.085
 COMMENT_SMALL_L_B = 0.450
-COMMENT_SMALL_L_W = 0.430
+COMMENT_SMALL_L_W = 0.450
 COMMENT_SMALL_L_H = 0.090
 
 # Graphique haut droit
 GRAPH_RIGHT_L = 0.540
 GRAPH_RIGHT_B = 0.585
-GRAPH_RIGHT_W = 0.410
+GRAPH_RIGHT_W = 0.450
 GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
@@ -905,7 +905,7 @@ GRAPH_BIG_H = 0.235
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.645
 COMMENT_BIG_B = 0.200
-COMMENT_BIG_W = 0.350
+COMMENT_BIG_W = 0.370
 COMMENT_BIG_H = 0.150
  
 # Pied de page
@@ -1283,7 +1283,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df))
-    full_text = "\n".join(texts)
+    full_text = "\n\n".join(texts)
 
     largeur = ax.get_position().width
     chars_par_ligne = int(largeur * 160) 
@@ -1293,7 +1293,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
                       width=chars_par_ligne, 
                       break_long_words=False,
                       replace_whitespace=False)
-        for paragraphe in full_text.split("\n")
+        for paragraphe in full_text.split("\n\n")
     )
 
     ax.text(
