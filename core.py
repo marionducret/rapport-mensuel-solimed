@@ -749,7 +749,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
     ax.axhline(moyenne, color=GRIS, linestyle="--", linewidth=1.5,
                label=f"Moyenne période ({format_fr(moyenne)})")
     if moy_annuelle is not None:
-        ax.axhline(moy_annuelle, color=NOIR, linestyle="--", linewidth=1.5,
+        ax.axhline(moy_annuelle, color=VERT_KPI, linestyle="--", linewidth=1.5,
                    label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
     ax.set_title(title, pad=25, fontproperties=barlow_bold, color=VERT_TEXT)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
@@ -841,36 +841,26 @@ COVER_ETAB_X        = 0.500   # centré horizontalement
  
 # Grand bloc KPI (zone teal pointillée)
 KPI_POS_ALL = {
-    "recette_BR_period":       (0.160, 0.495),
-    "montantAM_valorise_HC":   (0.385, 0.495),
-    "effectif_transmis_HC":    (0.610, 0.495),
-    "effectif_transmis_HTP":   (0.835, 0.495),
+    "montantAM_valorise_HC":           (0.130, 0.495),
+    "effectif_transmis_HC":            (0.385, 0.495),
+    "taux_valorisation_cumule_HC":     (0.610, 0.495),
+    "recette_BR_moy_jour_cumule_HC":   (0.835, 0.495),
 
-    "recette_BR_moy_sej":      (0.160, 0.235),
-    "recette_BR_moy_jour":     (0.385, 0.235),
-    "taux_valorisation_HC":    (0.610, 0.235),
-    "taux_valorisation_HTP":   (0.835, 0.235),
+    "recette_BR_cumule_total":  (0.130, 0.235),
+    "effectif_transmis_HTP":    (0.385, 0.235),
+    "taux_valorisation_HTP":    (0.610, 0.235),
+    "recette_BR_moy_jour":      (0.835, 0.235),
 }
-
-# KPI_POS_HC = {
-#     "recette_BR_period":       (0.275, 0.430),
-#     "montantAM_valorise_HC":   (0.500, 0.430),
-#     "effectif_transmis_HC":    (0.725, 0.430),
-
-#     "recette_BR_moy_sej":      (0.390, 0.176),
-#     "taux_valorisation_HC":    (0.610, 0.176),
-# }
 
 KPI_POS_HC = {
-    "recette_BR_cumule_total":           (0.275, 0.430),
-    "montantAM_valorise_HC":             (0.500, 0.430),
-    "effectif_transmis_HC":              (0.725, 0.430),
+    "montantAM_valorise_HC":          (0.390, 0.430),
+    "recette_BR_cumule_total":        (0.610, 0.430),
 
-    "recette_BR_moy_jour_cumule_HC":     (0.390, 0.176),
-    "taux_valorisation_cumule_HC":       (0.610, 0.176),
+    "effectif_transmis_HC":           (0.275, 0.176),
+    "taux_valorisation_cumule_HC":    (0.500, 0.176),
+    "recette_BR_moy_jour_cumule_HC":  (0.725, 0.176),
 }
 
- 
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Graphique haut gauche
 GRAPH_LEFT_L  = 0.060 #horizontal
