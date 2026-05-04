@@ -65,7 +65,7 @@ KPI_CONFIG_HC = [
         "Recette BR cumulée",
         "{:,.0f} €",
         "recette_BR_mois_total",
-        "dont {:,.0f} € pour le mois supplémentaire",
+        "dont {:,.0f} € pour le mois supp.",
         "obj_BR_mois",
     ),
     (
@@ -73,7 +73,7 @@ KPI_CONFIG_HC = [
         "Recette AM cumulée",
         "{:,.0f} €",
         "montantAM_mois_HC",
-        "dont {:,.0f} € pour le mois supplémentaire",
+        "dont {:,.0f} € pour le mois supp.",
         "obj_AM_mois",
     ),
     (
@@ -81,7 +81,7 @@ KPI_CONFIG_HC = [
         "Séjours HC transmis cumulés",
         "{:,.0f}",
         "sejours_transmis_mois_HC",
-        "dont {:,.0f} pour le mois supplémentaire",
+        "dont {:,.0f} pour le mois supp.",
         None,
     ),
     (
@@ -89,7 +89,7 @@ KPI_CONFIG_HC = [
         "BR moyen / jour cumulé",
         "{:,.0f} €",
         "recette_BR_moy_jour_mois_HC",
-        "{:,.0f} € pour le mois supplémentaire",
+        "{:,.0f} € pour le mois supp.",
         None,
     ),
     (
@@ -97,7 +97,7 @@ KPI_CONFIG_HC = [
         "Taux de valorisation cumulé",
         "{:.1f} %",
         "taux_valorisation_mois_HC",
-        "{:.1f} % pour le mois supplémentaire",
+        "{:.1f} % pour le mois supp.",
         None,
     ),
 ]
@@ -853,8 +853,8 @@ KPI_POS_ALL = {
 }
 
 KPI_POS_HC = {
-    "montantAM_valorise_HC":          (0.390, 0.430),
-    "recette_BR_cumule_total":        (0.610, 0.430),
+    "montantAM_valorise_HC":          (0.385, 0.430),
+    "recette_BR_cumule_total":        (0.615, 0.430),
 
     "effectif_transmis_HC":           (0.275, 0.176),
     "taux_valorisation_cumule_HC":    (0.500, 0.176),
@@ -972,9 +972,9 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
                 unit = ""
 
             if d > 0:
-                return f"▲ +{format_fr(d)}{unit}", VERT_KPI
+                return f"▲ +{format_fr(d)}{unit} vs mois précé.", VERT_KPI
             if d < 0:
-                return f"▼ {format_fr(d)}{unit}", ROUGE
+                return f"▼ {format_fr(d)}{unit} vs mois précé.", ROUGE
 
             return "= stable", GRIS_TEXTE
 
