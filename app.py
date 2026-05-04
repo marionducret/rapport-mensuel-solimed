@@ -81,23 +81,35 @@ def github_ecrire_moy(moy_dict, sha, etab_id):
         payload["sha"] = sha
     requests.put(gh_url(f"data/moy_annuelle_{slug}.json"), headers=GH_HEADERS, json=payload).raise_for_status()
 
+def github_lire_etablissements():
+    r = requests.get(gh_url("data/etablissements.json"), headers=GH_HEADERS)
+    if r.status_code == 404:
+        return [], None
+    r.raise_for_status()
+    meta = r.json()
+    return json.loads(base64.b64decode(meta["content"])), meta["sha"]
+
+
+def github_ecrire_etablissements(etabs, sha=None):
+    payload = {
+        "message": "maj liste etablissements",
+        "content": base64.b64encode(
+            json.dumps(etabs, ensure_ascii=False, indent=2).encode()
+        ).decode(),
+    }
+    if sha:
+        payload["sha"] = sha
+
+    requests.put(
+        gh_url("data/etablissements.json"),
+        headers=GH_HEADERS,
+        json=payload
+    ).raise_for_status()
+
 @st.cache_data(show_spinner="Récupération des établissements enregistrés…", ttl=60)
 def lister_etabs_github():
-    r = requests.get(gh_url("data"), headers=GH_HEADERS)
-    if r.status_code == 404:
-        return []
-    r.raise_for_status()
-
-    fichiers = r.json()
-    etabs = []
-
-    for f in fichiers:
-        name = f["name"]
-        if name.startswith("historique_") and name.endswith(".parquet"):
-            etab_slug = name.replace("historique_", "").replace(".parquet", "")
-            etabs.append(etab_slug)
-
-    return sorted(set(etabs))
+    etabs, _ = github_lire_etablissements()
+    return etabs
 
 def month_key(m):
     try:
@@ -146,22 +158,26 @@ else:
     st.info("Aucun établissement enregistré pour le moment. Saisissez le premier établissement.")
 
 if mode_etab == "Établissement déjà enregistré":
-    ETAB_ID = st.selectbox(
+    etab_selection = st.selectbox(
         "Sélectionner un établissement",
         options=etabs_connus,
-        format_func=lambda x: extraire_nom_etab(x.replace("_", " "))
+        format_func=lambda x: x["etab_id"]
     )
+
+    ETAB_ID = etab_selection["etab_id"]
+    NOM_ETAB_SIMPLE = etab_selection["nom_etab"]
+
 else:
     ETAB_ID = st.text_input(
         "Nouvel établissement",
-        placeholder="Exemple : 690000000_LB Monchy"
+        placeholder="Format : Numéro Finess_Nom établissement"
     )
 
-if not ETAB_ID:
-    st.warning("Veuillez saisir ou sélectionner un établissement.")
-    st.stop()
+    if not ETAB_ID:
+        st.warning("Veuillez saisir ou sélectionner un établissement.")
+        st.stop()
 
-NOM_ETAB_SIMPLE = extraire_nom_etab(ETAB_ID)
+    NOM_ETAB_SIMPLE = extraire_nom_etab(ETAB_ID)
 
 NOM_ETAB_LAYOUT = f"Centre Médical de \n{NOM_ETAB_SIMPLE.upper()}"
 NOM_ETAB = f"Centre Médical de {NOM_ETAB_SIMPLE}"
@@ -231,14 +247,14 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
                     recuperer_moy_annuelle.clear()
                     st.success(
                         f"✅ Moyenne sauvegardée : "
-                        f"Recette brute par jour (2025) ={nouvelles_moy['recette_BR_moy_jour']:,.0f} € · "
+                        f"Recette brute par jour (2025) = {nouvelles_moy['recette_BR_moy_jour']:,.0f} € · "
                     )
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
     elif moy_annuelle is not None:
         st.success(
             f"✅ Moyenne déjà enregistrée : "
-            f"recette_BR_moy_sej={moy_annuelle['recette_BR_moy_jour']:,.0f} € · "
+            f"recette_BR_moy_sej = {moy_annuelle['recette_BR_moy_jour']:,.0f} € · "
         )
     
 # ══════════════════════════════════════════════════════════════════════════════
@@ -349,9 +365,29 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
     with st.spinner("Sauvegarde de l'historique sur GitHub…"):
         try:
             _, sha_actuel = github_lire_parquet(ETAB_ID)
-            github_ecrire_parquet(brut_complet, sha_actuel, ETAB_ID, f"historique: {PERIODE} — {NOM_ETAB}")
+            github_ecrire_parquet(
+                brut_complet,
+                sha_actuel,
+                ETAB_ID,
+                f"historique: {PERIODE} — {NOM_ETAB}"
+            )
+
+            etabs, sha_etabs = github_lire_etablissements()
+
+            nouvel_etab = {
+                "etab_id": ETAB_ID,
+                "nom_etab": NOM_ETAB_SIMPLE,
+                "slug": slug_etab(ETAB_ID),
+            }
+
+            if not any(e["slug"] == nouvel_etab["slug"] for e in etabs):
+                etabs.append(nouvel_etab)
+                github_ecrire_etablissements(etabs, sha_etabs)
+                lister_etabs_github.clear()
+
             st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
             recuperer_historique.clear()
+
         except Exception as e:
             st.error(f"❌ Erreur sauvegarde GitHub : {e}")
 
