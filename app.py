@@ -6,6 +6,8 @@ import io
 import json
 import base64
 import requests
+import re
+import unicodedata
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -16,7 +18,6 @@ st.title("Générateur de rapport mensuel SSR")
 #  GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
 
-
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 GITHUB_REPO  = st.secrets["GITHUB_REPO"]
 
@@ -25,13 +26,26 @@ GH_HEADERS = {
     "Accept": "application/vnd.github.v3+json",
 }
 
-
 def gh_url(path):
     return f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}"
 
+def slug_etab(texte):
+    texte = texte.strip().lower()
+    texte = unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode()
+    texte = re.sub(r"[^a-z0-9]+", "_", texte)
+    return texte.strip("_")
 
-def github_lire_parquet(nom_etab):
-    slug = nom_etab.lower().replace(" ", "_")
+def extraire_nom_etab(etab_id):
+    """
+    Format attendu : 690000000_LB Monchy
+    Retour PDF : LB Monchy
+    """
+    if "_" in etab_id:
+        return etab_id.split("_", 1)[1].strip()
+    return etab_id.strip()
+
+def github_lire_parquet(etab_id):
+    slug = slug_etab(etab_id)
     r = requests.get(gh_url(f"data/historique_{slug}.parquet"), headers=GH_HEADERS)
     if r.status_code == 404:
         return None, None
@@ -39,9 +53,8 @@ def github_lire_parquet(nom_etab):
     meta = r.json()
     return pd.read_parquet(io.BytesIO(base64.b64decode(meta["content"]))), meta["sha"]
 
-
-def github_ecrire_parquet(df, sha, nom_etab, message):
-    slug = nom_etab.lower().replace(" ", "_")
+def github_ecrire_parquet(df, sha, etab_id, message):
+    slug = slug_etab(etab_id)
     buf  = io.BytesIO()
     df.to_parquet(buf, index=False)
     payload = {"message": message, "content": base64.b64encode(buf.getvalue()).decode()}
@@ -49,9 +62,8 @@ def github_ecrire_parquet(df, sha, nom_etab, message):
         payload["sha"] = sha
     requests.put(gh_url(f"data/historique_{slug}.parquet"), headers=GH_HEADERS, json=payload).raise_for_status()
 
-
-def github_lire_moy(nom_etab):
-    slug = nom_etab.lower().replace(" ", "_")
+def github_lire_moy(etab_id):
+    slug = slug_etab(etab_id)
     r = requests.get(gh_url(f"data/moy_annuelle_{slug}.json"), headers=GH_HEADERS)
     if r.status_code == 404:
         return None, None
@@ -59,17 +71,33 @@ def github_lire_moy(nom_etab):
     meta = r.json()
     return json.loads(base64.b64decode(meta["content"])), meta["sha"]
 
-
-def github_ecrire_moy(moy_dict, sha, nom_etab):
-    slug    = nom_etab.lower().replace(" ", "_")
+def github_ecrire_moy(moy_dict, sha, etab_id):
+    slug = slug_etab(etab_id)
     payload = {
-        "message": f"moy_annuelle: {nom_etab}",
+        "message": f"moy_annuelle: {etab_id}",
         "content": base64.b64encode(json.dumps(moy_dict).encode()).decode(),
     }
     if sha:
         payload["sha"] = sha
     requests.put(gh_url(f"data/moy_annuelle_{slug}.json"), headers=GH_HEADERS, json=payload).raise_for_status()
 
+@st.cache_data(show_spinner="Récupération des établissements enregistrés…", ttl=60)
+def lister_etabs_github():
+    r = requests.get(gh_url("data"), headers=GH_HEADERS)
+    if r.status_code == 404:
+        return []
+    r.raise_for_status()
+
+    fichiers = r.json()
+    etabs = []
+
+    for f in fichiers:
+        name = f["name"]
+        if name.startswith("historique_") and name.endswith(".parquet"):
+            etab_slug = name.replace("historique_", "").replace(".parquet", "")
+            etabs.append(etab_slug)
+
+    return sorted(set(etabs))
 
 def month_key(m):
     try:
@@ -105,13 +133,38 @@ def libelle_periode_pmsi(periode_code):
 #  NOM ÉTABLISSEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
-NOM_ETAB = st.text_input("🏥 Nom de l'établissement", placeholder="Attention à TOUJOURS bien mettre le même nom ! (Exemple : LB-Monchy)")
-if not NOM_ETAB:
-    st.warning("Veuillez saisir le nom de l'établissement.")
+etabs_connus = lister_etabs_github()
+
+if etabs_connus:
+    mode_etab = st.radio(
+        "🏥 Établissement",
+        ["Établissement déjà enregistré", "Nouvel établissement"],
+        horizontal=True
+    )
+else:
+    mode_etab = "Nouvel établissement"
+    st.info("Aucun établissement enregistré pour le moment. Saisissez le premier établissement.")
+
+if mode_etab == "Établissement déjà enregistré":
+    ETAB_ID = st.selectbox(
+        "Sélectionner un établissement",
+        options=etabs_connus,
+        format_func=lambda x: extraire_nom_etab(x.replace("_", " "))
+    )
+else:
+    ETAB_ID = st.text_input(
+        "Nouvel établissement",
+        placeholder="Exemple : 690000000_LB Monchy"
+    )
+
+if not ETAB_ID:
+    st.warning("Veuillez saisir ou sélectionner un établissement.")
     st.stop()
 
-NOM_ETAB_LAYOUT = f"Centre Médical de \n{NOM_ETAB.upper()}"
-NOM_ETAB = f"Centre Médical de {NOM_ETAB}"
+NOM_ETAB_SIMPLE = extraire_nom_etab(ETAB_ID)
+
+NOM_ETAB_LAYOUT = f"Centre Médical de \n{NOM_ETAB_SIMPLE.upper()}"
+NOM_ETAB = f"Centre Médical de {NOM_ETAB_SIMPLE}"
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHARGEMENT HISTORIQUE + MOY ANNUELLE DEPUIS GITHUB
@@ -125,7 +178,6 @@ def recuperer_historique(nom_etab):
         st.warning(f"⚠️ Impossible de lire l'historique : {e}")
         return None, None
 
-
 @st.cache_data(show_spinner="Récupération des moyennes annuelles…", ttl=60)
 def recuperer_moy_annuelle(nom_etab):
     try:
@@ -133,9 +185,8 @@ def recuperer_moy_annuelle(nom_etab):
     except Exception as e:
         return None, None
 
-
-hist_brut_df, hist_sha    = recuperer_historique(NOM_ETAB)
-moy_annuelle, moy_sha     = recuperer_moy_annuelle(NOM_ETAB)
+hist_brut_df, hist_sha    = recuperer_historique(ETAB_ID)
+moy_annuelle, moy_sha     = recuperer_moy_annuelle(ETAB_ID)
 
 if hist_brut_df is not None:
     mois_connus = sorted(hist_brut_df["Mois"].unique(), key=month_key)
@@ -174,8 +225,8 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
                     nouvelles_moy = core.load_annee_precedente(
                         io.BytesIO(uploaded_zip_annee.read()),
                         io.BytesIO(uploaded_csv_annee.read()))
-                    _, sha_actuel = github_lire_moy(NOM_ETAB)
-                    github_ecrire_moy(nouvelles_moy, sha_actuel, NOM_ETAB)
+                    _, sha_actuel = github_lire_moy(ETAB_ID)
+                    github_ecrire_moy(nouvelles_moy, sha_actuel, ETAB_ID)
                     moy_annuelle = nouvelles_moy
                     recuperer_moy_annuelle.clear()
                     st.success(
@@ -297,8 +348,8 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
 
     with st.spinner("Sauvegarde de l'historique sur GitHub…"):
         try:
-            _, sha_actuel = github_lire_parquet(NOM_ETAB)
-            github_ecrire_parquet(brut_complet, sha_actuel, NOM_ETAB, f"historique: {PERIODE} — {NOM_ETAB}")
+            _, sha_actuel = github_lire_parquet(ETAB_ID)
+            github_ecrire_parquet(brut_complet, sha_actuel, ETAB_ID, f"historique: {PERIODE} — {NOM_ETAB}")
             st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
             recuperer_historique.clear()
         except Exception as e:
