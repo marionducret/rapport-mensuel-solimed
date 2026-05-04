@@ -100,7 +100,7 @@ CALENDRIER_PERIODES = {
 def libelle_periode_pmsi(periode_code):
     periode_simple = periode_code.split("_")[-1]  # 2026_M2 -> M2
     debut, fin = CALENDRIER_PERIODES.get(periode_simple, ("", ""))
-    return f"{periode_simple} : {debut} au {fin}"
+    return f"{periode_simple} : du {debut} au {fin}"
 # ══════════════════════════════════════════════════════════════════════════════
 #  NOM ÉTABLISSEMENT
 # ══════════════════════════════════════════════════════════════════════════════
