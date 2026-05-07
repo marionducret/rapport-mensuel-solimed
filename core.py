@@ -1098,11 +1098,15 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
                 return "▼ n.c. vs mois précé.", ROUGE
 
             pct = d / abs(ref) * 100
+            pct_arrondi = round(pct)
+
+            if pct_arrondi == 0:
+                return "= stable", GRIS_TEXTE
 
             if d > 0:
-                return f"▲ +{pct:.0f} % vs mois précé.", VERT_KPI
+                return f"▲ +{pct_arrondi} % vs mois précé.", VERT_KPI
             if d < 0:
-                return f"▼ {pct:.0f} % vs mois précé.", ROUGE
+                return f"▼ {pct_arrondi} % vs mois précé.", ROUGE
 
             return "= stable", GRIS_TEXTE
 
