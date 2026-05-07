@@ -356,7 +356,7 @@ for theme, graphe_label, fig, plots in figures:
         st.pyplot(fig)
     with col2:
         for col, titre in plots:
-            auto_comment = core.generate_comment(col, titre, evol_df)
+            auto_comment = core.generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle)
             edited = st.text_area(titre, value=auto_comment, height=120, key=f"{theme}_{col}")
             comments[(theme, col)] = edited
     st.divider()

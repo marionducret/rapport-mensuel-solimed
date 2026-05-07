@@ -1346,7 +1346,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         elif t == "multi":
             make_ax_multi(ax, series, title, evol_df, moy_annuelle=moy_annuelle)
 
-        _draw_comment(ax_c, series, theme, evol_df, custom_comments)
+        _draw_comment(ax_c, series, theme, evol_df, custom_comments, moy_annuelle=moy_annuelle)
 
     # ── Pied de page ─────────────────────────────────────────────────
     ax_n = fig.add_axes([0, 0, 1, 1], zorder=4)
@@ -1384,7 +1384,40 @@ def _draw_subplot_bar(ax, plot_list, evol_df):
         fmt = "{:.0f}"
     make_ax_bar(ax, col, titre, evol_df, fmt=fmt)
  
-def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12):
+def _wrap_comment_for_axis(ax, full_text, base_fontsize=12):
+    pos = ax.get_position()
+    fig = ax.figure
+    width_in = max(pos.width * fig.get_figwidth(), 1)
+    height_pts = max(pos.height * fig.get_figheight() * 72, 1)
+
+    for fontsize in range(base_fontsize, 6, -1):
+        chars_par_ligne = max(24, int(width_in * 10.5 * (12 / fontsize)))
+        wrapped_blocks = []
+
+        for paragraphe in full_text.split("\n\n"):
+            wrapped_lines = []
+            for ligne in paragraphe.splitlines() or [""]:
+                wrapped = textwrap.wrap(
+                    ligne,
+                    width=chars_par_ligne,
+                    break_long_words=False,
+                    replace_whitespace=False,
+                )
+                wrapped_lines.extend(wrapped or [""])
+            wrapped_blocks.append("\n".join(wrapped_lines))
+
+        lignes = "\n\n".join(wrapped_blocks)
+        nb_lignes = lignes.count("\n") + 1
+        max_lignes = max(1, int(height_pts / (fontsize * 1.25)))
+
+        if nb_lignes <= max_lignes or fontsize == 7:
+            return lignes, fontsize
+
+    return full_text, base_fontsize
+
+
+def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12,
+                  moy_annuelle=None):
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
@@ -1394,19 +1427,9 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         if custom_comments and key in custom_comments:
             texts.append(custom_comments[key])
         else:
-            texts.append(generate_comment(col, titre, evol_df))
+            texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
     full_text = "\n\n".join(texts)
-
-    largeur = ax.get_position().width
-    chars_par_ligne = int(largeur * 160) 
-
-    lignes = lignes = "\n\n".join(
-        textwrap.fill(paragraphe, 
-                      width=chars_par_ligne, 
-                      break_long_words=False,
-                      replace_whitespace=False)
-        for paragraphe in full_text.split("\n\n")
-    )
+    lignes, fontsize = _wrap_comment_for_axis(ax, full_text, fontsize)
 
     ax.text(
         0.025, 0.92,
@@ -1415,8 +1438,8 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         color="#374151", 
         va="top",
         transform=ax.transAxes,
-        linespacing=1.3,
-        clip_on=False,
+        linespacing=1.25,
+        clip_on=True,
         wrap=True
     )
  
@@ -1447,7 +1470,7 @@ def _build_page_graphique_HTP(fig, theme, config, evol_df, page_num,
 #  GÉNÉRATION DES COMMENTAIRES
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generate_comment(col, titre, evol_df):
+def generate_comment(col, titre, evol_df, moy_annuelle=None):
     series = evol_df[col].dropna()
 
     if len(series) < 2:
@@ -1456,11 +1479,27 @@ def generate_comment(col, titre, evol_df):
     debut = series.iloc[0]
     fin = series.iloc[-1]
 
+    if "recette_BR_moy_jour_cumule" in col:
+        phrases = [
+            f"{titre} : la valeur actuelle est de {format_fr(fin)} €.",
+        ]
+        moy_prec = _get_moy_annuelle_for_col(moy_annuelle, col)
+        if moy_prec is not None and not pd.isna(moy_prec) and moy_prec != 0:
+            ecart_pct = (fin - moy_prec) / abs(moy_prec) * 100
+            sens = "supérieure" if ecart_pct > 0 else "inférieure" if ecart_pct < 0 else "stable"
+            phrases.append(
+                f"Par rapport à l'année précédente ({format_fr(moy_prec)} €), "
+                f"elle est {sens} de {abs(ecart_pct):.1f} %."
+            )
+        else:
+            phrases.append("La moyenne de l'année précédente n'est pas disponible.")
+        return "\n".join(phrases)
+
     if "taux" in col:
-        return (
-            f"{titre} : le taux passe de {debut:.1f} % à {fin:.1f} % "
-            f"sur la période. La moyenne observée est de {series.mean():.1f} %."
-        )
+        return "\n".join([
+            f"{titre} : le taux passe de {debut:.1f} % à {fin:.1f} %.",
+            f"Par rapport à l'année précédente, la moyenne observée est de {series.mean():.1f} %.",
+        ])
 
     trend = fin - debut
     trend_pct = (trend / debut) * 100 if debut != 0 else 0
@@ -1472,10 +1511,10 @@ def generate_comment(col, titre, evol_df):
     else:
         tendance = "stabilité"
 
-    return (
-        f"{titre} : on observe une {tendance} de {trend_pct:.1f} % "
-        f"sur la période. La moyenne observée est de {format_fr(series.mean())}."
-    )
+    return "\n".join([
+        f"{titre} : on observe une {tendance} de {abs(trend_pct):.1f} %.",
+        f"Par rapport à l'année précédente, la moyenne observée est de {format_fr(series.mean())}.",
+    ])
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
