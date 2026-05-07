@@ -1021,9 +1021,9 @@ GRAPH_LEFT_H  = 0.235 #hauteur
 
 # Commentaire haut gauche
 COMMENT_SMALL_L_L = 0.085
-COMMENT_SMALL_L_B = 0.450
+COMMENT_SMALL_L_B = 0.405
 COMMENT_SMALL_L_W = 0.465
-COMMENT_SMALL_L_H = 0.090
+COMMENT_SMALL_L_H = 0.140
 
 # Graphique haut droit
 GRAPH_RIGHT_L = 0.540
@@ -1033,9 +1033,9 @@ GRAPH_RIGHT_H = 0.235
 
 # Commentaire haut droit
 COMMENT_SMALL_R_L = 0.565
-COMMENT_SMALL_R_B = 0.450
+COMMENT_SMALL_R_B = 0.405
 COMMENT_SMALL_R_W = 0.465
-COMMENT_SMALL_R_H = 0.090
+COMMENT_SMALL_R_H = 0.140
 
 # Grand graphique bas À GAUCHE
 GRAPH_BIG_L = 0.065
@@ -1052,6 +1052,10 @@ COMMENT_BIG_H = 0.150
 # Pied de page
 PAGE_NUM_Y    = 0.020
 PAGE_NUM_X    = 0.970
+
+# Largeur maximale des commentaires, en nombre de caractères par ligne.
+COMMENT_SMALL_MAX_CHARS = 64
+COMMENT_BIG_MAX_CHARS = 46
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE DE GARDE 
@@ -1431,51 +1435,12 @@ def _wrap_comment_text(full_text, chars_par_ligne):
     return "\n\n".join(wrapped_blocks)
 
 
-def _measure_comment(ax, text, fontsize, linespacing):
-    fig = ax.figure
-    fig.canvas.draw()
-    probe = ax.text(
-        0.025,
-        0.92,
-        text,
-        fontsize=fontsize,
-        transform=ax.transAxes,
-        linespacing=linespacing,
-        alpha=0,
-        va="top",
-    )
-    fig.canvas.draw()
-    bbox = probe.get_window_extent(renderer=fig.canvas.get_renderer())
-    probe.remove()
-    return bbox.width, bbox.height
-
-
-def _fit_comment_for_axis(ax, full_text, base_fontsize=12):
-    fig = ax.figure
-    fig.canvas.draw()
-    renderer = fig.canvas.get_renderer()
-    ax_bbox = ax.get_window_extent(renderer=renderer)
+def _standard_comment_for_axis(ax, full_text, base_fontsize=12):
     is_big_block = ax.get_position().height > 0.10
-
-    max_width = ax_bbox.width * (0.88 if is_big_block else 0.95)
-    max_height = ax_bbox.height * (0.86 if is_big_block else 0.94)
-    min_fontsize = 9 if is_big_block else 11
-    linespacing = 1.28 if is_big_block else 1.08
-
-    best = None
-    for fontsize in range(base_fontsize, min_fontsize - 1, -1):
-        avg_char_px = max(fontsize * 0.50, 1)
-        start_chars = max(18, int(max_width / avg_char_px))
-        min_chars = max(14, int(start_chars * (0.55 if is_big_block else 0.75)))
-
-        for chars_par_ligne in range(start_chars, min_chars - 1, -2):
-            candidate = _wrap_comment_text(full_text, chars_par_ligne)
-            width, height = _measure_comment(ax, candidate, fontsize, linespacing)
-            best = (candidate, fontsize, linespacing)
-            if width <= max_width and height <= max_height:
-                return best
-
-    return best or (full_text, min_fontsize, linespacing)
+    fontsize = 11 if is_big_block else base_fontsize
+    linespacing = 1.22 if is_big_block else 1.08
+    chars_par_ligne = COMMENT_BIG_MAX_CHARS if is_big_block else COMMENT_SMALL_MAX_CHARS
+    return _wrap_comment_text(full_text, chars_par_ligne), fontsize, linespacing
 
 
 def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12,
@@ -1491,7 +1456,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         else:
             texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
     full_text = "\n\n".join(texts)
-    lignes, fontsize, linespacing = _fit_comment_for_axis(ax, full_text, fontsize)
+    lignes, fontsize, linespacing = _standard_comment_for_axis(ax, full_text, fontsize)
 
     txt = ax.text(
         0.025, 0.92,
@@ -1533,6 +1498,98 @@ def _build_page_graphique_HTP(fig, theme, config, evol_df, page_num,
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES COMMENTAIRES
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _comment_sens(delta):
+    if delta > 0:
+        return "hausse"
+    if delta < 0:
+        return "baisse"
+    return "stabilité"
+
+
+def _comment_tendance_globale(vals):
+    vals = vals.astype(float).reset_index(drop=True)
+    if len(vals) < 3:
+        return f"Les indicateurs montrent une {_comment_sens(vals.iloc[-1] - vals.iloc[0])} depuis la première période."
+
+    x = np.arange(len(vals))
+    pente = np.polyfit(x, vals, 1)[0]
+    amplitude = vals.max() - vals.min()
+    seuil = max(abs(vals.mean()) * 0.01, amplitude * 0.05, 1e-9)
+
+    if abs(pente) <= seuil:
+        return "Les indicateurs montrent une stabilité globale depuis la première période."
+
+    variations = vals.diff().dropna()
+    if pente > 0:
+        return (
+            "Les indicateurs montrent une progression globale depuis la première période."
+            if (variations >= 0).mean() >= 0.75
+            else "Les indicateurs restent globalement orientés à la hausse depuis la première période, malgré des variations."
+        )
+    return (
+        "Les indicateurs montrent une diminution globale depuis la première période."
+        if (variations <= 0).mean() >= 0.75
+        else "Les indicateurs restent globalement orientés à la baisse depuis la première période, malgré des variations."
+    )
+
+
+def _comment_unit(col, titre):
+    if "taux" in col:
+        return "%"
+    if "jour" in col.lower() or "jour" in titre.lower():
+        return "jours"
+    if "sejour" in col.lower() or "séjour" in titre.lower():
+        return "séjours"
+    if "recette" in col or "montant" in col.lower() or "BR" in titre:
+        return "€"
+    return ""
+
+
+def _format_comment_value(val, unit):
+    if unit == "%":
+        return f"{abs(val):.1f} %"
+    if unit == "€":
+        return f"{format_fr(abs(val))} €"
+    if unit:
+        return f"{format_fr(abs(val))} {unit}"
+    return format_fr(abs(val))
+
+
+def generate_group_comment(subplot_plots, evol_df):
+    analyses = []
+    valid_series = []
+    for col, titre in subplot_plots:
+        if col not in evol_df or pd.isna(evol_df[col].iloc[-1]):
+            continue
+        series = evol_df[col].dropna()
+        if len(series) < 2:
+            continue
+        unit = _comment_unit(col, titre)
+        delta = series.iloc[-1] - series.iloc[-2]
+        analyses.append(
+            f"{titre} : {_comment_sens(delta)} de {_format_comment_value(delta, unit)}"
+        )
+        valid_series.append(series)
+
+    if not analyses:
+        return "Données insuffisantes pour analyse."
+
+    moyennes = []
+    for col, titre in subplot_plots:
+        if col in evol_df:
+            series = evol_df[col].dropna()
+            if not series.empty:
+                unit = _comment_unit(col, titre)
+                moyennes.append(f"{titre.lower()} {_format_comment_value(series.mean(), unit)}")
+
+    tendance = _comment_tendance_globale(valid_series[0])
+    return "\n".join([
+        "; ".join(analyses) + " par rapport à la période précédente.",
+        "Moyennes observées : " + " ; ".join(moyennes) + ".",
+        tendance,
+    ])
+
 
 def generate_comment(col, titre, evol_df, moy_annuelle=None):
     if col not in evol_df or pd.isna(evol_df[col].iloc[-1]):
