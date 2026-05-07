@@ -291,6 +291,26 @@ def _appliquer_bg(fig: plt.Figure, bg_img) -> None:
     ax_bg.set_navigate(False)
 
 
+def _extract_zip_safe(zf: zipfile.ZipFile, destination: Path) -> None:
+    destination = destination.resolve()
+    for member in zf.infolist():
+        target = (destination / member.filename).resolve()
+        try:
+            target.relative_to(destination)
+        except ValueError:
+            raise ValueError(f"❌ Chemin dangereux détecté dans le ZIP : {member.filename}")
+    zf.extractall(destination)
+
+
+def _ouvrir_zip(uploaded_zip, destination: Path) -> None:
+    if hasattr(uploaded_zip, "read"):
+        with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
+            _extract_zip_safe(zf, destination)
+    else:
+        with zipfile.ZipFile(uploaded_zip, "r") as zf:
+            _extract_zip_safe(zf, destination)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHARGEMENT DES DONNÉES
 # ══════════════════════════════════════════════════════════════════════════════
@@ -300,12 +320,7 @@ def load_data(uploaded_zip, uploaded_excel):
     tmp = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
 
-    if hasattr(uploaded_zip, "read"):
-        with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
-            zf.extractall(tmp_path)
-    else:
-        with zipfile.ZipFile(uploaded_zip, "r") as zf:
-            zf.extractall(tmp_path)
+    _ouvrir_zip(uploaded_zip, tmp_path)
 
     valo_excel = pd.read_excel(uploaded_excel)
 
@@ -462,12 +477,7 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     tmp = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
 
-    if hasattr(uploaded_zip, "read"):
-        with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
-            zf.extractall(tmp_path)
-    else:
-        with zipfile.ZipFile(uploaded_zip, "r") as zf:
-            zf.extractall(tmp_path)
+    _ouvrir_zip(uploaded_zip, tmp_path)
 
     jours_valo_mois = _calc_jours_valo(uploaded_csv)
 
@@ -699,12 +709,7 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
     tmp_path = Path(tmp.name)
 
     # ── Extraction ZIP ───────────────────────────────────────────────
-    if hasattr(uploaded_zip, "read"):
-        with zipfile.ZipFile(io.BytesIO(uploaded_zip.read()), "r") as zf:
-            zf.extractall(tmp_path)
-    else:
-        with zipfile.ZipFile(uploaded_zip, "r") as zf:
-            zf.extractall(tmp_path)
+    _ouvrir_zip(uploaded_zip, tmp_path)
 
     # ── Recherche des fichiers HTML dans tout le ZIP ─────────────────
     html_files = list(tmp_path.rglob("*.html"))
