@@ -1322,7 +1322,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
     ], zorder=3)
 
     # ── Création des 3 axes commentaires ─────────────────────────────
-    CINNER = 0.012
+    CINNER = 0.006
 
     ax_cl = fig.add_axes([
         COMMENT_SMALL_L_L + CINNER,
@@ -1411,36 +1411,68 @@ def _draw_subplot_bar(ax, plot_list, evol_df):
         fmt = "{:.0f}"
     make_ax_bar(ax, col, titre, evol_df, fmt=fmt)
  
-def _wrap_comment_for_axis(ax, full_text, base_fontsize=12):
-    pos = ax.get_position()
+def _wrap_comment_text(full_text, chars_par_ligne):
+    wrapped_blocks = []
+    for paragraphe in full_text.split("\n\n"):
+        wrapped_lines = []
+        for ligne in paragraphe.splitlines() or [""]:
+            wrapped = textwrap.wrap(
+                ligne,
+                width=chars_par_ligne,
+                break_long_words=True,
+                break_on_hyphens=False,
+                replace_whitespace=False,
+            )
+            wrapped_lines.extend(wrapped or [""])
+        wrapped_blocks.append("\n".join(wrapped_lines))
+    return "\n\n".join(wrapped_blocks)
+
+
+def _measure_comment(ax, text, fontsize, linespacing):
     fig = ax.figure
-    width_in = max(pos.width * fig.get_figwidth(), 1)
-    height_pts = max(pos.height * fig.get_figheight() * 72, 1)
+    fig.canvas.draw()
+    probe = ax.text(
+        0.025,
+        0.92,
+        text,
+        fontsize=fontsize,
+        transform=ax.transAxes,
+        linespacing=linespacing,
+        alpha=0,
+        va="top",
+    )
+    fig.canvas.draw()
+    bbox = probe.get_window_extent(renderer=fig.canvas.get_renderer())
+    probe.remove()
+    return bbox.width, bbox.height
 
-    for fontsize in range(base_fontsize, 6, -1):
-        chars_par_ligne = max(24, int(width_in * 10.5 * (12 / fontsize)))
-        wrapped_blocks = []
 
-        for paragraphe in full_text.split("\n\n"):
-            wrapped_lines = []
-            for ligne in paragraphe.splitlines() or [""]:
-                wrapped = textwrap.wrap(
-                    ligne,
-                    width=chars_par_ligne,
-                    break_long_words=False,
-                    replace_whitespace=False,
-                )
-                wrapped_lines.extend(wrapped or [""])
-            wrapped_blocks.append("\n".join(wrapped_lines))
+def _fit_comment_for_axis(ax, full_text, base_fontsize=12):
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    ax_bbox = ax.get_window_extent(renderer=renderer)
+    is_big_block = ax.get_position().height > 0.10
 
-        lignes = "\n\n".join(wrapped_blocks)
-        nb_lignes = lignes.count("\n") + 1
-        max_lignes = max(1, int(height_pts / (fontsize * 1.25)))
+    max_width = ax_bbox.width * (0.88 if is_big_block else 0.95)
+    max_height = ax_bbox.height * (0.86 if is_big_block else 0.94)
+    min_fontsize = 9 if is_big_block else 11
+    linespacing = 1.28 if is_big_block else 1.08
 
-        if nb_lignes <= max_lignes or fontsize == 7:
-            return lignes, fontsize
+    best = None
+    for fontsize in range(base_fontsize, min_fontsize - 1, -1):
+        avg_char_px = max(fontsize * 0.50, 1)
+        start_chars = max(18, int(max_width / avg_char_px))
+        min_chars = max(14, int(start_chars * (0.55 if is_big_block else 0.75)))
 
-    return full_text, base_fontsize
+        for chars_par_ligne in range(start_chars, min_chars - 1, -2):
+            candidate = _wrap_comment_text(full_text, chars_par_ligne)
+            width, height = _measure_comment(ax, candidate, fontsize, linespacing)
+            best = (candidate, fontsize, linespacing)
+            if width <= max_width and height <= max_height:
+                return best
+
+    return best or (full_text, min_fontsize, linespacing)
 
 
 def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12,
@@ -1456,19 +1488,21 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         else:
             texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
     full_text = "\n\n".join(texts)
-    lignes, fontsize = _wrap_comment_for_axis(ax, full_text, fontsize)
+    lignes, fontsize, linespacing = _fit_comment_for_axis(ax, full_text, fontsize)
 
-    ax.text(
+    txt = ax.text(
         0.025, 0.92,
         lignes,
         fontsize=fontsize, 
         color="#374151", 
         va="top",
         transform=ax.transAxes,
-        linespacing=1.25,
+        linespacing=linespacing,
         clip_on=True,
-        wrap=True
+        wrap=False,
+        zorder=10,
     )
+    txt.set_clip_path(ax.patch)
  
 # ══════════════════════════════════════════════════════════════════════════════
 #  WRAPPERS HC / HTP  (rétrocompatibilité)
@@ -1549,13 +1583,24 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
             return f"{val:.1f} %"
         if "recette" in col or "montant" in col.lower() or "BR" in titre:
             return f"{format_fr(val)} €"
+        if "jour" in col.lower() or "jour" in titre.lower():
+            return f"{format_fr(val)} jours"
+        if "sejour" in col.lower() or "séjour" in titre.lower():
+            return f"{format_fr(val)} séjours"
         return format_fr(val)
+
+    def _format_ecart_activite(val):
+        if "jour" in col.lower() or "jour" in titre.lower():
+            return f"{format_fr(abs(val))} jours"
+        if "sejour" in col.lower() or "séjour" in titre.lower():
+            return f"{format_fr(abs(val))} séjours"
+        return format_fr(abs(val))
 
     delta_precedent = fin - precedent
     sens_precedent = _sens(delta_precedent)
 
     if "taux" in col:
-        ecart_txt = f"{abs(delta_precedent):.1f} points"
+        ecart_txt = f"{abs(delta_precedent):.1f} %"
         return "\n".join([
             f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
             f"La moyenne observée est de {_format_moyenne(series.mean())}.",
@@ -1588,10 +1633,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
             _tendance_globale(series),
         ])
 
-    if precedent != 0 and not pd.isna(precedent):
-        ecart_txt = f"{abs(delta_precedent / abs(precedent) * 100):.1f} %"
-    else:
-        ecart_txt = format_fr(abs(delta_precedent))
+    ecart_txt = _format_ecart_activite(delta_precedent)
 
     return "\n".join([
         f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
