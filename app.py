@@ -278,7 +278,12 @@ if not uploaded_zip or not uploaded_csv:
 def charger_brut(zip_bytes, csv_bytes):
     return core.load_data_brut(io.BytesIO(zip_bytes), io.BytesIO(csv_bytes))
 
-nouveau         = charger_brut(uploaded_zip.read(), uploaded_csv.read())
+try:
+    nouveau = charger_brut(uploaded_zip.read(), uploaded_csv.read())
+except Exception as e:
+    st.error(str(e))
+    st.stop()
+
 nouveau_brut_df = nouveau["brut_df"]
 
 dernier_mois_injecte = nouveau_brut_df["Mois"].iloc[0]
@@ -397,4 +402,3 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
         file_name=f"rapport_mensuel_{NOM_ETAB}_{PERIODE.replace(' → ', '_')}.pdf",
         mime="application/pdf",
     )
-

@@ -503,6 +503,13 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     if not month_dirs_dict:
         raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
 
+    if len(month_dirs_dict) != 1:
+        mois_detectes = ", ".join(sorted(month_dirs_dict.keys(), key=month_key))
+        raise ValueError(
+            "❌ Le ZIP doit contenir un seul mois à intégrer. "
+            f"Mois détectés : {mois_detectes}"
+        )
+
     data = {}
     for month in sorted(month_dirs_dict.keys(), key=month_key):
         folder     = month_dirs_dict[month]
