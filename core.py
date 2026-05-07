@@ -924,16 +924,19 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
                 continue
 
             label_txt = format_fr(val, fmt)
+            label_inside = "%" in fmt and val > 0
+            label_y = val * 0.5 if label_inside else val + max(y_vals.max() * 0.02, 1)
 
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                val + max(y_vals.max() * 0.02, 1),
+                label_y,
                 label_txt,
                 ha="center",
-                va="bottom",
+                va="center" if label_inside else "bottom",
                 fontsize=11,
                 fontweight="bold",
-                color=GRIS_TEXTE,
+                color=BLANC if label_inside else GRIS_TEXTE,
+                zorder=4,
             )
 
     ax.axhline(0, color=GRIS_TEXTE, linewidth=0.8)
