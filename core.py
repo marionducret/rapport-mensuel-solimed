@@ -1530,14 +1530,14 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         variations = vals.diff().dropna()
         if pente > 0:
             return (
-                "une augmentation linéaire"
+                "en augmentation linéaire"
                 if (variations >= 0).mean() >= 0.75
-                else "une tendance globalement à la hausse, avec des variations"
+                else "globalement à la hausse, avec des variations"
             )
         return (
-            "une diminution linéaire"
+            "en diminution linéaire"
             if (variations <= 0).mean() >= 0.75
-            else "une tendance globalement à la baisse, avec des variations"
+            else "globalement à la baisse, avec des variations"
         )
 
     def _format_moyenne(val):
