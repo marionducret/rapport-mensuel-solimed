@@ -1015,9 +1015,9 @@ KPI_POS_HC = {
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Graphique haut gauche
 GRAPH_LEFT_L  = 0.060 #horizontal
-GRAPH_LEFT_B  = 0.585 #base
+GRAPH_LEFT_B  = 0.585 #vertical
 GRAPH_LEFT_W  = 0.410 #largeur
-GRAPH_LEFT_H  = 0.235 #vertical
+GRAPH_LEFT_H  = 0.235 #hauteur
 
 # Commentaire haut gauche
 COMMENT_SMALL_L_L = 0.085
@@ -1045,16 +1045,16 @@ GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.645
-COMMENT_BIG_B = 0.100
+COMMENT_BIG_B = 0.050
 COMMENT_BIG_W = 0.370
-COMMENT_BIG_H = 0.150
+COMMENT_BIG_H = 0.200
  
 # Pied de page
 PAGE_NUM_Y    = 0.020
 PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
-COMMENT_SMALL_MAX_CHARS = 200
+COMMENT_SMALL_MAX_CHARS = 350
 COMMENT_BIG_MAX_CHARS = 60
 
 # ══════════════════════════════════════════════════════════════════════════════
