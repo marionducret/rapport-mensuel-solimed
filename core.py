@@ -48,15 +48,70 @@ OBJECTIFS = {
 }
 
 KPI_CONFIG = [
-    ("recette_BR_period",   "Recette Base Remboursement cumulée", "{:.0f} €",  "obj_BR_mois"),
-    ("montantAM_valorise_HC",   "Recette Assurance Maladie cumulée", "{:.0f} €",  "obj_AM_mois"),
-    ("effectif_transmis_HC",  "Séjours HC transmis",      "{:.0f}",     None),
-    ("effectif_transmis_HTP",  "Jours HTP transmis",      "{:.0f}",     None),
-    ("recette_BR_moy_sej",    "Recette Base Remboursement moyenne par jour (HC)", "{:.0f} €",  None),
-    ("recette_BR_moy_jour",    "Recette Base Remboursement moyenne par jour (HTP)", "{:.0f} €",  None),
-    ("taux_valorisation_HC",  "Taux de valorisation séjours HC",  "{:.1f} %",   None),
-    ("taux_valorisation_HTP",  "Taux de valorisation jours HTP",  "{:.1f} %",   None),
-  
+    (
+        "recette_BR_cumule_total",
+        "Recette BR cumulée",
+        "{:,.0f} €",
+        "recette_BR_mois_total",
+        "dont {:,.0f} € pour le mois supp.",
+        "obj_BR_mois",
+    ),
+    (
+        "montantAM_valorise_HC",
+        "Recette AM cumulée",
+        "{:,.0f} €",
+        "montantAM_mois_HC",
+        "dont {:,.0f} € pour le mois supp.",
+        "obj_AM_mois",
+    ),
+    (
+        "effectif_transmis_HC",
+        "Séjours HC transmis cumulés",
+        "{:,.0f}",
+        "sejours_transmis_mois_HC",
+        "dont {:,.0f} pour le mois supp.",
+        None,
+    ),
+    (
+        "effectif_transmis_HTP",
+        "Jours HTP transmis cumulés",
+        "{:,.0f}",
+        "jours_transmis_mois_HTP",
+        "dont {:,.0f} pour le mois supp.",
+        None,
+    ),
+    (
+        "recette_BR_moy_jour_cumule_HC",
+        "BR moyen / jour HC cumulé",
+        "{:,.0f} €",
+        "recette_BR_moy_jour_mois_HC",
+        "{:,.0f} € pour le mois supp.",
+        None,
+    ),
+    (
+        "recette_BR_moy_jour_cumule_HTP",
+        "BR moyen / jour HTP cumulé",
+        "{:,.0f} €",
+        "recette_BR_moy_jour_mois_HTP",
+        "{:,.0f} € pour le mois supp.",
+        None,
+    ),
+    (
+        "taux_valorisation_cumule_HC",
+        "Taux de valorisation HC cumulé",
+        "{:.1f} %",
+        "taux_valorisation_mois_HC",
+        "{:.1f} % pour le mois supp.",
+        None,
+    ),
+    (
+        "taux_valorisation_cumule_HTP",
+        "Taux de valorisation HTP cumulé",
+        "{:.1f} %",
+        "taux_valorisation_mois_HTP",
+        "{:.1f} % pour le mois supp.",
+        None,
+    ),
 ]
 
 KPI_CONFIG_HC = [
@@ -150,20 +205,30 @@ THEMES = {
         "plots": [
               {
                 "type": "multi",
-                "series": [("jour_valo_supp", "Jour valorisé supplémentaire par rapport à M-1"),
-                           ("jour_tot_supp",  "Jour supplémentaire par rapport à M-1")],
-                "title": "Evolution de l'activité (jours)",
+                "series": [
+                    ("jours_valorises_mois_HTP", "Jours valorisés"),
+                    ("jours_transmis_mois_HTP", "Jours transmis"),
+                ],
+                "title": "Activité : jours supplémentaires par rapport à la période M-1",
             },
             {
                 "type": "bar",
-                "series": [("taux_valorisation_HTP", "Taux de valorisation")],
-                "title": "Taux de Valorisation",
+                "series": [
+                    ("taux_valorisation_mois_HTP", "Taux du mois supplémentaire"),
+                    ("taux_valorisation_cumule_HTP", "Taux cumulé"),
+                ],
+                "title": "Taux de valorisation (jours valorisés/jours transmis)",
             },
             {
                 "type": "single_hlines",
                 "objectif": None,
-                "series": [("recette_BR_moy_jour", "Evolution de la recette brute moyenne par jour")],
-                "title": "Evolution de la recette Base Remboursement moyenne par jour",
+                "series": [
+                    (
+                        "recette_BR_moy_jour_cumule_HTP",
+                        "Recette BR moyenne journalière HTP (cumulée)"
+                    ),
+                ],
+                "title": "Recette BR moyenne journalière HTP (cumulée)",
             },
         ]
     },}
@@ -348,20 +413,9 @@ def load_data(uploaded_zip, uploaded_excel):
     if not evol_rows:
         raise ValueError("❌ Aucun mois valide après traitement")
 
-    evol_df = pd.concat(evol_rows)
-    evol_df["taux_valorisation_HC"] = evol_df["effectif_valorise_HC"] / evol_df["effectif_transmis_HC"] * 100
-    evol_df["recette_BR_moy_sej"]   = evol_df["montantBR_valorise_HC"] / evol_df["effectif_valorise_HC"]
-    evol_df["recette_BR_moy_jour"]  = evol_df["montantBR_valorise_HC"] / evol_df["jour_valo_HC"]
-    evol_df["ecart_valo"]           = evol_df["montantBR_valorise_HC"].diff()
-    evol_df["sejour_supp"]          = evol_df["effectif_transmis_HC"].diff()
-    evol_df["sejour_valo_supp"]     = evol_df["effectif_valorise_HC"].diff()
-    evol_df["jour_valo_supp"]       = evol_df["jour_valo_HC"].diff()
-    evol_df["recette_BR_moy_mois"]  = evol_df["montantBR_valorise_HC"].diff()
-    evol_df["recette_AM_moy_mois"]  = evol_df["montantAM_valorise_HC"].diff()
-    evol_df.loc[evol_df.index[0], "recette_BR_moy_mois"] = evol_df["montantBR_valorise_HC"].iloc[0]
-    evol_df.loc[evol_df.index[0], "recette_AM_moy_mois"] = evol_df["montantAM_valorise_HC"].iloc[0]
-    evol_df = evol_df.reset_index()
-    evol_df["jour_tot_supp"] = 0
+    evol_df = recalculer_derives(pd.concat(evol_rows).reset_index())
+    evol_df["recette_BR_moy_mois"] = evol_df["montantBR_mois_HC"]
+    evol_df["recette_AM_moy_mois"] = evol_df["montantAM_mois_HC"]
 
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
@@ -525,6 +579,9 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     )
     brut_df["recette_BR_moy_sej"]  = brut_df["montantBR_valorise_HC"] / brut_df["effectif_valorise_HC"]
     brut_df["recette_BR_moy_jour"] = brut_df["montantBR_valorise_HC"] / brut_df["jour_valo_HC"]
+    brut_df["recette_BR_moy_jour_HTP"] = (
+        brut_df["montantBR_valorise_HTP"] / brut_df["effectif_valorise_HTP"]
+    )
     brut_df["recette_BR_period"] = brut_df["montantBR_valorise_HC"].fillna(0) + brut_df["montantBR_valorise_HTP"].fillna(0)
 
     return {"brut_df": brut_df, "_tmp_dir": tmp}
@@ -578,19 +635,35 @@ def recalculer_derives(brut_df):
     df["taux_valorisation_mois_HC"] = (
         df["sejours_valorises_mois_HC"] / df["sejours_transmis_mois_HC"] * 100
     )
+    df["taux_valorisation_mois_HTP"] = (
+        df["jours_valorises_mois_HTP"] / df["jours_transmis_mois_HTP"] * 100
+    )
 
     df["recette_BR_moy_jour_mois_HC"] = (
         df["montantBR_mois_HC"] / df["jours_valorises_mois_HC"]
+    )
+    df["recette_BR_moy_jour_mois_HTP"] = (
+        df["montantBR_mois_HTP"] / df["jours_valorises_mois_HTP"]
     )
 
     # ── Indicateurs CUMULÉS sur toute la période ──────────────────────
     df["taux_valorisation_cumule_HC"] = (
         df["effectif_valorise_HC"] / df["effectif_transmis_HC"] * 100
     )
+    df["taux_valorisation_cumule_HTP"] = (
+        df["effectif_valorise_HTP"] / df["effectif_transmis_HTP"] * 100
+    )
 
     df["recette_BR_moy_jour_cumule_HC"] = (
         df["montantBR_valorise_HC"] / df["jour_valo_HC"]
     )
+    df["recette_BR_moy_jour_cumule_HTP"] = (
+        df["montantBR_valorise_HTP"] / df["effectif_valorise_HTP"]
+    )
+
+    # Compatibilité avec l'ancien nom utilisé par quelques écrans et commentaires.
+    df["taux_valorisation_HTP"] = df["taux_valorisation_cumule_HTP"]
+    df["recette_BR_moy_jour_HTP"] = df["recette_BR_moy_jour_cumule_HTP"]
 
     df["recette_BR_mois_total"] = (
         df["montantBR_mois_HC"].fillna(0) + df["montantBR_mois_HTP"].fillna(0)
@@ -848,8 +921,8 @@ KPI_POS_ALL = {
 
     "recette_BR_cumule_total":  (0.130, 0.235),
     "effectif_transmis_HTP":    (0.385, 0.235),
-    "taux_valorisation_HTP":    (0.610, 0.235),
-    "recette_BR_moy_jour":      (0.835, 0.235),
+    "taux_valorisation_cumule_HTP":    (0.610, 0.235),
+    "recette_BR_moy_jour_cumule_HTP":  (0.835, 0.235),
 }
 
 KPI_POS_HC = {
