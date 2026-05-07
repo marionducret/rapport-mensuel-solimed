@@ -990,14 +990,14 @@ COVER_ETAB_X        = 0.500   # centré horizontalement
 # Grand bloc KPI (zone teal pointillée)
 KPI_POS_ALL = {
     "montantAM_valorise_HC":           (0.145, 0.430),
-    "effectif_transmis_HC":            (0.400, 0.430),
-    "taux_valorisation_cumule_HC":     (0.625, 0.430),
-    "recette_BR_moy_jour_cumule_HC":   (0.850, 0.430),
+    "effectif_transmis_HC":            (0.405, 0.430),
+    "taux_valorisation_cumule_HC":     (0.630, 0.430),
+    "recette_BR_moy_jour_cumule_HC":   (0.855, 0.430),
 
-    "recette_BR_cumule_total":  (0.145, 0.176),
-    "effectif_transmis_HTP":    (0.400, 0.176),
-    "taux_valorisation_cumule_HTP":    (0.625, 0.176),
-    "recette_BR_moy_jour_cumule_HTP":  (0.850, 0.176),
+    "recette_BR_cumule_total":         (0.145, 0.176),
+    "effectif_transmis_HTP":           (0.405, 0.176),
+    "taux_valorisation_cumule_HTP":    (0.630, 0.176),
+    "recette_BR_moy_jour_cumule_HTP":  (0.855, 0.176),
 }
 
 KPI_POS_HC = {
@@ -1114,18 +1114,22 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
             ref = float(ref)
 
             if ref == 0:
-                if d == 0:
+                if abs(d) < 1e-9:
                     return "= stable", GRIS_TEXTE
                 if d > 0:
-                    return "▲ n.c. vs mois précé.", VERT_KPI
-                return "▼ n.c. vs mois précé.", ROUGE
+                    return "▲ n.c. vs mois précédent", VERT_KPI
+                return "▼ n.c. vs mois précédent", ROUGE
 
             pct = d / abs(ref) * 100
+            pct_arrondi = int(round(pct))
+
+            if pct_arrondi == 0:
+                return "= stable", GRIS_TEXTE
 
             if d > 0:
-                return f"▲ +{pct:.0f} % vs mois précé.", VERT_KPI
+                return f"▲ +{pct_arrondi} % vs mois précédent", VERT_KPI
             if d < 0:
-                return f"▼ {pct:.0f} % vs mois précé.", ROUGE
+                return f"▼ {pct_arrondi} % vs mois précédent", ROUGE
 
             return "= stable", GRIS_TEXTE
 
