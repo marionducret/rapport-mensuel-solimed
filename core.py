@@ -923,15 +923,15 @@ COVER_ETAB_X        = 0.500   # centré horizontalement
  
 # Grand bloc KPI (zone teal pointillée)
 KPI_POS_ALL = {
-    "montantAM_valorise_HC":           (0.130, 0.495),
-    "effectif_transmis_HC":            (0.385, 0.495),
-    "taux_valorisation_cumule_HC":     (0.610, 0.495),
-    "recette_BR_moy_jour_cumule_HC":   (0.835, 0.495),
+    "montantAM_valorise_HC":           (0.135, 0.430),
+    "effectif_transmis_HC":            (0.390, 0.430),
+    "taux_valorisation_cumule_HC":     (0.615, 0.430),
+    "recette_BR_moy_jour_cumule_HC":   (0.840, 0.430),
 
-    "recette_BR_cumule_total":  (0.130, 0.235),
-    "effectif_transmis_HTP":    (0.385, 0.235),
-    "taux_valorisation_cumule_HTP":    (0.610, 0.235),
-    "recette_BR_moy_jour_cumule_HTP":  (0.835, 0.235),
+    "recette_BR_cumule_total":  (0.135, 0.176),
+    "effectif_transmis_HTP":    (0.390, 0.176),
+    "taux_valorisation_cumule_HTP":    (0.615, 0.176),
+    "recette_BR_moy_jour_cumule_HTP":  (0.840, 0.176),
 }
 
 KPI_POS_HC = {
