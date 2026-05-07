@@ -1045,7 +1045,7 @@ GRAPH_BIG_H = 0.235
 
 # Commentaire bas À DROITE
 COMMENT_BIG_L = 0.645
-COMMENT_BIG_B = 0.150
+COMMENT_BIG_B = 0.145
 COMMENT_BIG_W = 0.370
 COMMENT_BIG_H = 0.200
  
@@ -1054,7 +1054,7 @@ PAGE_NUM_Y    = 0.020
 PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
-COMMENT_SMALL_MAX_CHARS = 120
+COMMENT_SMALL_MAX_CHARS = 90
 COMMENT_BIG_MAX_CHARS = 60
 
 # Position du début du texte dans chaque bloc commentaire.
@@ -1064,7 +1064,7 @@ COMMENT_BIG_TEXT_X = 0.025
 COMMENT_BIG_TEXT_Y = 1
 
 # Taille et interligne des commentaires.
-COMMENT_SMALL_FONT_SIZE = 10
+COMMENT_SMALL_FONT_SIZE = 11
 COMMENT_SMALL_LINESPACING = 1.03
 COMMENT_BIG_FONT_SIZE = 11
 COMMENT_BIG_LINESPACING = 1.22
