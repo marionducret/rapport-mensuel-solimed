@@ -1477,43 +1477,96 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         return "Données insuffisantes pour analyse."
 
     debut = series.iloc[0]
+    precedent = series.iloc[-2]
     fin = series.iloc[-1]
 
-    if "recette_BR_moy_jour_cumule" in col:
-        phrases = [
-            f"{titre} : la valeur actuelle est de {format_fr(fin)} €.",
-        ]
-        moy_prec = _get_moy_annuelle_for_col(moy_annuelle, col)
-        if moy_prec is not None and not pd.isna(moy_prec) and moy_prec != 0:
-            ecart_pct = (fin - moy_prec) / abs(moy_prec) * 100
-            sens = "supérieure" if ecart_pct > 0 else "inférieure" if ecart_pct < 0 else "stable"
-            phrases.append(
-                f"Par rapport à l'année précédente ({format_fr(moy_prec)} €), "
-                f"elle est {sens} de {abs(ecart_pct):.1f} %."
+    def _sens(delta):
+        if delta > 0:
+            return "hausse"
+        if delta < 0:
+            return "baisse"
+        return "stabilité"
+
+    def _tendance_globale(vals):
+        vals = vals.astype(float).reset_index(drop=True)
+        if len(vals) < 3:
+            delta = vals.iloc[-1] - vals.iloc[0]
+            return f"une {_sens(delta)}"
+
+        x = np.arange(len(vals))
+        pente = np.polyfit(x, vals, 1)[0]
+        amplitude = vals.max() - vals.min()
+        seuil = max(abs(vals.mean()) * 0.01, amplitude * 0.05, 1e-9)
+
+        if abs(pente) <= seuil:
+            return "stable"
+
+        variations = vals.diff().dropna()
+        if pente > 0:
+            return (
+                "une augmentation linéaire"
+                if (variations >= 0).mean() >= 0.75
+                else "une tendance globalement à la hausse, avec des variations"
             )
-        else:
-            phrases.append("La moyenne de l'année précédente n'est pas disponible.")
-        return "\n".join(phrases)
+        return (
+            "une diminution linéaire"
+            if (variations <= 0).mean() >= 0.75
+            else "une tendance globalement à la baisse, avec des variations"
+        )
+
+    def _format_moyenne(val):
+        if "taux" in col:
+            return f"{val:.1f} %"
+        if "recette" in col or "montant" in col.lower() or "BR" in titre:
+            return f"{format_fr(val)} €"
+        return format_fr(val)
+
+    delta_precedent = fin - precedent
+    sens_precedent = _sens(delta_precedent)
 
     if "taux" in col:
+        ecart_txt = f"{abs(delta_precedent):.1f} points"
         return "\n".join([
-            f"{titre} : le taux passe de {debut:.1f} % à {fin:.1f} %.",
-            f"Par rapport à l'année précédente, la moyenne observée est de {series.mean():.1f} %.",
+            f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
+            f"La moyenne observée est de {_format_moyenne(series.mean())}.",
+            f"La tendance globale depuis la première période est {_tendance_globale(series)}.",
         ])
 
-    trend = fin - debut
-    trend_pct = (trend / debut) * 100 if debut != 0 else 0
+    if "recette_BR_moy_jour_cumule" in col:
+        ecart_txt = f"{format_fr(abs(delta_precedent))} €"
+        moy_txt = f"La moyenne observée est de {_format_moyenne(series.mean())}"
+        moy_prec = _get_moy_annuelle_for_col(moy_annuelle, col)
+        if moy_prec is not None and not pd.isna(moy_prec) and moy_prec != 0:
+            ecart_pct = (series.mean() - moy_prec) / abs(moy_prec) * 100
+            sens_annee = (
+                "supérieure"
+                if ecart_pct > 0
+                else "inférieure"
+                if ecart_pct < 0
+                else "stable"
+            )
+            moy_txt += (
+                f" et elle est {sens_annee} de {abs(ecart_pct):.1f} % "
+                "par rapport à l'année précédente."
+            )
+        else:
+            moy_txt += " et la moyenne de l'année précédente n'est pas disponible."
 
-    if trend > 0:
-        tendance = "hausse"
-    elif trend < 0:
-        tendance = "baisse"
+        return "\n\n".join([
+            f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
+            moy_txt,
+            f"La tendance globale depuis la première période est {_tendance_globale(series)}.",
+        ])
+
+    if precedent != 0 and not pd.isna(precedent):
+        ecart_txt = f"{abs(delta_precedent / abs(precedent) * 100):.1f} %"
     else:
-        tendance = "stabilité"
+        ecart_txt = format_fr(abs(delta_precedent))
 
     return "\n".join([
-        f"{titre} : on observe une {tendance} de {abs(trend_pct):.1f} %.",
-        f"Par rapport à l'année précédente, la moyenne observée est de {format_fr(series.mean())}.",
+        f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
+        f"La moyenne observée est de {_format_moyenne(series.mean())}.",
+        f"La tendance globale depuis la première période est {_tendance_globale(series)}.",
     ])
 
 # ══════════════════════════════════════════════════════════════════════════════
