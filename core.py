@@ -729,18 +729,37 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
         c for c in curr2.columns
         if "SSRHA" in c and "Montant BR" in c
     ][0]
+    col_htp_br = next(
+        (c for c in curr2.columns if "HTP" in c and "Montant BR" in c),
+        None
+    )
+    col_htp_effectif = next(
+        (c for c in curr2.columns if "HTP" in c and "Effectif" in c),
+        None
+    )
 
     curr2 = curr2.rename(columns={
         col_ssrha_br: "SSRHA en HC - Montant BR"
     })
+    if col_htp_br:
+        curr2 = curr2.rename(columns={col_htp_br: "Journées en HTP - Montant BR"})
+    if col_htp_effectif:
+        curr2 = curr2.rename(columns={col_htp_effectif: "Journées en HTP - Effectif"})
 
-    curr2["SSRHA en HC - Montant BR"] = pd.to_numeric(
-        curr2["SSRHA en HC - Montant BR"]
-        .astype(str)
-        .str.replace(" ", "", regex=False)
-        .str.replace(",", ".", regex=False),
-        errors="coerce",
-    )
+    for col in [
+        "SSRHA en HC - Montant BR",
+        "Journées en HTP - Montant BR",
+        "Journées en HTP - Effectif",
+    ]:
+        if col in curr2.columns:
+            curr2[col] = pd.to_numeric(
+                curr2[col]
+                .astype(str)
+                .str.replace(" ", "", regex=False)
+                .str.replace("\u00a0", "", regex=False)
+                .str.replace(",", ".", regex=False),
+                errors="coerce",
+            )
 
     # ── Récupérer uniquement l'activité valorisée ────────────────────
     ligne_valorisee = curr2[
@@ -764,6 +783,21 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
     moyennes = {
         "recette_BR_moy_jour": float(montantBR_valorise_HC / jours_valo_HC)
     }
+
+    if {
+        "Journées en HTP - Montant BR",
+        "Journées en HTP - Effectif",
+    }.issubset(ligne_valorisee.columns):
+        montantBR_valorise_HTP = ligne_valorisee["Journées en HTP - Montant BR"].iloc[0]
+        jours_valorises_HTP = ligne_valorisee["Journées en HTP - Effectif"].iloc[0]
+        if (
+            pd.notna(montantBR_valorise_HTP)
+            and pd.notna(jours_valorises_HTP)
+            and jours_valorises_HTP > 0
+        ):
+            moyennes["recette_BR_moy_jour_HTP"] = float(
+                montantBR_valorise_HTP / jours_valorises_HTP
+            )
 
     return moyennes
 
@@ -912,6 +946,15 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
     #         label.set_color(VIOLET if all_down else GRIS_TEXTE)
     #     else:
     #         label.set_color(GRIS_TEXTE)
+
+def _get_moy_annuelle_for_col(moy_annuelle, col):
+    if not moy_annuelle:
+        return None
+    mapping = {
+        "recette_BR_moy_jour_cumule_HC": "recette_BR_moy_jour",
+        "recette_BR_moy_jour_cumule_HTP": "recette_BR_moy_jour_HTP",
+    }
+    return moy_annuelle.get(mapping.get(col, col))
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MISE EN FORME PDF — pages avec template Canva
@@ -1290,14 +1333,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
             make_ax_bar(ax, series, title, evol_df)
         elif t == "single_hlines":
             col, _ = series[0]
-            # mapping explicite pour moyenne année précédente
-            if moy_annuelle:
-                if col == "recette_BR_moy_jour_cumule_HC":
-                    moy = moy_annuelle.get("recette_BR_moy_jour")
-                else:
-                    moy = moy_annuelle.get(col)
-            else:
-                moy = None
+            moy = _get_moy_annuelle_for_col(moy_annuelle, col)
 
             make_ax_hlines(
                 ax,
@@ -1460,7 +1496,7 @@ def generate_all_figures(evol_df, moy_annuelle=None, inclure_htp=True):
                 make_ax_bar(ax, series, subplot["title"], evol_df)
             elif t == "single_hlines":
                 col, titre = series[0]
-                moy = moy_annuelle.get(col) if moy_annuelle else None
+                moy = _get_moy_annuelle_for_col(moy_annuelle, col)
                 make_ax_hlines(ax, col, titre, subplot.get("objectif"),
                                evol_df, moy_annuelle=moy)
             elif t == "multi":

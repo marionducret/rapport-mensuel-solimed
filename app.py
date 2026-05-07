@@ -245,16 +245,29 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
                     github_ecrire_moy(nouvelles_moy, sha_actuel, ETAB_ID)
                     moy_annuelle = nouvelles_moy
                     recuperer_moy_annuelle.clear()
-                    st.success(
+                    msg_moy = (
                         f"✅ Moyenne sauvegardée : "
-                        f"Recette brute par jour (2025) = {nouvelles_moy['recette_BR_moy_jour']:,.0f} € · "
+                        f"BR/jour HC (2025) = {nouvelles_moy['recette_BR_moy_jour']:,.0f} €"
+                    )
+                    if nouvelles_moy.get("recette_BR_moy_jour_HTP") is not None:
+                        msg_moy += (
+                            f" · BR/jour HTP (2025) = "
+                            f"{nouvelles_moy['recette_BR_moy_jour_HTP']:,.0f} €"
+                        )
+                    st.success(
+                        msg_moy
                     )
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
     elif moy_annuelle is not None:
-        st.success(
+        msg_moy = (
             f"✅ Moyenne déjà enregistrée : "
-            f"recette_BR_moy_sej = {moy_annuelle['recette_BR_moy_jour']:,.0f} € · "
+            f"BR/jour HC = {moy_annuelle['recette_BR_moy_jour']:,.0f} €"
+        )
+        if moy_annuelle.get("recette_BR_moy_jour_HTP") is not None:
+            msg_moy += f" · BR/jour HTP = {moy_annuelle['recette_BR_moy_jour_HTP']:,.0f} €"
+        st.success(
+            msg_moy
         )
     
 # ══════════════════════════════════════════════════════════════════════════════
