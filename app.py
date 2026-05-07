@@ -277,10 +277,17 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
 st.subheader("📂 Données à intégrer")
 
 uploaded_zip = st.file_uploader("📁 ZIP du nouveau mois à ajouter", type=["zip"])
-uploaded_csv = st.file_uploader("📊 Fichier CSV VisualValoSejours", type=["csv"])
+sans_valo_periode = st.checkbox("Je n'ai pas le VisualValo de cette période")
+uploaded_csv = None
+if not sans_valo_periode:
+    uploaded_csv = st.file_uploader("📊 Fichier CSV VisualValoSejours", type=["csv"])
 
-if not uploaded_zip or not uploaded_csv:
-    st.warning("Veuillez uploader le fichier ZIP et le fichier CSV.")
+if not uploaded_zip:
+    st.warning("Veuillez uploader le fichier ZIP.")
+    st.stop()
+
+if not sans_valo_periode and not uploaded_csv:
+    st.warning("Veuillez uploader le fichier CSV VisualValoSejours ou cocher l'option sans VisualValo.")
     st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -289,10 +296,12 @@ if not uploaded_zip or not uploaded_csv:
 
 @st.cache_data(show_spinner="Chargement des nouvelles données…")
 def charger_brut(zip_bytes, csv_bytes):
-    return core.load_data_brut(io.BytesIO(zip_bytes), io.BytesIO(csv_bytes))
+    csv_file = io.BytesIO(csv_bytes) if csv_bytes is not None else None
+    return core.load_data_brut(io.BytesIO(zip_bytes), csv_file)
 
 try:
-    nouveau = charger_brut(uploaded_zip.read(), uploaded_csv.read())
+    csv_bytes = None if sans_valo_periode else uploaded_csv.read()
+    nouveau = charger_brut(uploaded_zip.read(), csv_bytes)
 except Exception as e:
     st.error(str(e))
     st.stop()
@@ -335,6 +344,12 @@ if inclure_htp:
     st.info("✅ Activité HTP détectée : le rapport inclura les pages HC et HTP.")
 else:
     st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
+
+if sans_valo_periode:
+    st.warning(
+        "VisualValo absent : les indicateurs utilisant les jours valorisés HC "
+        "seront indiqués comme non disponibles pour cette période."
+    )
 
 evol_df    = core.recalculer_derives(brut_complet)
 mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)

@@ -498,14 +498,18 @@ def load_data_brut(uploaded_zip, uploaded_csv):
     Utilisé en mode incrémental : on fusionne d'abord les brutes de tous les
     mois, puis on appelle recalculer_derives() sur la série complète.
 
-    uploaded_csv : fichier CSV VisualValoSejours (remplace l'Excel de valorisation).
+    uploaded_csv : fichier CSV VisualValoSejours, ou None si indisponible.
     """
     tmp = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
 
     _ouvrir_zip(uploaded_zip, tmp_path)
 
-    jours_valo_mois = _calc_jours_valo(uploaded_csv)
+    jours_valo_mois = (
+        _calc_jours_valo(uploaded_csv)
+        if uploaded_csv is not None
+        else float("nan")
+    )
 
     month_html_files = _detect_month_html_files(tmp_path)
     if not month_html_files:
@@ -859,6 +863,25 @@ def _style_ax(ax):
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuelle=None):
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]    
     y_vals = evol_df[col].reset_index(drop=True)
+
+    if y_vals.dropna().empty:
+        ax.text(
+            0.5,
+            0.5,
+            "Données non disponibles",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+            fontsize=13,
+            fontweight="bold",
+            color=GRIS_TEXTE,
+        )
+        ax.set_title(title, pad=25, fontproperties=barlow_bold, color=VERT_TEXT)
+        _style_ax(ax)
+        ax.set_xticks(range(len(x_vals)))
+        ax.set_xticklabels(x_vals)
+        return
+
     ax.plot(x_vals, y_vals, linewidth=2.5, color=VERT,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
     moyenne = y_vals.mean()
@@ -1471,6 +1494,9 @@ def _build_page_graphique_HTP(fig, theme, config, evol_df, page_num,
 # ══════════════════════════════════════════════════════════════════════════════
 
 def generate_comment(col, titre, evol_df, moy_annuelle=None):
+    if col not in evol_df or pd.isna(evol_df[col].iloc[-1]):
+        return f"{titre} : données non disponibles pour cette période."
+
     series = evol_df[col].dropna()
 
     if len(series) < 2:
