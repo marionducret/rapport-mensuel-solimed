@@ -1054,12 +1054,20 @@ PAGE_NUM_Y    = 0.020
 PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
-COMMENT_SMALL_MAX_CHARS = 150
+COMMENT_SMALL_MAX_CHARS = 78
 COMMENT_BIG_MAX_CHARS = 60
 
 # Position du début du texte dans chaque bloc commentaire.
+COMMENT_SMALL_TEXT_X = 0.025
 COMMENT_SMALL_TEXT_Y = 0.92
+COMMENT_BIG_TEXT_X = 0.025
 COMMENT_BIG_TEXT_Y = 1
+
+# Taille et interligne des commentaires.
+COMMENT_SMALL_FONT_SIZE = 8.5
+COMMENT_SMALL_LINESPACING = 1.03
+COMMENT_BIG_FONT_SIZE = 11
+COMMENT_BIG_LINESPACING = 1.22
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE DE GARDE 
@@ -1384,7 +1392,15 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         elif t == "multi":
             make_ax_multi(ax, series, title, evol_df, moy_annuelle=moy_annuelle)
 
-        _draw_comment(ax_c, series, theme, evol_df, custom_comments, moy_annuelle=moy_annuelle)
+        _draw_comment(
+            ax_c,
+            series,
+            theme,
+            evol_df,
+            custom_comments,
+            moy_annuelle=moy_annuelle,
+            is_big_block=(i == 2),
+        )
 
     # ── Pied de page ─────────────────────────────────────────────────
     ax_n = fig.add_axes([0, 0, 1, 1], zorder=4)
@@ -1439,17 +1455,17 @@ def _wrap_comment_text(full_text, chars_par_ligne):
     return "\n\n".join(wrapped_blocks)
 
 
-def _standard_comment_for_axis(ax, full_text, base_fontsize=12):
-    is_big_block = ax.get_position().height > 0.10
-    fontsize = 11 if is_big_block else base_fontsize
-    linespacing = 1.22 if is_big_block else 1.08
+def _standard_comment_for_axis(full_text, is_big_block=False):
+    fontsize = COMMENT_BIG_FONT_SIZE if is_big_block else COMMENT_SMALL_FONT_SIZE
+    linespacing = COMMENT_BIG_LINESPACING if is_big_block else COMMENT_SMALL_LINESPACING
     chars_par_ligne = COMMENT_BIG_MAX_CHARS if is_big_block else COMMENT_SMALL_MAX_CHARS
+    text_x = COMMENT_BIG_TEXT_X if is_big_block else COMMENT_SMALL_TEXT_X
     text_y = COMMENT_BIG_TEXT_Y if is_big_block else COMMENT_SMALL_TEXT_Y
-    return _wrap_comment_text(full_text, chars_par_ligne), fontsize, linespacing, text_y
+    return _wrap_comment_text(full_text, chars_par_ligne), fontsize, linespacing, text_x, text_y
 
 
 def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12,
-                  moy_annuelle=None):
+                  moy_annuelle=None, is_big_block=False):
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
@@ -1461,10 +1477,13 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         else:
             texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
     full_text = "\n\n".join(texts)
-    lignes, fontsize, linespacing, text_y = _standard_comment_for_axis(ax, full_text, fontsize)
+    lignes, fontsize, linespacing, text_x, text_y = _standard_comment_for_axis(
+        full_text,
+        is_big_block=is_big_block,
+    )
 
     txt = ax.text(
-        0.025, text_y,
+        text_x, text_y,
         lignes,
         fontsize=fontsize, 
         color="#374151", 
