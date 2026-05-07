@@ -1562,9 +1562,9 @@ def _comment_unit(col, titre):
     if "taux" in col:
         return "%"
     if "jour" in col.lower() or "jour" in titre.lower():
-        return "jours"
+        return "j"
     if "sejour" in col.lower() or "séjour" in titre.lower():
-        return "séjours"
+        return "séj"
     if "recette" in col or "montant" in col.lower() or "BR" in titre:
         return "€"
     return ""
@@ -1572,11 +1572,11 @@ def _comment_unit(col, titre):
 
 def _format_comment_value(val, unit):
     if unit == "%":
-        return f"{abs(val):.1f} %"
+        return f"{abs(val):.1f}%"
     if unit == "€":
-        return f"{format_fr(abs(val))} €"
+        return f"{format_fr(abs(val))}€"
     if unit:
-        return f"{format_fr(abs(val))} {unit}"
+        return f"{format_fr(abs(val))}{unit}"
     return format_fr(abs(val))
 
 
@@ -1664,27 +1664,27 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
 
     def _format_moyenne(val):
         if "taux" in col:
-            return f"{val:.1f} %"
+            return f"{val:.1f}%"
         if "recette" in col or "montant" in col.lower() or "BR" in titre:
-            return f"{format_fr(val)} €"
+            return f"{format_fr(val)}€"
         if "jour" in col.lower() or "jour" in titre.lower():
-            return f"{format_fr(val)} jours"
+            return f"{format_fr(val)}j"
         if "sejour" in col.lower() or "séjour" in titre.lower():
-            return f"{format_fr(val)} séjours"
+            return f"{format_fr(val)}séj"
         return format_fr(val)
 
     def _format_ecart_activite(val):
         if "jour" in col.lower() or "jour" in titre.lower():
-            return f"{format_fr(abs(val))} jours"
+            return f"{format_fr(abs(val))}j"
         if "sejour" in col.lower() or "séjour" in titre.lower():
-            return f"{format_fr(abs(val))} séjours"
+            return f"{format_fr(abs(val))}séj"
         return format_fr(abs(val))
 
     delta_precedent = fin - precedent
     sens_precedent = _sens(delta_precedent)
 
     if "taux" in col:
-        ecart_txt = f"{abs(delta_precedent):.1f} %"
+        ecart_txt = f"{abs(delta_precedent):.1f}%"
         return "\n".join([
             f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
             f"La moyenne observée est de {_format_moyenne(series.mean())}.",
@@ -1692,7 +1692,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         ])
 
     if "recette_BR_moy_jour_cumule" in col:
-        ecart_txt = f"{format_fr(abs(delta_precedent))} €"
+        ecart_txt = f"{format_fr(abs(delta_precedent))}€"
         moy_txt = f"La moyenne observée est de {_format_moyenne(series.mean())}"
         moy_prec = _get_moy_annuelle_for_col(moy_annuelle, col)
         if moy_prec is not None and not pd.isna(moy_prec) and moy_prec != 0:
@@ -1705,7 +1705,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
                 else "stable"
             )
             moy_txt += (
-                f" et elle est {sens_annee} de {abs(ecart_pct):.1f} % "
+                f" et elle est {sens_annee} de {abs(ecart_pct):.1f}% "
                 "par rapport à l'année précédente."
             )
         else:
