@@ -1525,19 +1525,19 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         seuil = max(abs(vals.mean()) * 0.01, amplitude * 0.05, 1e-9)
 
         if abs(pente) <= seuil:
-            return "stable"
+            return "Les indicateurs montrent une stabilité globale depuis la première période."
 
         variations = vals.diff().dropna()
         if pente > 0:
             return (
-                "en augmentation linéaire"
+                "Les indicateurs montrent une progression globale depuis la première période."
                 if (variations >= 0).mean() >= 0.75
-                else "globalement à la hausse, avec des variations"
+                else "Les indicateurs restent globalement orientés à la hausse depuis la première période, malgré des variations."
             )
         return (
-            "en diminution linéaire"
+            "Les indicateurs montrent une diminution globale depuis la première période."
             if (variations <= 0).mean() >= 0.75
-            else "globalement à la baisse, avec des variations"
+            else "Les indicateurs restent globalement orientés à la baisse depuis la première période, malgré des variations."
         )
 
     def _format_moyenne(val):
@@ -1555,7 +1555,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         return "\n".join([
             f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
             f"La moyenne observée est de {_format_moyenne(series.mean())}.",
-            f"La tendance globale depuis la première période est {_tendance_globale(series)}.",
+            _tendance_globale(series),
         ])
 
     if "recette_BR_moy_jour_cumule" in col:
@@ -1581,7 +1581,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         return "\n\n".join([
             f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
             moy_txt,
-            f"La tendance globale depuis la première période est {_tendance_globale(series)}.",
+            _tendance_globale(series),
         ])
 
     if precedent != 0 and not pd.isna(precedent):
@@ -1592,7 +1592,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
     return "\n".join([
         f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
         f"La moyenne observée est de {_format_moyenne(series.mean())}.",
-        f"La tendance globale depuis la première période est {_tendance_globale(series)}.",
+        _tendance_globale(series),
     ])
 
 # ══════════════════════════════════════════════════════════════════════════════
