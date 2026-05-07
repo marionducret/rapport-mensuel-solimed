@@ -311,6 +311,59 @@ def _ouvrir_zip(uploaded_zip, destination: Path) -> None:
             _extract_zip_safe(zf, destination)
 
 
+def _month_key(m):
+    year, month = m.split("_M")
+    return (int(year), int(month))
+
+
+def _extract_month_from_html_name(filename):
+    match = re.search(r"^\d+\.(20\d{2})\.(\d{1,2})\.", filename)
+    if match:
+        return f"{match.group(1)}_M{int(match.group(2))}"
+    return None
+
+
+def _extract_month_from_folder_name(folder_name):
+    match = re.search(r"(20\d{2})_M(\d{1,2})$", folder_name)
+    if match:
+        return f"{match.group(1)}_M{int(match.group(2))}"
+
+    match = re.search(r"M(\d{1,2})_(20\d{2})$", folder_name)
+    if match:
+        return f"{match.group(2)}_M{int(match.group(1))}"
+
+    match = re.search(r"M(\d{1,2})$", folder_name)
+    if match:
+        return f"2025_M{int(match.group(1))}"
+
+    return None
+
+
+def _detect_month_html_files(tmp_path: Path):
+    html_files = [
+        p for p in tmp_path.rglob("*.html")
+        if "__MACOSX" not in str(p)
+    ]
+
+    month_files = {}
+    for html_file in html_files:
+        month = _extract_month_from_html_name(html_file.name)
+        if month:
+            month_files.setdefault(month, []).append(html_file)
+
+    if month_files:
+        return month_files
+
+    for folder in tmp_path.rglob("*"):
+        if not folder.is_dir() or "__MACOSX" in str(folder):
+            continue
+        month = _extract_month_from_folder_name(folder.name)
+        if month:
+            month_files[month] = list(folder.glob("*.html"))
+
+    return month_files
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHARGEMENT DES DONNÉES
 # ══════════════════════════════════════════════════════════════════════════════
@@ -324,44 +377,17 @@ def load_data(uploaded_zip, uploaded_excel):
 
     valo_excel = pd.read_excel(uploaded_excel)
 
-    def extract_month(folder_name):
-        match = re.search(r"(202\d)_M(\d+)$", folder_name)
-        if match:
-            return f"{match.group(1)}_M{match.group(2)}"
-        match = re.search(r"M(\d+)$", folder_name)
-        if match:
-            return f"2025_M{match.group(1)}"
-        return None
+    month_html_files = _detect_month_html_files(tmp_path)
+    if not month_html_files:
+        raise ValueError("❌ Aucun mois détecté dans le ZIP")
 
-    def month_key(m):
-        year, month = m.split("_M")
-        return (int(year), int(month))
-
-    month_dirs = []
-    for p in tmp_path.rglob("*"):
-        if not p.is_dir():
-            continue
-        if "__MACOSX" in str(p):
-            continue
-        m = extract_month(p.name)
-        if m:
-            month_dirs.append((m, p))
-
-    if not month_dirs:
-        raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
-
-    month_dirs_dict = {}
-    for m, p in month_dirs:
-        month_dirs_dict[m] = p
-
-    sorted_months = sorted(month_dirs_dict.keys(), key=month_key)
+    sorted_months = sorted(month_html_files.keys(), key=_month_key)
 
     data = {}
     for month in sorted_months:
-        folder = month_dirs_dict[month]
-        html_files = list(folder.glob("*.html"))
-        raev = next((f for f in html_files if "raev" in f.name), None)
-        sv   = next((f for f in html_files if "sv"   in f.name), None)
+        html_files = month_html_files[month]
+        raev = next((f for f in html_files if "raev" in f.name.lower()), None)
+        sv   = next((f for f in html_files if "sv"   in f.name.lower()), None)
         if not raev or not sv:
             print(f"⚠️ Mois {month} ignoré (fichiers manquants)")
             continue
@@ -378,7 +404,7 @@ def load_data(uploaded_zip, uploaded_excel):
         raise ValueError("❌ Aucun mois exploitable (HTML non reconnus)")
 
     evol_rows = []
-    for curr_mois in sorted(data.keys(), key=month_key):
+    for curr_mois in sorted(data.keys(), key=_month_key):
         curr = data[curr_mois]["raev"]
         value_AM = curr.loc[
             curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
@@ -481,51 +507,22 @@ def load_data_brut(uploaded_zip, uploaded_csv):
 
     jours_valo_mois = _calc_jours_valo(uploaded_csv)
 
-    def extract_month(folder_name):
-        match = re.search(r"(202\d)_M(\d+)$", folder_name)
-        if match:
-            return f"{match.group(1)}_M{match.group(2)}"
-        match = re.search(r"M(\d+)$", folder_name)
-        if match:
-            return f"2025_M{match.group(1)}"
-        return None
+    month_html_files = _detect_month_html_files(tmp_path)
+    if not month_html_files:
+        raise ValueError("❌ Aucun mois détecté dans le ZIP")
 
-    def month_key(m):
-        year, month = m.split("_M")
-        return (int(year), int(month))
-
-    month_dirs_dict = {}
-    for p in tmp_path.rglob("*"):
-        if not p.is_dir() or "__MACOSX" in str(p):
-            continue
-        m = extract_month(p.name)
-        if m:
-            month_dirs_dict[m] = p
-
-    if not month_dirs_dict:
-        # Fallback : fichiers à la racine du ZIP, détection depuis les noms de fichiers
-        for f in tmp_path.glob("*.html"):
-            match = re.search(r"\.(202\d)\.(\d+)\.", f.name)
-            if match:
-                month_dirs_dict[f"{match.group(1)}_M{match.group(2)}"] = tmp_path
-                break
-
-    if not month_dirs_dict:
-        raise ValueError("❌ Aucun dossier mois détecté dans le ZIP")
-
-    if len(month_dirs_dict) != 1:
-        mois_detectes = ", ".join(sorted(month_dirs_dict.keys(), key=month_key))
+    if len(month_html_files) != 1:
+        mois_detectes = ", ".join(sorted(month_html_files.keys(), key=_month_key))
         raise ValueError(
             "❌ Le ZIP doit contenir un seul mois à intégrer. "
             f"Mois détectés : {mois_detectes}"
         )
 
     data = {}
-    for month in sorted(month_dirs_dict.keys(), key=month_key):
-        folder     = month_dirs_dict[month]
-        html_files = list(folder.glob("*.html"))
-        raev = next((f for f in html_files if "raev" in f.name), None)
-        sv   = next((f for f in html_files if "sv"   in f.name), None)
+    for month in sorted(month_html_files.keys(), key=_month_key):
+        html_files = month_html_files[month]
+        raev = next((f for f in html_files if "raev" in f.name.lower()), None)
+        sv   = next((f for f in html_files if "sv"   in f.name.lower()), None)
         if not raev or not sv:
             print(f"⚠️ Mois {month} ignoré (fichiers manquants)")
             continue
@@ -538,7 +535,7 @@ def load_data_brut(uploaded_zip, uploaded_csv):
         raise ValueError("❌ Aucun mois exploitable (HTML non reconnus)")
 
     evol_rows = []
-    for curr_mois in sorted(data.keys(), key=month_key):
+    for curr_mois in sorted(data.keys(), key=_month_key):
         curr     = data[curr_mois]["raev"]
         value_AM = curr.loc[
             curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
