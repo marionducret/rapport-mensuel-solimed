@@ -1045,18 +1045,21 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
                 return "–", GRIS_TEXTE
 
             d = float(val) - float(ref)
+            ref = float(ref)
 
-            if fmt and "%" in fmt:
-                unit = " %"
-            elif fmt and "€" in fmt:
-                unit = " €"
-            else:
-                unit = ""
+            if ref == 0:
+                if d == 0:
+                    return "= stable", GRIS_TEXTE
+                if d > 0:
+                    return "▲ n.c. vs mois précé.", VERT_KPI
+                return "▼ n.c. vs mois précé.", ROUGE
+
+            pct = d / abs(ref) * 100
 
             if d > 0:
-                return f"▲ +{format_fr(d)}{unit} vs mois précé.", VERT_KPI
+                return f"▲ +{pct:.0f} % vs mois précé.", VERT_KPI
             if d < 0:
-                return f"▼ {format_fr(d)}{unit} vs mois précé.", ROUGE
+                return f"▼ {pct:.0f} % vs mois précé.", ROUGE
 
             return "= stable", GRIS_TEXTE
 
