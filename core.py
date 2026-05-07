@@ -966,15 +966,15 @@ COVER_ETAB_X        = 0.500   # centré horizontalement
  
 # Grand bloc KPI (zone teal pointillée)
 KPI_POS_ALL = {
-    "montantAM_valorise_HC":           (0.135, 0.430),
-    "effectif_transmis_HC":            (0.390, 0.430),
-    "taux_valorisation_cumule_HC":     (0.615, 0.430),
-    "recette_BR_moy_jour_cumule_HC":   (0.840, 0.430),
+    "montantAM_valorise_HC":           (0.145, 0.430),
+    "effectif_transmis_HC":            (0.400, 0.430),
+    "taux_valorisation_cumule_HC":     (0.625, 0.430),
+    "recette_BR_moy_jour_cumule_HC":   (0.850, 0.430),
 
-    "recette_BR_cumule_total":  (0.135, 0.176),
-    "effectif_transmis_HTP":    (0.390, 0.176),
-    "taux_valorisation_cumule_HTP":    (0.615, 0.176),
-    "recette_BR_moy_jour_cumule_HTP":  (0.840, 0.176),
+    "recette_BR_cumule_total":  (0.145, 0.176),
+    "effectif_transmis_HTP":    (0.400, 0.176),
+    "taux_valorisation_cumule_HTP":    (0.625, 0.176),
+    "recette_BR_moy_jour_cumule_HTP":  (0.850, 0.176),
 }
 
 KPI_POS_HC = {
@@ -1098,15 +1098,11 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
                 return "▼ n.c. vs mois précé.", ROUGE
 
             pct = d / abs(ref) * 100
-            pct_arrondi = round(pct)
-
-            if pct_arrondi == 0:
-                return "= stable", GRIS_TEXTE
 
             if d > 0:
-                return f"▲ +{pct_arrondi} % vs mois précé.", VERT_KPI
+                return f"▲ +{pct:.0f} % vs mois précé.", VERT_KPI
             if d < 0:
-                return f"▼ {pct_arrondi} % vs mois précé.", ROUGE
+                return f"▼ {pct:.0f} % vs mois précé.", ROUGE
 
             return "= stable", GRIS_TEXTE
 
