@@ -1054,7 +1054,7 @@ PAGE_NUM_Y    = 0.020
 PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
-COMMENT_SMALL_MAX_CHARS = 500
+COMMENT_SMALL_MAX_CHARS = 100
 COMMENT_BIG_MAX_CHARS = 60
 
 # Position du début du texte dans chaque bloc commentaire.
@@ -1384,15 +1384,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         elif t == "multi":
             make_ax_multi(ax, series, title, evol_df, moy_annuelle=moy_annuelle)
 
-        _draw_comment(
-            ax_c,
-            series,
-            theme,
-            evol_df,
-            custom_comments,
-            moy_annuelle=moy_annuelle,
-            is_big_block=(i == 2),
-        )
+        _draw_comment(ax_c, series, theme, evol_df, custom_comments, moy_annuelle=moy_annuelle)
 
     # ── Pied de page ─────────────────────────────────────────────────
     ax_n = fig.add_axes([0, 0, 1, 1], zorder=4)
@@ -1447,7 +1439,8 @@ def _wrap_comment_text(full_text, chars_par_ligne):
     return "\n\n".join(wrapped_blocks)
 
 
-def _standard_comment_for_axis(full_text, base_fontsize=12, is_big_block=False):
+def _standard_comment_for_axis(ax, full_text, base_fontsize=12):
+    is_big_block = ax.get_position().height > 0.10
     fontsize = 11 if is_big_block else base_fontsize
     linespacing = 1.22 if is_big_block else 1.08
     chars_par_ligne = COMMENT_BIG_MAX_CHARS if is_big_block else COMMENT_SMALL_MAX_CHARS
@@ -1456,7 +1449,7 @@ def _standard_comment_for_axis(full_text, base_fontsize=12, is_big_block=False):
 
 
 def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12,
-                  moy_annuelle=None, is_big_block=False):
+                  moy_annuelle=None):
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
@@ -1468,11 +1461,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         else:
             texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
     full_text = "\n\n".join(texts)
-    lignes, fontsize, linespacing, text_y = _standard_comment_for_axis(
-        full_text,
-        fontsize,
-        is_big_block=is_big_block,
-    )
+    lignes, fontsize, linespacing, text_y = _standard_comment_for_axis(ax, full_text, fontsize)
 
     txt = ax.text(
         0.025, text_y,
