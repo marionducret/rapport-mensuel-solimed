@@ -1054,12 +1054,12 @@ PAGE_NUM_Y    = 0.020
 PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
-COMMENT_SMALL_MAX_CHARS = 350
+COMMENT_SMALL_MAX_CHARS = 500
 COMMENT_BIG_MAX_CHARS = 60
 
 # Position du début du texte dans chaque bloc commentaire.
 COMMENT_SMALL_TEXT_Y = 0.92
-COMMENT_BIG_TEXT_Y = 0.99
+COMMENT_BIG_TEXT_Y = 1
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE DE GARDE 
