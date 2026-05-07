@@ -1057,6 +1057,10 @@ PAGE_NUM_X    = 0.970
 COMMENT_SMALL_MAX_CHARS = 350
 COMMENT_BIG_MAX_CHARS = 60
 
+# Position du début du texte dans chaque bloc commentaire.
+COMMENT_SMALL_TEXT_Y = 0.92
+COMMENT_BIG_TEXT_Y = 0.99
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1440,7 +1444,8 @@ def _standard_comment_for_axis(ax, full_text, base_fontsize=12):
     fontsize = 11 if is_big_block else base_fontsize
     linespacing = 1.22 if is_big_block else 1.08
     chars_par_ligne = COMMENT_BIG_MAX_CHARS if is_big_block else COMMENT_SMALL_MAX_CHARS
-    return _wrap_comment_text(full_text, chars_par_ligne), fontsize, linespacing
+    text_y = COMMENT_BIG_TEXT_Y if is_big_block else COMMENT_SMALL_TEXT_Y
+    return _wrap_comment_text(full_text, chars_par_ligne), fontsize, linespacing, text_y
 
 
 def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12,
@@ -1456,10 +1461,10 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
         else:
             texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
     full_text = "\n\n".join(texts)
-    lignes, fontsize, linespacing = _standard_comment_for_axis(ax, full_text, fontsize)
+    lignes, fontsize, linespacing, text_y = _standard_comment_for_axis(ax, full_text, fontsize)
 
     txt = ax.text(
-        0.025, 0.92,
+        0.025, text_y,
         lignes,
         fontsize=fontsize, 
         color="#374151", 
