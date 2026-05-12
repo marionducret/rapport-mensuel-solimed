@@ -18,6 +18,7 @@ import zipfile
 import tempfile
 import io
 import os
+import csv
 from PIL import Image
 import textwrap
 from matplotlib import font_manager
@@ -482,15 +483,48 @@ def _calc_jours_valo(csv_file) -> float:
       - Retourne la somme NBJV_GMT + NBJV_GMTH
     """
     raw = csv_file.read()
+    required_cols = {"HOSP", "NBJV_GMT", "MNT_BR_GMT", "NBJV_GMTH"}
     last_error = None
+    df = None
     for encoding in ("utf-8", "utf-8-sig", "cp1252", "latin1"):
         try:
-            df = pd.read_csv(io.BytesIO(raw), sep=None, engine="python", encoding=encoding)
-            break
+            text = raw.decode(encoding)
         except UnicodeDecodeError as e:
             last_error = e
-    else:
-        raise ValueError(f"❌ Impossible de lire le CSV VisualValo : encodage non reconnu ({last_error})")
+            continue
+
+        for sep in (";", "\t", ","):
+            try:
+                reader = csv.reader(io.StringIO(text), delimiter=sep)
+                header = next(reader)
+            except (csv.Error, StopIteration) as e:
+                last_error = e
+                continue
+
+            header = [col.strip() for col in header]
+            if not required_cols.issubset(header):
+                continue
+
+            index = {col: header.index(col) for col in required_cols}
+            rows = []
+            for row in reader:
+                if not row:
+                    continue
+                if len(row) <= max(index.values()):
+                    continue
+                rows.append({col: row[pos] for col, pos in index.items()})
+
+            df = pd.DataFrame(rows)
+            if not df.empty:
+                break
+        if df is not None:
+            break
+
+    if df is None:
+        raise ValueError(
+            "❌ Impossible de lire le CSV VisualValo : colonnes attendues "
+            f"non trouvées ({last_error})"
+        )
 
     for col in ["NBJV_GMT", "MNT_BR_GMT", "NBJV_GMTH"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
