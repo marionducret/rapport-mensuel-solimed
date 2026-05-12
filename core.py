@@ -413,7 +413,7 @@ def load_data(uploaded_zip, uploaded_excel):
         value_AM = float(str(value_AM).replace(" ", "").replace(",", "."))
 
         curr2 = data[curr_mois]["sv"]
-        curr2 = curr2.iloc[[0, 11]].copy()
+        curr2 = _selectionner_lignes_sv_activite(curr2, f"SV {curr_mois}")
         col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
         col_htp_br   = [c for c in curr2.columns if "HTP"   in c and "Montant BR" in c][0]
         curr2 = curr2.rename(columns={
@@ -491,6 +491,22 @@ def _calc_jours_valo(csv_file) -> float:
     return float(df["NBJV_GMT"].sum() + df["NBJV_GMTH"].sum())
 
 
+def _selectionner_lignes_sv_activite(sv_df, contexte="SV"):
+    if "Type d'activité" not in sv_df.columns:
+        raise ValueError(f"❌ Colonne 'Type d'activité' introuvable dans le {contexte}")
+
+    types = sv_df["Type d'activité"].astype(str).str.lower()
+    ligne_transmise = sv_df[types.str.contains("transmise", na=False)].head(1)
+    ligne_valorisee = sv_df[types.str.contains("valoris", na=False)].head(1)
+
+    if ligne_transmise.empty or ligne_valorisee.empty:
+        raise ValueError(
+            f"❌ Lignes 'Activité transmise' / 'Activité valorisée' introuvables dans le {contexte}"
+        )
+
+    return pd.concat([ligne_transmise, ligne_valorisee]).copy()
+
+
 def load_data_brut(uploaded_zip, uploaded_csv):
     """
     Identique à load_data() mais retourne uniquement les colonnes BRUTES,
@@ -548,7 +564,7 @@ def load_data_brut(uploaded_zip, uploaded_csv):
         value_AM = float(str(value_AM).replace(" ", "").replace(",", "."))
 
         curr2        = data[curr_mois]["sv"]
-        curr2        = curr2.iloc[[0, 11]].copy()
+        curr2        = _selectionner_lignes_sv_activite(curr2, f"SV {curr_mois}")
         col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
         col_htp_br   = [c for c in curr2.columns if "HTP"   in c and "Montant BR" in c][0]
         curr2        = curr2.rename(columns={
@@ -727,7 +743,7 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12=None):
         raise ValueError(f"❌ Erreur lecture SV M12 : {e}")
 
     # Lignes Activité transmise + Activité valorisée
-    curr2 = curr2.iloc[[0, 11]].copy()
+    curr2 = _selectionner_lignes_sv_activite(curr2, "SV M12")
 
     col_ssrha_br = [
         c for c in curr2.columns
