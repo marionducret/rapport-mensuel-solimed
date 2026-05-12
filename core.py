@@ -19,6 +19,7 @@ import tempfile
 import io
 import os
 import csv
+import unicodedata
 from PIL import Image
 import textwrap
 from matplotlib import font_manager
@@ -482,8 +483,19 @@ def _calc_jours_valo(csv_file) -> float:
         on neutralise NBJV_GMT (mis à 0) mais on conserve NBJV_GMTH
       - Retourne la somme NBJV_GMT + NBJV_GMTH
     """
+    def normaliser_nom_colonne(col):
+        col = unicodedata.normalize("NFKD", str(col)).encode("ascii", "ignore").decode()
+        return re.sub(r"[^A-Z0-9]", "", col.upper())
+
+    aliases = {
+        "HOSP": "HOSP",
+        "NBJVGMT": "NBJV_GMT",
+        "MNTBRGMT": "MNT_BR_GMT",
+        "NBJVGMTH": "NBJV_GMTH",
+    }
+    required_cols = set(aliases.values())
+
     raw = csv_file.read()
-    required_cols = {"HOSP", "NBJV_GMT", "MNT_BR_GMT", "NBJV_GMTH"}
     last_error = None
     df = None
     for encoding in ("utf-8", "utf-8-sig", "cp1252", "latin1"):
@@ -495,19 +507,29 @@ def _calc_jours_valo(csv_file) -> float:
 
         for sep in (";", "\t", ","):
             try:
-                reader = csv.reader(io.StringIO(text), delimiter=sep)
-                header = next(reader)
+                rows_csv = list(csv.reader(io.StringIO(text), delimiter=sep))
             except (csv.Error, StopIteration) as e:
                 last_error = e
                 continue
 
-            header = [col.strip() for col in header]
-            if not required_cols.issubset(header):
+            header_index = None
+            index = {}
+            for i, row in enumerate(rows_csv[:50]):
+                normalized = [normaliser_nom_colonne(col) for col in row]
+                index = {
+                    aliases[col]: pos
+                    for pos, col in enumerate(normalized)
+                    if col in aliases
+                }
+                if required_cols.issubset(index):
+                    header_index = i
+                    break
+
+            if header_index is None:
                 continue
 
-            index = {col: header.index(col) for col in required_cols}
             rows = []
-            for row in reader:
+            for row in rows_csv[header_index + 1:]:
                 if not row:
                     continue
                 if len(row) <= max(index.values()):
@@ -527,7 +549,14 @@ def _calc_jours_valo(csv_file) -> float:
         )
 
     for col in ["NBJV_GMT", "MNT_BR_GMT", "NBJV_GMTH"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+        df[col] = pd.to_numeric(
+            df[col]
+            .astype(str)
+            .str.replace(" ", "", regex=False)
+            .str.replace("\u00a0", "", regex=False)
+            .str.replace(",", ".", regex=False),
+            errors="coerce",
+        )
     df = df[df["HOSP"] == "C"].copy()
     masque_exclusion = (df["NBJV_GMT"] == 90) & (
         df["MNT_BR_GMT"].isna() | (df["MNT_BR_GMT"] == 0)
