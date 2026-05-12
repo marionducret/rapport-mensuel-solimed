@@ -412,7 +412,7 @@ def load_data(uploaded_zip, uploaded_excel):
             curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
             "Montant AM",
         ].iloc[0]
-        value_AM = float(str(value_AM).replace(" ", "").replace(",", "."))
+        value_AM = _valeur_numerique(value_AM)
 
         curr2 = data[curr_mois]["sv"]
         curr2 = _selectionner_lignes_sv_activite(curr2, f"SV {curr_mois}")
@@ -581,6 +581,16 @@ def _selectionner_lignes_sv_activite(sv_df, contexte="SV"):
     return pd.concat([ligne_transmise, ligne_valorisee]).copy()
 
 
+def _valeur_numerique(val):
+    return pd.to_numeric(
+        str(val)
+        .replace(" ", "")
+        .replace("\u00a0", "")
+        .replace(",", "."),
+        errors="coerce",
+    )
+
+
 def _convertir_colonnes_brutes_en_numerique(df):
     df = df.copy()
     for col in df.columns:
@@ -651,7 +661,7 @@ def load_data_brut(uploaded_zip, uploaded_csv):
             curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
             "Montant AM",
         ].iloc[0]
-        value_AM = float(str(value_AM).replace(" ", "").replace(",", "."))
+        value_AM = _valeur_numerique(value_AM)
 
         curr2        = data[curr_mois]["sv"]
         curr2        = _selectionner_lignes_sv_activite(curr2, f"SV {curr_mois}")
