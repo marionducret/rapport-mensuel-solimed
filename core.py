@@ -481,7 +481,17 @@ def _calc_jours_valo(csv_file) -> float:
         on neutralise NBJV_GMT (mis à 0) mais on conserve NBJV_GMTH
       - Retourne la somme NBJV_GMT + NBJV_GMTH
     """
-    df = pd.read_csv(csv_file, sep=None, engine="python")
+    raw = csv_file.read()
+    last_error = None
+    for encoding in ("utf-8", "utf-8-sig", "cp1252", "latin1"):
+        try:
+            df = pd.read_csv(io.BytesIO(raw), sep=None, engine="python", encoding=encoding)
+            break
+        except UnicodeDecodeError as e:
+            last_error = e
+    else:
+        raise ValueError(f"❌ Impossible de lire le CSV VisualValo : encodage non reconnu ({last_error})")
+
     for col in ["NBJV_GMT", "MNT_BR_GMT", "NBJV_GMTH"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     df = df[df["HOSP"] == "C"].copy()
