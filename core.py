@@ -1055,7 +1055,7 @@ PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
 COMMENT_SMALL_MAX_CHARS = 95
-COMMENT_BIG_MAX_CHARS = 70
+COMMENT_BIG_MAX_CHARS = 65
 
 # Position du début du texte dans chaque bloc commentaire.
 COMMENT_SMALL_TEXT_X = 0.025
