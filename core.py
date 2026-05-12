@@ -981,6 +981,7 @@ def _style_ax(ax):
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuelle=None):
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]    
     y_vals = evol_df[col].reset_index(drop=True)
+    x = np.arange(len(x_vals))
 
     if y_vals.dropna().empty:
         ax.text(
@@ -1000,7 +1001,10 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
         ax.set_xticklabels(x_vals)
         return
 
-    ax.plot(x_vals, y_vals, linewidth=2.5, color=VERT,
+    y_dispo = y_vals.dropna()
+    x_dispo = x[y_dispo.index]
+
+    ax.plot(x_dispo, y_dispo, linewidth=2.5, color=VERT,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
     moyenne = y_vals.mean()
     ax.axhline(moyenne, color=GRIS, linestyle="--", linewidth=1.5,
@@ -1011,6 +1015,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
     ax.set_title(title, pad=25, fontproperties=barlow_bold, color=VERT_TEXT)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
+    ax.set_xticks(x)
     ax.set_xticklabels(x_vals)
     annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
 
@@ -1739,12 +1744,13 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
 
     series = evol_df[col].dropna()
 
-    if len(series) < 2:
-        return "Données insuffisantes pour analyse."
-
     debut = series.iloc[0]
-    precedent = series.iloc[-2]
     fin = series.iloc[-1]
+    precedent = (
+        evol_df[col].iloc[-2]
+        if len(evol_df[col]) >= 2 and not pd.isna(evol_df[col].iloc[-2])
+        else None
+    )
 
     def _sens(delta):
         if delta > 0:
@@ -1798,19 +1804,30 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
             return f"{format_fr(abs(val))}séj"
         return format_fr(abs(val))
 
-    delta_precedent = fin - precedent
-    sens_precedent = _sens(delta_precedent)
+    delta_precedent = fin - precedent if precedent is not None else None
+    sens_precedent = _sens(delta_precedent) if delta_precedent is not None else None
+
+    def _ligne_comparaison(ecart_txt):
+        if delta_precedent is None:
+            return None
+        return (
+            f"{titre} : on observe une {sens_precedent} de {ecart_txt} "
+            "par rapport à la période précédente."
+        )
+
+    def _avec_ligne_comparaison(lignes):
+        return [ligne for ligne in lignes if ligne]
 
     if "taux" in col:
-        ecart_txt = f"{abs(delta_precedent):.1f}%"
-        return "\n".join([
-            f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
+        ecart_txt = f"{abs(delta_precedent):.1f}%" if delta_precedent is not None else None
+        return "\n".join(_avec_ligne_comparaison([
+            _ligne_comparaison(ecart_txt),
             f"La moyenne observée est de {_format_moyenne(series.mean())}.",
             _tendance_globale(series),
-        ])
+        ]))
 
     if "recette_BR_moy_jour_cumule" in col:
-        ecart_txt = f"{format_fr(abs(delta_precedent))}€"
+        ecart_txt = f"{format_fr(abs(delta_precedent))}€" if delta_precedent is not None else None
         moy_txt = f"La moyenne observée est de {_format_moyenne(series.mean())}"
         moy_prec = _get_moy_annuelle_for_col(moy_annuelle, col)
         if moy_prec is not None and not pd.isna(moy_prec) and moy_prec != 0:
@@ -1829,19 +1846,19 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         else:
             moy_txt += " et la moyenne de l'année précédente n'est pas disponible."
 
-        return "\n\n".join([
-            f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
+        return "\n\n".join(_avec_ligne_comparaison([
+            _ligne_comparaison(ecart_txt),
             moy_txt,
             _tendance_globale(series),
-        ])
+        ]))
 
-    ecart_txt = _format_ecart_activite(delta_precedent)
+    ecart_txt = _format_ecart_activite(delta_precedent) if delta_precedent is not None else None
 
-    return "\n".join([
-        f"{titre} : on observe une {sens_precedent} de {ecart_txt} par rapport à la période précédente.",
+    return "\n".join(_avec_ligne_comparaison([
+        _ligne_comparaison(ecart_txt),
         f"La moyenne observée est de {_format_moyenne(series.mean())}.",
         _tendance_globale(series),
-    ])
+    ]))
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
