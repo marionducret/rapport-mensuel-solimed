@@ -447,6 +447,7 @@ def load_data(uploaded_zip, uploaded_excel):
             "montantAM_transmis_HC",
             "montantAM_valorise_HC",
         ]
+        df_month = _convertir_colonnes_brutes_en_numerique(df_month)
         jours_valo_HC = valo_excel[valo_excel["mois"] == curr_mois]["jours_valo"].values[0]
         df_month["jour_valo_HC"] = jours_valo_HC
         evol_rows.append(df_month)
@@ -505,6 +506,22 @@ def _selectionner_lignes_sv_activite(sv_df, contexte="SV"):
         )
 
     return pd.concat([ligne_transmise, ligne_valorisee]).copy()
+
+
+def _convertir_colonnes_brutes_en_numerique(df):
+    df = df.copy()
+    for col in df.columns:
+        if col == "Mois":
+            continue
+        df[col] = pd.to_numeric(
+            df[col]
+            .astype(str)
+            .str.replace(" ", "", regex=False)
+            .str.replace("\u00a0", "", regex=False)
+            .str.replace(",", ".", regex=False),
+            errors="coerce",
+        )
+    return df
 
 
 def load_data_brut(uploaded_zip, uploaded_csv):
@@ -598,6 +615,7 @@ def load_data_brut(uploaded_zip, uploaded_csv):
             "montantAM_transmis_HC",
             "montantAM_valorise_HC",
         ]
+        df_month = _convertir_colonnes_brutes_en_numerique(df_month)
         df_month["jour_valo_HC"] = jours_valo_mois
         evol_rows.append(df_month)
 
