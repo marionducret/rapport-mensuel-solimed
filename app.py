@@ -112,6 +112,30 @@ def github_ecrire_etablissements(etabs, sha=None):
         json=payload
     ).raise_for_status()
 
+def sauvegarder_historique_github(brut_df, etab_id, nom_etab, nom_etab_simple, periode):
+    _, sha_actuel = github_lire_parquet(etab_id)
+    github_ecrire_parquet(
+        brut_df,
+        sha_actuel,
+        etab_id,
+        f"historique: {periode} — {nom_etab}"
+    )
+
+    etabs, sha_etabs = github_lire_etablissements()
+
+    nouvel_etab = {
+        "etab_id": etab_id,
+        "nom_etab": nom_etab_simple,
+        "slug": slug_etab(etab_id),
+    }
+
+    if not any(e["slug"] == nouvel_etab["slug"] for e in etabs):
+        etabs.append(nouvel_etab)
+        github_ecrire_etablissements(etabs, sha_etabs)
+        lister_etabs_github.clear()
+
+    recuperer_historique.clear()
+
 @st.cache_data(show_spinner="Récupération des établissements enregistrés…", ttl=60)
 def lister_etabs_github():
     etabs, _ = github_lire_etablissements()
@@ -364,6 +388,30 @@ st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
 st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  SAUVEGARDE RAPIDE GITHUB
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.subheader("📤 Sauvegarde")
+
+if st.button("💾 Sauvegarder uniquement l'historique"):
+    historique_sauvegarde = False
+    with st.spinner("Sauvegarde de l'historique sur GitHub…"):
+        try:
+            sauvegarder_historique_github(
+                brut_complet,
+                ETAB_ID,
+                NOM_ETAB,
+                NOM_ETAB_SIMPLE,
+                PERIODE
+            )
+            st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
+            historique_sauvegarde = True
+        except Exception as e:
+            st.error(f"❌ Erreur sauvegarde GitHub : {e}")
+    if historique_sauvegarde:
+        st.stop()
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  GRAPHES + COMMENTAIRES
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -386,7 +434,7 @@ for theme, graphe_label, fig, plots in figures:
 #  GÉNÉRATION PDF + SAUVEGARDE GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.subheader("📤 Export")
+st.subheader("📄 Export PDF")
 
 if st.button("📄 Générer le PDF et sauvegarder l'historique"):
 
@@ -403,29 +451,14 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
 
     with st.spinner("Sauvegarde de l'historique sur GitHub…"):
         try:
-            _, sha_actuel = github_lire_parquet(ETAB_ID)
-            github_ecrire_parquet(
+            sauvegarder_historique_github(
                 brut_complet,
-                sha_actuel,
                 ETAB_ID,
-                f"historique: {PERIODE} — {NOM_ETAB}"
+                NOM_ETAB,
+                NOM_ETAB_SIMPLE,
+                PERIODE
             )
-
-            etabs, sha_etabs = github_lire_etablissements()
-
-            nouvel_etab = {
-                "etab_id": ETAB_ID,
-                "nom_etab": NOM_ETAB_SIMPLE,
-                "slug": slug_etab(ETAB_ID),
-            }
-
-            if not any(e["slug"] == nouvel_etab["slug"] for e in etabs):
-                etabs.append(nouvel_etab)
-                github_ecrire_etablissements(etabs, sha_etabs)
-                lister_etabs_github.clear()
-
             st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
-            recuperer_historique.clear()
 
         except Exception as e:
             st.error(f"❌ Erreur sauvegarde GitHub : {e}")
