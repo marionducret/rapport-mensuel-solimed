@@ -35,6 +35,12 @@ def slug_etab(texte):
     texte = re.sub(r"[^a-z0-9]+", "_", texte)
     return texte.strip("_")
 
+def nom_fichier_rapport(nom_etab, periode_code):
+    mois = periode_code.split("_")[-1]
+    nom = unicodedata.normalize("NFKD", nom_etab).encode("ascii", "ignore").decode()
+    nom = re.sub(r"[^A-Za-z0-9]+", "_", nom).strip("_")
+    return f"rapport_mensuel_{nom}_{mois}.pdf"
+
 def extraire_nom_etab(etab_id):
     """
     Format attendu : 690000000_LB Monchy
@@ -427,6 +433,6 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
     st.download_button(
         label="⬇️ Télécharger le rapport PDF",
         data=pdf_bytes,
-        file_name=f"rapport_mensuel_{NOM_ETAB}_{PERIODE.replace(' → ', '_')}.pdf",
+        file_name=nom_fichier_rapport(NOM_ETAB_SIMPLE, dernier_mois_injecte),
         mime="application/pdf",
     )
