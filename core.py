@@ -1763,7 +1763,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         vals = vals.astype(float).reset_index(drop=True)
         if len(vals) < 3:
             delta = vals.iloc[-1] - vals.iloc[0]
-            return f"une {_sens(delta)}"
+            return f"Les indicateurs montrent une {_sens(delta)} depuis la première période."
 
         x = np.arange(len(vals))
         pente = np.polyfit(x, vals, 1)[0]
