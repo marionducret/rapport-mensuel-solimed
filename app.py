@@ -396,7 +396,7 @@ evol_df    = core.recalculer_derives(brut_complet)
 mois_tries = sorted(evol_df["Mois"].unique(), key=month_key)
 
 st.success(f"✅ Données prêtes — **{NOM_ETAB}** · {PERIODE}")
-st.caption(f"Mois dans le rapport : {' · '.join(mois_tries)}")
+st.caption(f"Périodes dans le rapport : {' · '.join(mois_tries)}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SAUVEGARDE RAPIDE GITHUB
