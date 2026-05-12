@@ -704,7 +704,7 @@ def recalculer_derives(brut_df):
 #  MOYENNES ANNÉE PRÉCÉDENTE
 # ══════════════════════════════════════════════════════════════════════════════
 
-def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
+def load_annee_precedente(uploaded_zip, uploaded_csv_m12=None):
    
     tmp = tempfile.TemporaryDirectory()
     tmp_path = Path(tmp.name)
@@ -773,20 +773,21 @@ def load_annee_precedente(uploaded_zip, uploaded_csv_m12):
     if ligne_valorisee.empty:
         raise ValueError("❌ Ligne 'Activité valorisée' introuvable dans le SV M12")
 
-    montantBR_valorise_HC = float(
-        ligne_valorisee["SSRHA en HC - Montant BR"].iloc[0]
-    )
+    moyennes = {}
 
-    # ── VisualValo M12 cumulé : jours valorisés HC ───────────────────
-    jours_valo_HC = _calc_jours_valo(uploaded_csv_m12)
+    if uploaded_csv_m12 is not None:
+        montantBR_valorise_HC = float(
+            ligne_valorisee["SSRHA en HC - Montant BR"].iloc[0]
+        )
 
-    if jours_valo_HC == 0 or pd.isna(jours_valo_HC):
-        raise ValueError("❌ Nombre de jours valorisés nul ou invalide dans le VisualValo M12")
+        # ── VisualValo M12 cumulé : jours valorisés HC ───────────────────
+        jours_valo_HC = _calc_jours_valo(uploaded_csv_m12)
 
-    # ── Moyenne annuelle par jour HC ─────────────────────────────────
-    moyennes = {
-        "recette_BR_moy_jour": float(montantBR_valorise_HC / jours_valo_HC)
-    }
+        if jours_valo_HC == 0 or pd.isna(jours_valo_HC):
+            raise ValueError("❌ Nombre de jours valorisés nul ou invalide dans le VisualValo M12")
+
+        # ── Moyenne annuelle par jour HC ─────────────────────────────────
+        moyennes["recette_BR_moy_jour"] = float(montantBR_valorise_HC / jours_valo_HC)
 
     if {
         "Journées en HTP - Montant BR",

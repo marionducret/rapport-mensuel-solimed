@@ -231,6 +231,19 @@ def recuperer_moy_annuelle(nom_etab):
     except Exception as e:
         return None, None
 
+def message_moy_annuelle(moy_dict, prefixe="✅ Moyenne sauvegardée", annee="2025"):
+    fragments = []
+    suffixe_annee = f" ({annee})" if annee else ""
+    if moy_dict.get("recette_BR_moy_jour") is not None:
+        fragments.append(
+            f"BR/jour HC{suffixe_annee} = {moy_dict['recette_BR_moy_jour']:,.0f} €"
+        )
+    if moy_dict.get("recette_BR_moy_jour_HTP") is not None:
+        fragments.append(
+            f"BR/jour HTP{suffixe_annee} = {moy_dict['recette_BR_moy_jour_HTP']:,.0f} €"
+        )
+    return f"{prefixe} : {' · '.join(fragments)}" if fragments else None
+
 hist_brut_df, hist_sha    = recuperer_historique(ETAB_ID)
 moy_annuelle, moy_sha     = recuperer_moy_annuelle(ETAB_ID)
 
@@ -251,54 +264,52 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
     st.caption(
         "Uploadez le ZIP contenant tous les dossiers mois de l'année passée. "
         "À faire une seule fois par établissement. "
-        "Pas besoin du fichier CSV VisualValo."
+        "Le CSV VisualValo M12 est nécessaire pour calculer les jours valorisés HC."
     )
     uploaded_zip_annee = st.file_uploader(
         "📁 ZIP année précédente (M12 2025)",
         type=["zip"],
         key="zip_annee",
     )
-    uploaded_csv_annee = st.file_uploader(
-        "📊 VisualValoSejours M12 année précédente",
-        type=["csv"],
-        key="csv_annee",
-    )
+    sans_valo_annee = st.checkbox("Je n'ai pas le VisualValo M12 année précédente")
+    uploaded_csv_annee = None
+    if not sans_valo_annee:
+        uploaded_csv_annee = st.file_uploader(
+            "📊 VisualValoSejours M12 année précédente",
+            type=["csv"],
+            key="csv_annee",
+        )
 
-    if uploaded_zip_annee is not None and uploaded_csv_annee is not None:
+    if uploaded_zip_annee is not None and (sans_valo_annee or uploaded_csv_annee is not None):
         if st.button("⚙️ Calculer et sauvegarder la moyenne"):
             with st.spinner("Calcul de la moyenne…"):
                 try:
+                    csv_annee_bytes = (
+                        None
+                        if sans_valo_annee
+                        else io.BytesIO(uploaded_csv_annee.read())
+                    )
                     nouvelles_moy = core.load_annee_precedente(
                         io.BytesIO(uploaded_zip_annee.read()),
-                        io.BytesIO(uploaded_csv_annee.read()))
-                    _, sha_actuel = github_lire_moy(ETAB_ID)
-                    github_ecrire_moy(nouvelles_moy, sha_actuel, ETAB_ID)
-                    moy_annuelle = nouvelles_moy
-                    recuperer_moy_annuelle.clear()
-                    msg_moy = (
-                        f"✅ Moyenne sauvegardée : "
-                        f"BR/jour HC (2025) = {nouvelles_moy['recette_BR_moy_jour']:,.0f} €"
-                    )
-                    if nouvelles_moy.get("recette_BR_moy_jour_HTP") is not None:
-                        msg_moy += (
-                            f" · BR/jour HTP (2025) = "
-                            f"{nouvelles_moy['recette_BR_moy_jour_HTP']:,.0f} €"
-                        )
-                    st.success(
-                        msg_moy
-                    )
+                        csv_annee_bytes)
+                    if not nouvelles_moy:
+                        st.info("ℹ️ Aucune moyenne à sauvegarder : VisualValo absent et aucune activité HTP valorisée détectée.")
+                    else:
+                        _, sha_actuel = github_lire_moy(ETAB_ID)
+                        github_ecrire_moy(nouvelles_moy, sha_actuel, ETAB_ID)
+                        moy_annuelle = nouvelles_moy
+                        recuperer_moy_annuelle.clear()
+                        st.success(message_moy_annuelle(nouvelles_moy))
                 except Exception as e:
                     st.error(f"❌ Erreur : {e}")
     elif moy_annuelle is not None:
-        msg_moy = (
-            f"✅ Moyenne déjà enregistrée : "
-            f"BR/jour HC = {moy_annuelle['recette_BR_moy_jour']:,.0f} €"
+        msg_moy = message_moy_annuelle(
+            moy_annuelle,
+            prefixe="✅ Moyenne déjà enregistrée",
+            annee=None
         )
-        if moy_annuelle.get("recette_BR_moy_jour_HTP") is not None:
-            msg_moy += f" · BR/jour HTP = {moy_annuelle['recette_BR_moy_jour_HTP']:,.0f} €"
-        st.success(
-            msg_moy
-        )
+        if msg_moy:
+            st.success(msg_moy)
     
 # ══════════════════════════════════════════════════════════════════════════════
 #  UPLOADS MOIS COURANT
