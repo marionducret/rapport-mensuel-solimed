@@ -1271,15 +1271,15 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
     def _badge(val, objectif):
         try:
             if objectif is None or objectif <= 0:
-                return "Objectif à définir", GRIS_TEXTE
+                return "Objectif mensuel à définir", GRIS_TEXTE
 
             val = float(val)
 
             if val >= objectif:
-                return f"✓ Objectif atteint ({format_fr(objectif)} €)", VERT_KPI
+                return f"✓ Objectif mensuel atteint ({format_fr(objectif)} €)", VERT_KPI
 
             pct = (1 - val / objectif) * 100
-            return f"✗ -{pct:.1f}% de l'objectif ({format_fr(objectif)} €)", ROUGE
+            return f"✗ -{pct:.1f}% de l'objectif mensuel ({format_fr(objectif)} €)", ROUGE
 
         except Exception:
             return None, None
