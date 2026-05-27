@@ -154,8 +154,7 @@ THEMES = {
     "HC ": {
         "plots": [
             {
-                "type": "single_hlines",
-                "objectif": None,
+                "type": "multi",
                 "series": [
                     (
                         "jours_valorises_mois_HC",
