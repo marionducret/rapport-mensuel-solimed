@@ -943,7 +943,7 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
         ax.text(
             0.5,
             0.5,
-            "Données non disponibles",
+            "Données non disponibles sans fichier VisualValo",
             ha="center",
             va="center",
             transform=ax.transAxes,
