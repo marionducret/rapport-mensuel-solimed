@@ -394,15 +394,12 @@ def load_data(uploaded_zip, uploaded_excel):
 
     evol_rows = []
     for curr_mois in sorted(data.keys(), key=_month_key):
-        curr = data[curr_mois]["raev"]
-        value_AM = curr.loc[
-            curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
-            "Montant AM",
-        ].iloc[0]
-        value_AM = _valeur_numerique(value_AM)
-
         curr2 = data[curr_mois]["sv"]
         curr2 = _selectionner_lignes_sv_activite(curr2, f"SV {curr_mois}")
+        curr2 = curr2.drop(
+            columns=[c for c in curr2.columns if "Montant AM" in c],
+            errors="ignore",
+        )
         col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
         col_htp_br   = [c for c in curr2.columns if "HTP"   in c and "Montant BR" in c][0]
         curr2 = curr2.rename(columns={
@@ -416,10 +413,6 @@ def load_data(uploaded_zip, uploaded_excel):
                 .str.replace(",", ".", regex=False)
             )
             curr2[col] = pd.to_numeric(curr2[col], errors="coerce")
-        curr2.loc[
-            curr2["Type d'activité"] == "Activité valorisée",
-            "SSRHA en HC - Montant AM",
-        ] = value_AM
         curr2["Mois"] = curr_mois
 
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
@@ -433,8 +426,6 @@ def load_data(uploaded_zip, uploaded_excel):
             "effectif_valorise_HTP",
             "montantBR_transmis_HTP",
             "montantBR_valorise_HTP",
-            "montantAM_transmis_HC",
-            "montantAM_valorise_HC",
         ]
         df_month = _convertir_colonnes_brutes_en_numerique(df_month)
         jours_valo_HC = valo_excel[valo_excel["mois"] == curr_mois]["jours_valo"].values[0]
@@ -446,7 +437,6 @@ def load_data(uploaded_zip, uploaded_excel):
 
     evol_df = recalculer_derives(pd.concat(evol_rows).reset_index())
     evol_df["recette_BR_moy_mois"] = evol_df["montantBR_mois_HC"]
-    evol_df["recette_AM_moy_mois"] = evol_df["montantAM_mois_HC"]
 
     PERIODE = f"{evol_df['Mois'].iloc[0]} → {evol_df['Mois'].iloc[-1]}"
 
@@ -568,16 +558,6 @@ def _selectionner_lignes_sv_activite(sv_df, contexte="SV"):
     return pd.concat([ligne_transmise, ligne_valorisee]).copy()
 
 
-def _valeur_numerique(val):
-    return pd.to_numeric(
-        str(val)
-        .replace(" ", "")
-        .replace("\u00a0", "")
-        .replace(",", "."),
-        errors="coerce",
-    )
-
-
 def _convertir_colonnes_brutes_en_numerique(df):
     df = df.copy()
     for col in df.columns:
@@ -643,15 +623,12 @@ def load_data_brut(uploaded_zip, uploaded_csv):
 
     evol_rows = []
     for curr_mois in sorted(data.keys(), key=_month_key):
-        curr     = data[curr_mois]["raev"]
-        value_AM = curr.loc[
-            curr["Zone de valorisation"].str.contains("TOTAL activité valorisée"),
-            "Montant AM",
-        ].iloc[0]
-        value_AM = _valeur_numerique(value_AM)
-
         curr2        = data[curr_mois]["sv"]
         curr2        = _selectionner_lignes_sv_activite(curr2, f"SV {curr_mois}")
+        curr2        = curr2.drop(
+            columns=[c for c in curr2.columns if "Montant AM" in c],
+            errors="ignore",
+        )
         col_ssrha_br = [c for c in curr2.columns if "SSRHA" in c and "Montant BR" in c][0]
         col_htp_br   = [c for c in curr2.columns if "HTP"   in c and "Montant BR" in c][0]
         curr2        = curr2.rename(columns={
@@ -665,10 +642,6 @@ def load_data_brut(uploaded_zip, uploaded_csv):
                 .str.replace(",", ".", regex=False)
             )
             curr2[col] = pd.to_numeric(curr2[col], errors="coerce")
-        curr2.loc[
-            curr2["Type d'activité"] == "Activité valorisée",
-            "SSRHA en HC - Montant AM",
-        ] = value_AM
         curr2["Mois"] = curr_mois
 
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
@@ -682,8 +655,6 @@ def load_data_brut(uploaded_zip, uploaded_csv):
             "effectif_valorise_HTP",
             "montantBR_transmis_HTP",
             "montantBR_valorise_HTP",
-            "montantAM_transmis_HC",
-            "montantAM_valorise_HC",
         ]
         df_month = _convertir_colonnes_brutes_en_numerique(df_month)
         df_month["jour_valo_HC"] = jours_valo_mois
@@ -731,7 +702,6 @@ def recalculer_derives(brut_df):
     df["sejours_valorises_mois_HC"] = df["effectif_valorise_HC"].diff()
 
     df["montantBR_mois_HC"] = df["montantBR_valorise_HC"].diff()
-    df["montantAM_mois_HC"] = df["montantAM_valorise_HC"].diff()
     df["jours_valorises_mois_HC"] = df["jour_valo_HC"].diff()
 
     # HTP si présent
@@ -746,7 +716,6 @@ def recalculer_derives(brut_df):
     df.loc[first, "sejours_valorises_mois_HC"] = df.loc[first, "effectif_valorise_HC"]
 
     df.loc[first, "montantBR_mois_HC"] = df.loc[first, "montantBR_valorise_HC"]
-    df.loc[first, "montantAM_mois_HC"] = df.loc[first, "montantAM_valorise_HC"]
     df.loc[first, "jours_valorises_mois_HC"] = df.loc[first, "jour_valo_HC"]
 
     df.loc[first, "jours_transmis_mois_HTP"] = df.loc[first, "effectif_transmis_HTP"]
