@@ -126,14 +126,6 @@ KPI_CONFIG_HC = [
         "obj_BR_mois",
     ),
     (
-        "montantAM_valorise_HC",
-        "Recette AM cumulée",
-        "{:,.0f} €",
-        "montantAM_mois_HC",
-        "dont {:,.0f} € pour le mois supp.",
-        "obj_AM_mois",
-    ),
-    (
         "effectif_transmis_HC",
         "Séjours HC transmis cumulés",
         "{:,.0f}",
@@ -1127,12 +1119,10 @@ KPI_POS_ALL = {
 }
 
 KPI_POS_HC = {
-    "montantAM_valorise_HC":          (0.385, 0.430),
-    "recette_BR_cumule_total":        (0.615, 0.430),
-
-    "effectif_transmis_HC":           (0.275, 0.176),
-    "taux_valorisation_cumule_HC":    (0.500, 0.176),
-    "recette_BR_moy_jour_cumule_HC":  (0.725, 0.176),
+    "recette_BR_cumule_total":        (0.400, 0.430),
+    "effectif_transmis_HC":           (0.600, 0.430),
+    "taux_valorisation_cumule_HC":    (0.400, 0.176),
+    "recette_BR_moy_jour_cumule_HC":  (0.600, 0.176),
 }
 
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
