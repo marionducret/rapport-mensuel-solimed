@@ -274,6 +274,18 @@ hist_brut_df, hist_sha    = recuperer_historique(ETAB_ID)
 moy_annuelle, moy_sha     = recuperer_moy_annuelle(ETAB_ID)
 objectifs, obj_sha        = recuperer_objectifs(ETAB_ID)
 
+# Inconnu si pas d'historique : on affiche le champ HTP par défaut (sera ignoré
+# au rendu KPI si pas d'activité HTP dans le mois courant).
+hist_a_htp = True
+if hist_brut_df is not None:
+    hist_a_htp = bool(
+        hist_brut_df[["effectif_transmis_HTP", "effectif_valorise_HTP"]]
+        .fillna(0)
+        .to_numpy()
+        .sum()
+        > 0
+    )
+
 if hist_brut_df is not None:
     mois_connus = sorted(hist_brut_df["Mois"].unique(), key=month_key)
     st.info(f"📚 Historique **{NOM_ETAB}** — **{len(mois_connus)} mois** : {' · '.join(mois_connus)}")
@@ -353,7 +365,7 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
 
 with st.expander("🎯 Objectifs BR mensuels (facultatif)", expanded=objectifs is None):
     st.caption(
-        "Objectif de recette BR pour le mois supplémentaire, en € (HC et HTP). "
+        "Objectif de recette BR pour le mois supplémentaire, en €. "
         "Les badges « ✓ Objectif atteint » s'afficheront sur les KPI correspondants. "
         "Laisser à 0 pour ne pas afficher de badge."
     )
@@ -361,8 +373,27 @@ with st.expander("🎯 Objectifs BR mensuels (facultatif)", expanded=objectifs i
     obj_hc_init = float(objectifs.get("obj_BR_mois_HC", 0)) if objectifs else 0.0
     obj_htp_init = float(objectifs.get("obj_BR_mois_HTP", 0)) if objectifs else 0.0
 
-    col_obj_hc, col_obj_htp = st.columns(2)
-    with col_obj_hc:
+    if hist_a_htp:
+        col_obj_hc, col_obj_htp = st.columns(2)
+        with col_obj_hc:
+            obj_hc_input = st.number_input(
+                "Objectif BR mensuel HC (€)",
+                min_value=0.0,
+                value=obj_hc_init,
+                step=1000.0,
+                format="%.0f",
+                key="obj_BR_mois_HC_input",
+            )
+        with col_obj_htp:
+            obj_htp_input = st.number_input(
+                "Objectif BR mensuel HTP (€)",
+                min_value=0.0,
+                value=obj_htp_init,
+                step=1000.0,
+                format="%.0f",
+                key="obj_BR_mois_HTP_input",
+            )
+    else:
         obj_hc_input = st.number_input(
             "Objectif BR mensuel HC (€)",
             min_value=0.0,
@@ -371,15 +402,9 @@ with st.expander("🎯 Objectifs BR mensuels (facultatif)", expanded=objectifs i
             format="%.0f",
             key="obj_BR_mois_HC_input",
         )
-    with col_obj_htp:
-        obj_htp_input = st.number_input(
-            "Objectif BR mensuel HTP (€)",
-            min_value=0.0,
-            value=obj_htp_init,
-            step=1000.0,
-            format="%.0f",
-            key="obj_BR_mois_HTP_input",
-        )
+        # Conserve la valeur existante côté HTP plutôt que de l'écraser à 0
+        # si jamais un HTP avait été saisi par le passé.
+        obj_htp_input = obj_htp_init
 
     if st.button("💾 Sauvegarder les objectifs"):
         nouveaux_obj = {
