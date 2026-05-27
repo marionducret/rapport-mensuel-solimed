@@ -154,18 +154,15 @@ THEMES = {
     "HC ": {
         "plots": [
             {
-                "type": "multi",
+                "type": "single_hlines",
+                "objectif": None,
                 "series": [
                     (
-                        "sejours_valorises_mois_HC",
-                        "Séjours valorisés"
-                    ),
-                    (
-                        "sejours_transmis_mois_HC",
-                        "Séjours transmis"
+                        "jours_valorises_mois_HC",
+                        "Jours valorisés"
                     ),
                 ],
-                "title": "Activité : séjours supplémentaires par rapport à la période M-1",
+                "title": "Activité : jours supplémentaires par rapport à la période M-1",
             },
             {
                 "type": "bar",
