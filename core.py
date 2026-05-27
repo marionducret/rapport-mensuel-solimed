@@ -162,7 +162,7 @@ THEMES = {
                         "Jours valorisés"
                     ),
                 ],
-                "title": "Activité : jours supplémentaires par rapport à la période M-1",
+                "title": "Jours valorisés supplémentaires par rapport à M-1",
             },
             {
                 "type": "bar",
@@ -199,7 +199,7 @@ THEMES = {
                     ("jours_valorises_mois_HTP", "Jours valorisés"),
                     ("jours_transmis_mois_HTP", "Jours transmis"),
                 ],
-                "title": "Activité : jours supplémentaires par rapport à la période M-1",
+                "title": "Jours supplémentaires par rapport à la période M-1",
             },
             {
                 "type": "bar",
