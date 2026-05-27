@@ -1119,10 +1119,10 @@ KPI_POS_ALL = {
 }
 
 KPI_POS_HC = {
-    "recette_BR_cumule_total":        (0.375, 0.430),
-    "effectif_transmis_HC":           (0.625, 0.430),
-    "taux_valorisation_cumule_HC":    (0.375, 0.176),
-    "recette_BR_moy_jour_cumule_HC":  (0.625, 0.176),
+    "recette_BR_cumule_total":        (0.380, 0.430),
+    "effectif_transmis_HC":           (0.620, 0.430),
+    "taux_valorisation_cumule_HC":    (0.380, 0.176),
+    "recette_BR_moy_jour_cumule_HC":  (0.620, 0.176),
 }
 
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
