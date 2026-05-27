@@ -484,19 +484,28 @@ if hist_brut_df is not None:
 
 st.subheader("📂 Données à intégrer")
 
+if hist_brut_df is not None:
+    st.caption(
+        "💡 Tu peux laisser les uploads vides pour re-générer un PDF à partir "
+        "de l'historique existant uniquement (utile après une modif de mise en forme)."
+    )
+
 uploaded_zip = st.file_uploader("📁 ZIP du nouveau mois à ajouter", type=["zip"])
 sans_valo_periode = st.checkbox("Je n'ai pas le VisualValo de cette période")
 uploaded_csv = None
 if not sans_valo_periode:
     uploaded_csv = st.file_uploader("📊 Fichier CSV VisualValoSejours", type=["csv"])
 
-if not uploaded_zip:
-    st.warning("Veuillez uploader le fichier ZIP.")
-    st.stop()
+regen_only = uploaded_zip is None
 
-if not sans_valo_periode and not uploaded_csv:
-    st.warning("Veuillez uploader le fichier CSV VisualValoSejours ou cocher l'option sans VisualValo.")
-    st.stop()
+if regen_only:
+    if hist_brut_df is None:
+        st.warning("Veuillez uploader le fichier ZIP.")
+        st.stop()
+else:
+    if not sans_valo_periode and not uploaded_csv:
+        st.warning("Veuillez uploader le fichier CSV VisualValoSejours ou cocher l'option sans VisualValo.")
+        st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  CHARGEMENT + FUSION + RECALCUL
@@ -507,35 +516,44 @@ def charger_brut(zip_bytes, csv_bytes):
     csv_file = io.BytesIO(csv_bytes) if csv_bytes is not None else None
     return core.load_data_brut(io.BytesIO(zip_bytes), csv_file)
 
-try:
-    csv_bytes = None if sans_valo_periode else uploaded_csv.read()
-    nouveau = charger_brut(uploaded_zip.read(), csv_bytes)
-except Exception as e:
-    st.error(str(e))
-    st.stop()
-
-nouveau_brut_df = nouveau["brut_df"]
-
-dernier_mois_injecte = nouveau_brut_df["Mois"].iloc[0]
-PERIODE = libelle_periode_pmsi(dernier_mois_injecte)
-
-if hist_brut_df is not None:
-    mois_nouveaux = set(nouveau_brut_df["Mois"].unique())
-    mois_hist     = set(hist_brut_df["Mois"].unique())
-    doublons      = mois_nouveaux & mois_hist
-    if doublons:
-        st.warning(f"⚠️ Mois ignorés (déjà présents) : {', '.join(sorted(doublons, key=month_key))}")
-        nouveau_brut_df = nouveau_brut_df[~nouveau_brut_df["Mois"].isin(doublons)]
-    brut_complet = (
-        pd.concat([hist_brut_df, nouveau_brut_df], ignore_index=True)
-        if not nouveau_brut_df.empty else hist_brut_df
-    )
+if regen_only:
+    st.info("ℹ️ Re-génération depuis l'historique existant — aucun nouveau mois à intégrer.")
+    brut_complet = hist_brut_df.copy()
+    brut_complet = brut_complet.iloc[
+        brut_complet["Mois"].map(month_key).argsort()
+    ].reset_index(drop=True)
+    dernier_mois_injecte = brut_complet["Mois"].iloc[-1]
+    PERIODE = libelle_periode_pmsi(dernier_mois_injecte)
 else:
-    brut_complet = nouveau_brut_df
+    try:
+        csv_bytes = None if sans_valo_periode else uploaded_csv.read()
+        nouveau = charger_brut(uploaded_zip.read(), csv_bytes)
+    except Exception as e:
+        st.error(str(e))
+        st.stop()
 
-brut_complet = brut_complet.iloc[
-    brut_complet["Mois"].map(month_key).argsort()
-].reset_index(drop=True)
+    nouveau_brut_df = nouveau["brut_df"]
+
+    dernier_mois_injecte = nouveau_brut_df["Mois"].iloc[0]
+    PERIODE = libelle_periode_pmsi(dernier_mois_injecte)
+
+    if hist_brut_df is not None:
+        mois_nouveaux = set(nouveau_brut_df["Mois"].unique())
+        mois_hist     = set(hist_brut_df["Mois"].unique())
+        doublons      = mois_nouveaux & mois_hist
+        if doublons:
+            st.warning(f"⚠️ Mois ignorés (déjà présents) : {', '.join(sorted(doublons, key=month_key))}")
+            nouveau_brut_df = nouveau_brut_df[~nouveau_brut_df["Mois"].isin(doublons)]
+        brut_complet = (
+            pd.concat([hist_brut_df, nouveau_brut_df], ignore_index=True)
+            if not nouveau_brut_df.empty else hist_brut_df
+        )
+    else:
+        brut_complet = nouveau_brut_df
+
+    brut_complet = brut_complet.iloc[
+        brut_complet["Mois"].map(month_key).argsort()
+    ].reset_index(drop=True)
 
 #détecter HTP
 inclure_htp = (
@@ -553,7 +571,7 @@ if inclure_htp:
 else:
     st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
 
-if sans_valo_periode:
+if sans_valo_periode and not regen_only:
     st.warning(
         "VisualValo absent : les indicateurs utilisant les jours valorisés HC "
         "seront indiqués comme non disponibles pour cette période."
@@ -569,25 +587,26 @@ st.caption(f"Périodes dans le rapport : {' · '.join(mois_tries)}")
 #  SAUVEGARDE RAPIDE GITHUB
 # ══════════════════════════════════════════════════════════════════════════════
 
-st.subheader("📤 Sauvegarde")
+if not regen_only:
+    st.subheader("📤 Sauvegarde")
 
-if st.button("💾 Sauvegarder uniquement l'historique"):
-    historique_sauvegarde = False
-    with st.spinner("Sauvegarde de l'historique sur GitHub…"):
-        try:
-            sauvegarder_historique_github(
-                brut_complet,
-                ETAB_ID,
-                NOM_ETAB,
-                NOM_ETAB_SIMPLE,
-                PERIODE
-            )
-            st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
-            historique_sauvegarde = True
-        except Exception as e:
-            st.error(f"❌ Erreur sauvegarde GitHub : {e}")
-    if historique_sauvegarde:
-        st.stop()
+    if st.button("💾 Sauvegarder uniquement l'historique"):
+        historique_sauvegarde = False
+        with st.spinner("Sauvegarde de l'historique sur GitHub…"):
+            try:
+                sauvegarder_historique_github(
+                    brut_complet,
+                    ETAB_ID,
+                    NOM_ETAB,
+                    NOM_ETAB_SIMPLE,
+                    PERIODE
+                )
+                st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
+                historique_sauvegarde = True
+            except Exception as e:
+                st.error(f"❌ Erreur sauvegarde GitHub : {e}")
+        if historique_sauvegarde:
+            st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GRAPHES + COMMENTAIRES
@@ -614,7 +633,13 @@ for theme, graphe_label, fig, plots in figures:
 
 st.subheader("📄 Export PDF")
 
-if st.button("📄 Générer le PDF et sauvegarder l'historique"):
+bouton_pdf_label = (
+    "📄 Générer le PDF"
+    if regen_only
+    else "📄 Générer le PDF et sauvegarder l'historique"
+)
+
+if st.button(bouton_pdf_label):
 
     with st.spinner("Génération du PDF…"):
         pdf_bytes = core.generate_pdf(
@@ -628,19 +653,20 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
             objectifs=objectifs,
         )
 
-    with st.spinner("Sauvegarde de l'historique sur GitHub…"):
-        try:
-            sauvegarder_historique_github(
-                brut_complet,
-                ETAB_ID,
-                NOM_ETAB,
-                NOM_ETAB_SIMPLE,
-                PERIODE
-            )
-            st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
+    if not regen_only:
+        with st.spinner("Sauvegarde de l'historique sur GitHub…"):
+            try:
+                sauvegarder_historique_github(
+                    brut_complet,
+                    ETAB_ID,
+                    NOM_ETAB,
+                    NOM_ETAB_SIMPLE,
+                    PERIODE
+                )
+                st.success(f"✅ Historique **{NOM_ETAB}** mis à jour sur GitHub.")
 
-        except Exception as e:
-            st.error(f"❌ Erreur sauvegarde GitHub : {e}")
+            except Exception as e:
+                st.error(f"❌ Erreur sauvegarde GitHub : {e}")
 
     st.download_button(
         label="⬇️ Télécharger le rapport PDF",
