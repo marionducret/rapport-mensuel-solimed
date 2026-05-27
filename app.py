@@ -106,6 +106,24 @@ def github_ecrire_objectifs(obj_dict, sha, etab_id):
         payload["sha"] = sha
     requests.put(gh_url(f"data/objectifs_{slug}.json"), headers=GH_HEADERS, json=payload).raise_for_status()
 
+def github_supprimer_parquet(etab_id):
+    slug = slug_etab(etab_id)
+    r = requests.get(gh_url(f"data/historique_{slug}.parquet"), headers=GH_HEADERS)
+    if r.status_code == 404:
+        return False
+    r.raise_for_status()
+    sha = r.json()["sha"]
+    payload = {
+        "message": f"reset historique: {etab_id}",
+        "sha": sha,
+    }
+    requests.delete(
+        gh_url(f"data/historique_{slug}.parquet"),
+        headers=GH_HEADERS,
+        json=payload,
+    ).raise_for_status()
+    return True
+
 def github_lire_etablissements():
     r = requests.get(gh_url("data/etablissements.json"), headers=GH_HEADERS)
     if r.status_code == 404:
@@ -429,6 +447,36 @@ with st.expander("🎯 Objectifs BR mensuels (facultatif)", expanded=objectifs i
             "obj_BR_mois_HC": float(obj_hc_input),
             "obj_BR_mois_HTP": float(obj_htp_input),
         }
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ZONE À RISQUE — RÉINITIALISATION HISTORIQUE
+# ══════════════════════════════════════════════════════════════════════════════
+
+if hist_brut_df is not None:
+    with st.expander("⚠️ Réinitialiser l'historique (zone à risque)", expanded=False):
+        st.warning(
+            f"Cette action supprime **définitivement** le fichier d'historique de "
+            f"**{NOM_ETAB}** sur GitHub. Tu devras réuploader tous les mois ensuite. "
+            f"Les objectifs et la moyenne année précédente sont conservés."
+        )
+        confirm_reset = st.checkbox(
+            "Je comprends que cette action est irréversible",
+            key="confirm_reset_hist",
+        )
+        if st.button("🗑️ Réinitialiser l'historique", disabled=not confirm_reset):
+            try:
+                supprime = github_supprimer_parquet(ETAB_ID)
+                recuperer_historique.clear()
+                if supprime:
+                    st.success(
+                        f"✅ Historique de **{NOM_ETAB}** supprimé. "
+                        "Recharge la page pour repartir à zéro."
+                    )
+                else:
+                    st.info("ℹ️ Aucun historique à supprimer.")
+                st.stop()
+            except Exception as e:
+                st.error(f"❌ Erreur lors de la suppression : {e}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  UPLOADS MOIS COURANT
