@@ -87,6 +87,25 @@ def github_ecrire_moy(moy_dict, sha, etab_id):
         payload["sha"] = sha
     requests.put(gh_url(f"data/moy_annuelle_{slug}.json"), headers=GH_HEADERS, json=payload).raise_for_status()
 
+def github_lire_objectifs(etab_id):
+    slug = slug_etab(etab_id)
+    r = requests.get(gh_url(f"data/objectifs_{slug}.json"), headers=GH_HEADERS)
+    if r.status_code == 404:
+        return None, None
+    r.raise_for_status()
+    meta = r.json()
+    return json.loads(base64.b64decode(meta["content"])), meta["sha"]
+
+def github_ecrire_objectifs(obj_dict, sha, etab_id):
+    slug = slug_etab(etab_id)
+    payload = {
+        "message": f"objectifs: {etab_id}",
+        "content": base64.b64encode(json.dumps(obj_dict).encode()).decode(),
+    }
+    if sha:
+        payload["sha"] = sha
+    requests.put(gh_url(f"data/objectifs_{slug}.json"), headers=GH_HEADERS, json=payload).raise_for_status()
+
 def github_lire_etablissements():
     r = requests.get(gh_url("data/etablissements.json"), headers=GH_HEADERS)
     if r.status_code == 404:
@@ -231,6 +250,13 @@ def recuperer_moy_annuelle(nom_etab):
     except Exception as e:
         return None, None
 
+@st.cache_data(show_spinner="Récupération des objectifs…", ttl=60)
+def recuperer_objectifs(nom_etab):
+    try:
+        return github_lire_objectifs(nom_etab)
+    except Exception as e:
+        return None, None
+
 def message_moy_annuelle(moy_dict, prefixe="✅ Moyenne sauvegardée", annee="2025"):
     fragments = []
     suffixe_annee = f" ({annee})" if annee else ""
@@ -246,6 +272,7 @@ def message_moy_annuelle(moy_dict, prefixe="✅ Moyenne sauvegardée", annee="20
 
 hist_brut_df, hist_sha    = recuperer_historique(ETAB_ID)
 moy_annuelle, moy_sha     = recuperer_moy_annuelle(ETAB_ID)
+objectifs, obj_sha        = recuperer_objectifs(ETAB_ID)
 
 if hist_brut_df is not None:
     mois_connus = sorted(hist_brut_df["Mois"].unique(), key=month_key)
@@ -255,6 +282,15 @@ else:
 
 if moy_annuelle is not None:
     st.info("📊 Moyenne année précédente chargée depuis GitHub.")
+
+if objectifs is not None:
+    fragments_obj = []
+    if objectifs.get("obj_BR_mois_HC"):
+        fragments_obj.append(f"HC = {objectifs['obj_BR_mois_HC']:,.0f} €")
+    if objectifs.get("obj_BR_mois_HTP"):
+        fragments_obj.append(f"HTP = {objectifs['obj_BR_mois_HTP']:,.0f} €")
+    if fragments_obj:
+        st.info(f"🎯 Objectifs BR mensuels chargés : {' · '.join(fragments_obj)}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION OPTIONNELLE — MOYENNES ANNÉE PRÉCÉDENTE
@@ -310,7 +346,65 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
         )
         if msg_moy:
             st.success(msg_moy)
-    
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  SECTION OPTIONNELLE — OBJECTIFS BR MENSUELS
+# ══════════════════════════════════════════════════════════════════════════════
+
+with st.expander("🎯 Objectifs BR mensuels (facultatif)", expanded=objectifs is None):
+    st.caption(
+        "Objectif de recette BR pour le mois supplémentaire, en € (HC et HTP). "
+        "Les badges « ✓ Objectif atteint » s'afficheront sur les KPI correspondants. "
+        "Laisser à 0 pour ne pas afficher de badge."
+    )
+
+    obj_hc_init = float(objectifs.get("obj_BR_mois_HC", 0)) if objectifs else 0.0
+    obj_htp_init = float(objectifs.get("obj_BR_mois_HTP", 0)) if objectifs else 0.0
+
+    col_obj_hc, col_obj_htp = st.columns(2)
+    with col_obj_hc:
+        obj_hc_input = st.number_input(
+            "Objectif BR mensuel HC (€)",
+            min_value=0.0,
+            value=obj_hc_init,
+            step=1000.0,
+            format="%.0f",
+            key="obj_BR_mois_HC_input",
+        )
+    with col_obj_htp:
+        obj_htp_input = st.number_input(
+            "Objectif BR mensuel HTP (€)",
+            min_value=0.0,
+            value=obj_htp_init,
+            step=1000.0,
+            format="%.0f",
+            key="obj_BR_mois_HTP_input",
+        )
+
+    if st.button("💾 Sauvegarder les objectifs"):
+        nouveaux_obj = {
+            "obj_BR_mois_HC": float(obj_hc_input),
+            "obj_BR_mois_HTP": float(obj_htp_input),
+        }
+        try:
+            _, sha_actuel = github_lire_objectifs(ETAB_ID)
+            github_ecrire_objectifs(nouveaux_obj, sha_actuel, ETAB_ID)
+            objectifs = nouveaux_obj
+            recuperer_objectifs.clear()
+            st.success(
+                f"✅ Objectifs sauvegardés : HC = {nouveaux_obj['obj_BR_mois_HC']:,.0f} € · "
+                f"HTP = {nouveaux_obj['obj_BR_mois_HTP']:,.0f} €"
+            )
+        except Exception as e:
+            st.error(f"❌ Erreur sauvegarde objectifs : {e}")
+    else:
+        # Permet de prendre en compte les modifs dans la session courante
+        # même sans sauvegarder sur GitHub.
+        objectifs = {
+            "obj_BR_mois_HC": float(obj_hc_input),
+            "obj_BR_mois_HTP": float(obj_htp_input),
+        }
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  UPLOADS MOIS COURANT
 # ══════════════════════════════════════════════════════════════════════════════
@@ -457,7 +551,8 @@ if st.button("📄 Générer le PDF et sauvegarder l'historique"):
             PERIODE=PERIODE,
             custom_comments=comments,
             moy_annuelle=moy_annuelle,
-            inclure_htp=inclure_htp
+            inclure_htp=inclure_htp,
+            objectifs=objectifs,
         )
 
     with st.spinner("Sauvegarde de l'historique sur GitHub…"):

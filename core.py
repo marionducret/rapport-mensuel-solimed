@@ -43,28 +43,27 @@ CANVA_PAGE_HTP_PATH   = "design/page_graph_HTP_pays.png"
 AUTEUR = "Dr Nathalie DUCRET"
 DATE_RAPPORT = datetime.today().strftime("%d/%m/%Y")
 
-#à automatiser
-OBJECTIFS = {
-    "obj_AM_mois": 0,
-    "obj_BR_mois": 0
+OBJECTIFS_DEFAUT = {
+    "obj_BR_mois_HC": 0,
+    "obj_BR_mois_HTP": 0,
 }
 
 KPI_CONFIG = [
     (
-        "recette_BR_cumule_total",
-        "Recette BR cumulée",
+        "montantBR_valorise_HTP",
+        "Recette BR cumulée HTP",
         "{:,.0f} €",
-        "recette_BR_mois_total",
+        "montantBR_mois_HTP",
         "dont {:,.0f} € pour le mois supp.",
-        "obj_BR_mois",
+        "obj_BR_mois_HTP",
     ),
     (
-        "montantAM_valorise_HC",
-        "Recette AM cumulée",
+        "montantBR_valorise_HC",
+        "Recette BR cumulée HC",
         "{:,.0f} €",
-        "montantAM_mois_HC",
+        "montantBR_mois_HC",
         "dont {:,.0f} € pour le mois supp.",
-        "obj_AM_mois",
+        "obj_BR_mois_HC",
     ),
     (
         "effectif_transmis_HC",
@@ -123,7 +122,7 @@ KPI_CONFIG_HC = [
         "{:,.0f} €",
         "recette_BR_mois_total",
         "dont {:,.0f} € pour le mois supp.",
-        "obj_BR_mois",
+        "obj_BR_mois_HC",
     ),
     (
         "effectif_transmis_HC",
@@ -1107,12 +1106,12 @@ COVER_ETAB_X        = 0.500   # centré horizontalement
  
 # Grand bloc KPI (zone teal pointillée)
 KPI_POS_ALL = {
-    "montantAM_valorise_HC":           (0.145, 0.430),
+    "montantBR_valorise_HC":           (0.145, 0.430),
     "effectif_transmis_HC":            (0.405, 0.430),
     "taux_valorisation_cumule_HC":     (0.630, 0.430),
     "recette_BR_moy_jour_cumule_HC":   (0.855, 0.430),
 
-    "recette_BR_cumule_total":         (0.145, 0.176),
+    "montantBR_valorise_HTP":          (0.145, 0.176),
     "effectif_transmis_HTP":           (0.405, 0.176),
     "taux_valorisation_cumule_HTP":    (0.630, 0.176),
     "recette_BR_moy_jour_cumule_HTP":  (0.855, 0.176),
@@ -1186,7 +1185,8 @@ COMMENT_BIG_LINESPACING = 1.40
 #  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
 def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
-                          dernier, avant_dernier, evol_df, inclure_htp=True):
+                          dernier, avant_dernier, evol_df, inclure_htp=True,
+                          objectifs=None):
     """
     Page de garde avec background Canva + KPIs.
     Appelée uniquement depuis generate_pdf().
@@ -1377,9 +1377,10 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
         )
 
         # ── Objectif ─────────────────────────────────────────────────
-        if obj_key and OBJECTIFS.get(obj_key) is not None:
+        obj_dict = objectifs if objectifs is not None else OBJECTIFS_DEFAUT
+        if obj_key and obj_dict.get(obj_key) is not None:
             valeur_obj = val_mois if val_mois is not None else val_cumul
-            badge_txt, badge_col = _badge(valeur_obj, OBJECTIFS[obj_key])
+            badge_txt, badge_col = _badge(valeur_obj, obj_dict[obj_key])
 
             if badge_txt:
                 ax.text(
@@ -1538,7 +1539,7 @@ def _draw_subplot(ax, plot_list, evol_df, moy_annuelle):
         fmt = "{:.0f} €"
     else:
         fmt = "{:.0f}"
-    make_ax_hlines(ax, col, titre, OBJECTIFS.get(col), evol_df,
+    make_ax_hlines(ax, col, titre, OBJECTIFS_DEFAUT.get(col), evol_df,
                    fmt=fmt, moy_annuelle=moy)
  
  
@@ -1884,7 +1885,8 @@ def generate_all_figures(evol_df, moy_annuelle=None, inclure_htp=True):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
-                 custom_comments=None, moy_annuelle=None, inclure_htp=True):
+                 custom_comments=None, moy_annuelle=None, inclure_htp=True,
+                 objectifs=None):
    
     buf = io.BytesIO()
  
@@ -1901,7 +1903,8 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
             dernier=dernier,
             avant_dernier=avant_dernier,
             evol_df=evol_df,
-            inclure_htp=inclure_htp
+            inclure_htp=inclure_htp,
+            objectifs=objectifs,
         )
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
