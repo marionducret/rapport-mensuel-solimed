@@ -487,7 +487,7 @@ st.subheader("📂 Données à intégrer")
 if hist_brut_df is not None:
     st.caption(
         "💡 Tu peux laisser les uploads vides pour re-générer un PDF à partir "
-        "de l'historique existant uniquement (utile après une modif de mise en forme)."
+        "de l'historique existant uniquement."
     )
 
 uploaded_zip = st.file_uploader("📁 ZIP du nouveau mois à ajouter", type=["zip"])
