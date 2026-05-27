@@ -417,16 +417,7 @@ def load_data(uploaded_zip, uploaded_excel):
 
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
         df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
-        df_month.columns = [
-            "effectif_transmis_HC",
-            "effectif_valorise_HC",
-            "montantBR_transmis_HC",
-            "montantBR_valorise_HC",
-            "effectif_transmis_HTP",
-            "effectif_valorise_HTP",
-            "montantBR_transmis_HTP",
-            "montantBR_valorise_HTP",
-        ]
+        df_month = _renommer_colonnes_pivot(df_month)
         df_month = _convertir_colonnes_brutes_en_numerique(df_month)
         jours_valo_HC = valo_excel[valo_excel["mois"] == curr_mois]["jours_valo"].values[0]
         df_month["jour_valo_HC"] = jours_valo_HC
@@ -558,6 +549,46 @@ def _selectionner_lignes_sv_activite(sv_df, contexte="SV"):
     return pd.concat([ligne_transmise, ligne_valorisee]).copy()
 
 
+def _renommer_colonnes_pivot(df_pivote):
+    """
+    Renomme les colonnes issues du pivot SV (forme "<metric>_<Type d'activité>")
+    en clés stables, en se basant sur le contenu du nom plutôt que sur l'ordre
+    des colonnes — l'ordre des colonnes peut varier d'un établissement à l'autre.
+    """
+    renames = {}
+    for col in df_pivote.columns:
+        cl = col.lower()
+        is_hc       = "ssrha" in cl
+        is_htp      = "htp" in cl
+        is_effectif = "effectif" in cl
+        is_br       = "montant br" in cl
+        is_trans    = "transmise" in cl
+        is_valo     = "valoris" in cl
+
+        cible = None
+        if is_hc and is_effectif and is_trans:
+            cible = "effectif_transmis_HC"
+        elif is_hc and is_effectif and is_valo:
+            cible = "effectif_valorise_HC"
+        elif is_hc and is_br and is_trans:
+            cible = "montantBR_transmis_HC"
+        elif is_hc and is_br and is_valo:
+            cible = "montantBR_valorise_HC"
+        elif is_htp and is_effectif and is_trans:
+            cible = "effectif_transmis_HTP"
+        elif is_htp and is_effectif and is_valo:
+            cible = "effectif_valorise_HTP"
+        elif is_htp and is_br and is_trans:
+            cible = "montantBR_transmis_HTP"
+        elif is_htp and is_br and is_valo:
+            cible = "montantBR_valorise_HTP"
+
+        if cible:
+            renames[col] = cible
+
+    return df_pivote.rename(columns=renames)
+
+
 def _convertir_colonnes_brutes_en_numerique(df):
     df = df.copy()
     for col in df.columns:
@@ -646,16 +677,7 @@ def load_data_brut(uploaded_zip, uploaded_csv):
 
         df_month = curr2.pivot(index="Mois", columns="Type d'activité")
         df_month.columns = [f"{metric}_{act}" for metric, act in df_month.columns]
-        df_month.columns = [
-            "effectif_transmis_HC",
-            "effectif_valorise_HC",
-            "montantBR_transmis_HC",
-            "montantBR_valorise_HC",
-            "effectif_transmis_HTP",
-            "effectif_valorise_HTP",
-            "montantBR_transmis_HTP",
-            "montantBR_valorise_HTP",
-        ]
+        df_month = _renommer_colonnes_pivot(df_month)
         df_month = _convertir_colonnes_brutes_en_numerique(df_month)
         df_month["jour_valo_HC"] = jours_valo_mois
         evol_rows.append(df_month)
@@ -1030,6 +1052,26 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
 def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
     COLORS=[BLEU, BLEU_CLAIR]
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
+
+    toutes_vides = all(evol_df[col].dropna().empty for col, _ in plots)
+    if toutes_vides:
+        ax.text(
+            0.5,
+            0.5,
+            "Données non disponibles sans fichier VisualValo",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+            fontsize=13,
+            fontweight="bold",
+            color=GRIS_TEXTE,
+        )
+        ax.set_title(title, pad=25, fontproperties=barlow_bold, color=TEAL)
+        _style_ax(ax)
+        ax.set_xticks(range(len(x_vals)))
+        ax.set_xticklabels(x_vals)
+        return
+
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
         ax.plot(x_vals, y_vals, linewidth=2.5, color=COLORS[i % len(COLORS)],
