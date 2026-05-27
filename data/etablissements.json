@@ -48,5 +48,30 @@
     "etab_id": "070780234_le Château",
     "nom_etab": "le Château",
     "slug": "070780234_le_chateau"
+  },
+  {
+    "etab_id": "660010174_USSAP Perpignan",
+    "nom_etab": "USSAP Perpignan",
+    "slug": "660010174_ussap_perpignan"
+  },
+  {
+    "etab_id": "630000487_Notre Dame",
+    "nom_etab": "Notre Dame",
+    "slug": "630000487_notre_dame"
+  },
+  {
+    "etab_id": "110786324_USSAP Limoux",
+    "nom_etab": "USSAP Limoux",
+    "slug": "110786324_ussap_limoux"
+  },
+  {
+    "etab_id": "690041132_Médipôle",
+    "nom_etab": "Médipôle",
+    "slug": "690041132_medipole"
+  },
+  {
+    "etab_id": "600101943_LB Ollencourt",
+    "nom_etab": "LB Ollencourt",
+    "slug": "600101943_lb_ollencourt"
   }
 ]
