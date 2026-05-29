@@ -124,6 +124,38 @@ def github_supprimer_parquet(etab_id):
     ).raise_for_status()
     return True
 
+def _github_supprimer_fichier(path, message):
+    """Supprime un fichier sur GitHub. Tolère le 404 (déjà absent)."""
+    r = requests.get(gh_url(path), headers=GH_HEADERS)
+    if r.status_code == 404:
+        return False
+    r.raise_for_status()
+    sha = r.json()["sha"]
+    requests.delete(
+        gh_url(path),
+        headers=GH_HEADERS,
+        json={"message": message, "sha": sha},
+    ).raise_for_status()
+    return True
+
+def github_supprimer_etablissement(etab_id):
+    """
+    Suppression complète d'un établissement sur GitHub :
+    historique, moyenne année précédente, objectifs, ET entrée du registre
+    qui alimente le menu déroulant (data/etablissements.json).
+    """
+    slug = slug_etab(etab_id)
+    msg = f"suppression etab: {etab_id}"
+    _github_supprimer_fichier(f"data/historique_{slug}.parquet", msg)
+    _github_supprimer_fichier(f"data/moy_annuelle_{slug}.json", msg)
+    _github_supprimer_fichier(f"data/objectifs_{slug}.json", msg)
+
+    etabs, sha_etabs = github_lire_etablissements()
+    nouveaux = [e for e in etabs if e.get("slug") != slug]
+    if len(nouveaux) != len(etabs):
+        github_ecrire_etablissements(nouveaux, sha_etabs)
+    return nouveaux
+
 def github_lire_etablissements():
     r = requests.get(gh_url("data/etablissements.json"), headers=GH_HEADERS)
     if r.status_code == 404:
@@ -233,6 +265,26 @@ if mode_etab == "Établissement déjà enregistré":
 
     ETAB_ID = etab_selection["etab_id"]
     NOM_ETAB_SIMPLE = etab_selection["nom_etab"]
+
+    with st.expander("🗑️ Supprimer définitivement cet établissement", expanded=False):
+        st.warning(
+            f"Supprime **définitivement** « {ETAB_ID} » de GitHub : entrée du menu "
+            "déroulant, historique, moyenne année précédente et objectifs. "
+            "Action irréversible."
+        )
+        confirm_suppr = st.checkbox(
+            "Je confirme la suppression complète",
+            key="confirm_suppr_etab",
+        )
+        if st.button("🗑️ Supprimer l'établissement", disabled=not confirm_suppr):
+            try:
+                with st.spinner("Suppression sur GitHub…"):
+                    github_supprimer_etablissement(ETAB_ID)
+                    lister_etabs_github.clear()
+                st.success(f"✅ « {ETAB_ID} » supprimé. La liste se rafraîchit…")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Erreur lors de la suppression : {e}")
 
 else:
     ETAB_ID = st.text_input(
