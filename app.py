@@ -377,6 +377,57 @@ with st.expander("📅 Charger les données de l'année précédente (facultatif
         if msg_moy:
             st.success(msg_moy)
 
+    # ── Saisie manuelle (si pas de fichiers M12 pour calculer la moyenne) ──
+    st.divider()
+    st.markdown("**Ou saisir la moyenne manuellement**")
+    st.caption(
+        "Utile si tu n'as pas les fichiers M12 pour la calculer. "
+        "Saisis le BR moyen par jour de l'année précédente. "
+        "Laisse une valeur à 0 pour ne pas l'enregistrer."
+    )
+
+    moy_hc_init = float(moy_annuelle.get("recette_BR_moy_jour", 0)) if moy_annuelle else 0.0
+    moy_htp_init = float(moy_annuelle.get("recette_BR_moy_jour_HTP", 0)) if moy_annuelle else 0.0
+
+    col_moy_hc, col_moy_htp = st.columns(2)
+    with col_moy_hc:
+        moy_hc_input = st.number_input(
+            "BR moyen / jour HC (€)",
+            min_value=0.0,
+            value=moy_hc_init,
+            step=10.0,
+            format="%.0f",
+            key="moy_jour_HC_input",
+        )
+    with col_moy_htp:
+        moy_htp_input = st.number_input(
+            "BR moyen / jour HTP (€)",
+            min_value=0.0,
+            value=moy_htp_init,
+            step=10.0,
+            format="%.0f",
+            key="moy_jour_HTP_input",
+        )
+
+    if st.button("💾 Enregistrer la moyenne saisie", key="save_moy_manuelle"):
+        moy_manuelle = {}
+        if moy_hc_input > 0:
+            moy_manuelle["recette_BR_moy_jour"] = float(moy_hc_input)
+        if moy_htp_input > 0:
+            moy_manuelle["recette_BR_moy_jour_HTP"] = float(moy_htp_input)
+
+        if not moy_manuelle:
+            st.info("ℹ️ Renseigne au moins une valeur (> 0) avant d'enregistrer.")
+        else:
+            try:
+                _, sha_actuel = github_lire_moy(ETAB_ID)
+                github_ecrire_moy(moy_manuelle, sha_actuel, ETAB_ID)
+                moy_annuelle = moy_manuelle
+                recuperer_moy_annuelle.clear()
+                st.success(message_moy_annuelle(moy_manuelle))
+            except Exception as e:
+                st.error(f"❌ Erreur : {e}")
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION OPTIONNELLE — OBJECTIFS BR MENSUELS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -625,6 +676,11 @@ if not regen_only:
 comments = {}
 figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle, mode=mode)
 
+# Signature des données : change dès que la liste des mois change.
+# Intégrée à la key des text_area pour éviter que Streamlit ne conserve
+# d'anciens commentaires (calculés sur une période précédente) en session.
+data_version = "-".join(mois_tries)
+
 for theme, graphe_label, fig, plots in figures:
     st.subheader(f"{theme.strip()} — {graphe_label}")
     col1, col2 = st.columns([2, 1])
@@ -633,7 +689,10 @@ for theme, graphe_label, fig, plots in figures:
     with col2:
         for col, titre in plots:
             auto_comment = core.generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle)
-            edited = st.text_area(titre, value=auto_comment, height=120, key=f"{theme}_{col}")
+            edited = st.text_area(
+                titre, value=auto_comment, height=120,
+                key=f"{theme}_{col}_{data_version}",
+            )
             comments[(theme, col)] = edited
     st.divider()
 
