@@ -968,7 +968,9 @@ barlow_bold = font_manager.FontProperties(
 #         else:
 #             label.set_color(GRIS_TEXTE)
 
-def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}"):
+def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}", dy=12):
+    # dy > 0 : étiquette au-dessus du point ; dy < 0 : en dessous.
+    # Permet de séparer les étiquettes de deux séries qui se superposent.
     y_vals = y_vals.reset_index(drop=True)
     for i, val in enumerate(y_vals):
         try:
@@ -984,11 +986,11 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}"):
         ax.annotate(
             label,
             xy=(i, v),
-            xytext=(0, 12),
+            xytext=(0, dy),
             textcoords="offset points",
             fontsize=9, fontweight="bold",
             color=GRIS_TEXTE,
-            ha="center", va="bottom",
+            ha="center", va="bottom" if dy >= 0 else "top",
             bbox=dict(boxstyle="round,pad=0.2", facecolor=BLANC,
                       edgecolor=GRIS_TEXTE, alpha=0.85, linewidth=0.7),
         )
@@ -1129,12 +1131,17 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
         ax.set_xticklabels(x_vals)
         return
 
+    n_series = len(plots)
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
         ax.plot(x_vals, y_vals, linewidth=2.5, color=COLORS[i % len(COLORS)],
                 marker="o", markersize=5, markerfacecolor="white",
                 markeredgewidth=2, label=label)
-        annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt)
+        # 2 séries (valorisé ≤ transmis) : étiquettes séparées pour rester
+        # lisibles même quand les valeurs sont proches ou égales — la dernière
+        # série (transmis, la plus haute) au-dessus, les autres en dessous.
+        dy = 12 if (n_series < 2 or i == n_series - 1) else -14
+        annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt, dy=dy)
         if moy_annuelle is not None and col in moy_annuelle and moy_annuelle[col] is not None:
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
