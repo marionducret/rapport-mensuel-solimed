@@ -810,6 +810,20 @@ def recalculer_derives(brut_df):
         df["montantBR_valorise_HTP"] / df["effectif_valorise_HTP"]
     )
 
+    # ── HTP : neutraliser les mois sans montant valorisé ──────────────
+    # Cas rencontré en HTP seule où un mois (souvent M1) n'a aucune recette :
+    # la division montant/effectif donne NaN (0/0) ou inf (montant/0), ce qui
+    # cassait l'échelle du graphe de recette moyenne. On force la recette à 0
+    # pour ces mois — le point s'affiche bien à 0 sur la courbe, mais ces 0
+    # sont exclus de la "moyenne période" (cf. make_ax_hlines) pour ne pas
+    # tirer la moyenne des mois suivants vers le bas.
+    for col_recette, col_montant in [
+        ("recette_BR_moy_jour_cumule_HTP", "montantBR_valorise_HTP"),
+        ("recette_BR_moy_jour_mois_HTP", "montantBR_mois_HTP"),
+    ]:
+        df[col_recette] = df[col_recette].replace([np.inf, -np.inf], np.nan)
+        df.loc[df[col_montant].fillna(0) == 0, col_recette] = 0
+
     # Compatibilité avec l'ancien nom utilisé par quelques écrans et commentaires.
     df["taux_valorisation_HTP"] = df["taux_valorisation_cumule_HTP"]
     df["recette_BR_moy_jour_HTP"] = df["recette_BR_moy_jour_cumule_HTP"]
@@ -1020,7 +1034,9 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
 
     ax.plot(x_dispo, y_dispo, linewidth=2.5, color=VERT,
             marker="o", markersize=5, markerfacecolor="white", markeredgewidth=2)
-    moyenne = y_vals.mean()
+    # Les mois forcés à 0 (sans montant) ne comptent pas dans la moyenne période.
+    non_nuls = y_vals[y_vals != 0].dropna()
+    moyenne = non_nuls.mean() if not non_nuls.empty else 0.0
     ax.axhline(moyenne, color=GRIS, linestyle="--", linewidth=1.5,
                label=f"Moyenne période ({format_fr(moyenne)})")
     if moy_annuelle is not None:
@@ -1883,11 +1899,15 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         ]))
 
     if "recette_BR_moy_jour_cumule" in col:
+        # Cohérent avec le graphe : les mois forcés à 0 (sans montant) sont
+        # exclus de la moyenne observée.
+        series_moy = series[series != 0]
+        moy_obs = series_moy.mean() if not series_moy.empty else series.mean()
         ecart_txt = f"{format_fr(abs(delta_precedent))}€" if delta_precedent is not None else None
-        moy_txt = f"La moyenne observée est de {_format_moyenne(series.mean())}"
+        moy_txt = f"La moyenne observée est de {_format_moyenne(moy_obs)}"
         moy_prec = _get_moy_annuelle_for_col(moy_annuelle, col)
         if moy_prec is not None and not pd.isna(moy_prec) and moy_prec != 0:
-            ecart_pct = (series.mean() - moy_prec) / abs(moy_prec) * 100
+            ecart_pct = (moy_obs - moy_prec) / abs(moy_prec) * 100
             sens_annee = (
                 "supérieure"
                 if ecart_pct > 0
