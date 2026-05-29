@@ -555,19 +555,29 @@ else:
         brut_complet["Mois"].map(month_key).argsort()
     ].reset_index(drop=True)
 
-#détecter HTP
-inclure_htp = (
-    brut_complet[
-        ["effectif_transmis_HTP", "effectif_valorise_HTP"]
-    ]
-    .fillna(0)
-    .sum()
-    .sum()
+#détecter le périmètre d'activité (HC / HTP) → mode du rapport
+a_htp = (
+    brut_complet[["effectif_transmis_HTP", "effectif_valorise_HTP"]]
+    .fillna(0).sum().sum()
+    > 0
+)
+a_hc = (
+    brut_complet[["effectif_transmis_HC", "effectif_valorise_HC"]]
+    .fillna(0).sum().sum()
     > 0
 )
 
-if inclure_htp:
-    st.info("✅ Activité HTP détectée : le rapport inclura les pages HC et HTP.")
+if a_hc and a_htp:
+    mode = "all"
+elif a_htp:
+    mode = "htp"
+else:
+    mode = "hc"
+
+if mode == "all":
+    st.info("✅ Activité HC et HTP détectée : le rapport inclura les pages HC et HTP.")
+elif mode == "htp":
+    st.info("✅ Activité HTP uniquement détectée : le rapport sera généré en HTP uniquement.")
 else:
     st.info("ℹ️ Aucune activité HTP détectée : le rapport sera généré en HC uniquement.")
 
@@ -613,7 +623,7 @@ if not regen_only:
 # ══════════════════════════════════════════════════════════════════════════════
 
 comments = {}
-figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle, inclure_htp=inclure_htp)
+figures  = core.generate_all_figures(evol_df, moy_annuelle=moy_annuelle, mode=mode)
 
 for theme, graphe_label, fig, plots in figures:
     st.subheader(f"{theme.strip()} — {graphe_label}")
@@ -649,7 +659,7 @@ if st.button(bouton_pdf_label):
             PERIODE=PERIODE,
             custom_comments=comments,
             moy_annuelle=moy_annuelle,
-            inclure_htp=inclure_htp,
+            mode=mode,
             objectifs=objectifs,
         )
 

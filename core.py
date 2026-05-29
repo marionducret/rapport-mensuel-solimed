@@ -37,6 +37,7 @@ OUTPUT_PDF  = "rapport_mensuel.pdf"
 # Déposer les PNG exportés depuis Canva dans ./design/
 CANVA_COVER_PATH = "design/page_garde_all.png"
 CANVA_COVER_PATH_HC = "design/page_garde_HC.png"
+CANVA_COVER_PATH_HTP = "design/page_garde_HTP.png"
 CANVA_PAGE_HC_PATH  = "design/page_graph_HC_pays.png"
 CANVA_PAGE_HTP_PATH   = "design/page_graph_HTP_pays.png"
 
@@ -145,6 +146,41 @@ KPI_CONFIG_HC = [
         "Taux de valorisation cumulé",
         "{:.1f} %",
         "taux_valorisation_mois_HC",
+        "{:.1f} % pour le mois supp.",
+        None,
+    ),
+]
+
+KPI_CONFIG_HTP = [
+    (
+        "recette_BR_cumule_total",
+        "Recette BR cumulée",
+        "{:,.0f} €",
+        "recette_BR_mois_total",
+        "dont {:,.0f} € pour le mois supp.",
+        "obj_BR_mois_HTP",
+    ),
+    (
+        "effectif_transmis_HTP",
+        "Jours HTP transmis cumulés",
+        "{:,.0f}",
+        "jours_transmis_mois_HTP",
+        "dont {:,.0f} pour le mois supp.",
+        None,
+    ),
+    (
+        "recette_BR_moy_jour_cumule_HTP",
+        "BR moyen / jour cumulé",
+        "{:,.0f} €",
+        "recette_BR_moy_jour_mois_HTP",
+        "{:,.0f} € pour le mois supp.",
+        None,
+    ),
+    (
+        "taux_valorisation_cumule_HTP",
+        "Taux de valorisation cumulé",
+        "{:.1f} %",
+        "taux_valorisation_mois_HTP",
         "{:.1f} % pour le mois supp.",
         None,
     ),
@@ -1131,6 +1167,15 @@ KPI_POS_HC = {
     "recette_BR_moy_jour_cumule_HC":  (0.620, 0.176),
 }
 
+# HTP seule : coordonnées strictement identiques à KPI_POS_HC, seules les
+# données changent (colonnes HTP au lieu de HC).
+KPI_POS_HTP = {
+    "recette_BR_cumule_total":         (0.380, 0.430),
+    "effectif_transmis_HTP":           (0.620, 0.430),
+    "taux_valorisation_cumule_HTP":    (0.380, 0.176),
+    "recette_BR_moy_jour_cumule_HTP":  (0.620, 0.176),
+}
+
 # ── Pages graphiques HC / HTP ─────────────────────────────────────────────────
 # Graphique haut gauche
 GRAPH_LEFT_L  = 0.060 #horizontal
@@ -1192,16 +1237,24 @@ COMMENT_BIG_LINESPACING = 1.40
 #  PAGE DE GARDE 
 # ══════════════════════════════════════════════════════════════════════════════
 def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
-                          dernier, avant_dernier, evol_df, inclure_htp=True,
+                          dernier, avant_dernier, evol_df, mode="all",
                           objectifs=None):
     """
     Page de garde avec background Canva + KPIs.
+    `mode` ∈ {"all", "hc", "htp"} :
+      - "all" : activité HC + HTP (page de garde all, 8 KPI)
+      - "hc"  : HC seule (page de garde HC, 4 KPI centrés)
+      - "htp" : HTP seule (page de garde HTP, 4 KPI aux mêmes coordonnées que HC)
     Appelée uniquement depuis generate_pdf().
     """
     fig = plt.figure(figsize=(17, 12))
     fig.patch.set_facecolor(BLANC)
 
-    cover_path = CANVA_COVER_PATH if inclure_htp else CANVA_COVER_PATH_HC
+    cover_path = {
+        "all": CANVA_COVER_PATH,
+        "hc":  CANVA_COVER_PATH_HC,
+        "htp": CANVA_COVER_PATH_HTP,
+    }[mode]
     bg = _charger_bg(cover_path)
     if bg is not None:
         _appliquer_bg(fig, bg)
@@ -1291,8 +1344,8 @@ def _page_garde_with_data(nom_etablissement, nom_etablissement_layout, periode,
         except Exception:
             return None, None
 
-    kpi_config = KPI_CONFIG if inclure_htp else KPI_CONFIG_HC
-    kpi_pos = KPI_POS_ALL if inclure_htp else KPI_POS_HC
+    kpi_config = {"all": KPI_CONFIG, "hc": KPI_CONFIG_HC, "htp": KPI_CONFIG_HTP}[mode]
+    kpi_pos    = {"all": KPI_POS_ALL, "hc": KPI_POS_HC, "htp": KPI_POS_HTP}[mode]
 
     # ── KPIs ─────────────────────────────────────────────────────────
     for item in kpi_config:
@@ -1862,11 +1915,14 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
 #  GÉNÉRATION DES FIGURES POUR STREAMLIT
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generate_all_figures(evol_df, moy_annuelle=None, inclure_htp=True):
+def generate_all_figures(evol_df, moy_annuelle=None, mode="all"):
     figures = []
     for theme, config in THEMES.items():
-        if not inclure_htp and "HTP" in theme.upper():
-                    continue
+        is_htp = "HTP" in theme.upper()   # True sur le thème HTP, False sur le thème HC
+        if mode == "hc" and is_htp:        # HC seule  → on saute la page HTP
+            continue
+        if mode == "htp" and not is_htp:   # HTP seule → on saute la page HC
+            continue
 
         for i, subplot in enumerate(config["plots"]):
             fig, ax = plt.subplots(figsize=(10, 5))
@@ -1892,7 +1948,7 @@ def generate_all_figures(evol_df, moy_annuelle=None, inclure_htp=True):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
-                 custom_comments=None, moy_annuelle=None, inclure_htp=True,
+                 custom_comments=None, moy_annuelle=None, mode="all",
                  objectifs=None):
    
     buf = io.BytesIO()
@@ -1910,32 +1966,34 @@ def generate_pdf(evol_df, NOM_ETAB, NOM_ETAB_LAYOUT, PERIODE,
             dernier=dernier,
             avant_dernier=avant_dernier,
             evol_df=evol_df,
-            inclure_htp=inclure_htp,
+            mode=mode,
             objectifs=objectifs,
         )
         pdf.savefig(fig, bbox_inches="tight")
         plt.close(fig)
- 
+
         # ── Pages graphiques ─────────────────────────────────────────
         page_num = 2
         for theme, config in THEMES.items():
-            if not inclure_htp and "HTP" in theme.upper():
+            is_htp = "HTP" in theme.upper()   # True sur le thème HTP, False sur le thème HC
+            if mode == "hc" and is_htp:        # HC seule  → on saute la page HTP
                 continue
-            else:
-                fig = plt.figure(figsize=(17, 12))
-                fig.patch.set_facecolor(BLANC)
-                canva_path = CANVA_PAGE_HTP_PATH if "HTP" in theme.upper() \
-                            else CANVA_PAGE_HC_PATH
-                _build_page_graphique(
-                    fig, theme, config, evol_df,
-                    page_num, NOM_ETAB, PERIODE,
-                    canva_path=canva_path,
-                    custom_comments=custom_comments,
-                    moy_annuelle=moy_annuelle,
-                )
-                pdf.savefig(fig, bbox_inches="tight")
-                plt.close(fig)
-                page_num += 1
+            if mode == "htp" and not is_htp:   # HTP seule → on saute la page HC
+                continue
+
+            fig = plt.figure(figsize=(17, 12))
+            fig.patch.set_facecolor(BLANC)
+            canva_path = CANVA_PAGE_HTP_PATH if is_htp else CANVA_PAGE_HC_PATH
+            _build_page_graphique(
+                fig, theme, config, evol_df,
+                page_num, NOM_ETAB, PERIODE,
+                canva_path=canva_path,
+                custom_comments=custom_comments,
+                moy_annuelle=moy_annuelle,
+            )
+            pdf.savefig(fig, bbox_inches="tight")
+            plt.close(fig)
+            page_num += 1
  
         # Métadonnées
         d = pdf.infodict()
