@@ -257,9 +257,13 @@ else:
     st.info("Aucun établissement enregistré pour le moment. Saisissez le premier établissement.")
 
 if mode_etab == "Établissement déjà enregistré":
+    etabs_tries = sorted(
+        etabs_connus,
+        key=lambda e: e.get("nom_etab", "").lower(),
+    )
     etab_selection = st.selectbox(
         "Sélectionner un établissement",
-        options=etabs_connus,
+        options=etabs_tries,
         format_func=lambda x: x["etab_id"]
     )
 
