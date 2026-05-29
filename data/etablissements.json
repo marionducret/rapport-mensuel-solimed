@@ -45,11 +45,6 @@
     "slug": "600100796_lb_chaumont"
   },
   {
-    "etab_id": "070780234_le Château",
-    "nom_etab": "le Château",
-    "slug": "070780234_le_chateau"
-  },
-  {
     "etab_id": "660010174_USSAP Perpignan",
     "nom_etab": "USSAP Perpignan",
     "slug": "660010174_ussap_perpignan"
@@ -78,5 +73,15 @@
     "etab_id": "600013981_LB_Monchy",
     "nom_etab": "LB_Monchy",
     "slug": "600013981_lb_monchy"
+  },
+  {
+    "etab_id": "070780234_Le Château",
+    "nom_etab": "Le Château",
+    "slug": "070780234_le_chateau"
+  },
+  {
+    "etab_id": "630780526_Ceyrat",
+    "nom_etab": "Ceyrat",
+    "slug": "630780526_ceyrat"
   }
 ]
