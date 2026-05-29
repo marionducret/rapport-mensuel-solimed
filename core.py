@@ -1041,6 +1041,10 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     n_series = len(series)
     width = 0.35 if n_series == 2 else 0.55
 
+    # À partir de 4 périodes les barres se resserrent : on passe les labels
+    # de pourcentage à la verticale pour qu'ils restent lisibles.
+    rotation = 90 if len(x_vals) >= 4 else 0
+
     for i, (col, label) in enumerate(series):
         y_vals = evol_df[col].reset_index(drop=True)
 
@@ -1070,6 +1074,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
                 label_txt,
                 ha="center",
                 va="center" if label_inside else "bottom",
+                rotation=rotation,
                 fontsize=11,
                 fontweight="bold",
                 color=BLANC if label_inside else GRIS_TEXTE,
