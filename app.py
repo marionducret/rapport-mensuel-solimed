@@ -36,10 +36,12 @@ def slug_etab(texte):
     return texte.strip("_")
 
 def nom_fichier_rapport(nom_etab, periode_code):
-    mois = periode_code.split("_")[-1]
+    parts = periode_code.split("_")
+    mois = parts[-1]
+    annee = parts[0] if len(parts) > 1 else ""
     nom = unicodedata.normalize("NFKD", nom_etab).encode("ascii", "ignore").decode()
     nom = re.sub(r"[^A-Za-z0-9]+", "_", nom).strip("_")
-    return f"rapport_mensuel_{nom}_{mois}.pdf"
+    return f"rapport_mensuel_PMSI_SMR_{nom}_{mois}_{annee}.pdf"
 
 def extraire_nom_etab(etab_id):
     """
