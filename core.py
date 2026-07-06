@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec
+from matplotlib.ticker import FuncFormatter
 import matplotlib.backends.backend_pdf as pdf_backend
 from pathlib import Path
 from datetime import datetime
@@ -1045,6 +1046,8 @@ def _style_ax(ax):
     ax.tick_params(axis="y", labelsize=12, colors=GRIS_TEXTE)
     ax.yaxis.set_tick_params(pad=5)
     ax.xaxis.set_tick_params(pad=5)
+    # Axe Y compact (27000 -> 27k, 1 600 000 -> 1,6M) et sans notation offset "1e6".
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: format_court(v)))
 
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuelle=None):
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]    
@@ -1270,19 +1273,18 @@ COMMENT_SMALL_R_H = 0.140
 
 # Ligne du bas divisée en 3 : graphe bas-gauche + graphe bas-milieu + commentaire partagé
 # Graphique bas À GAUCHE (recette supplémentaire du mois)
-GRAPH_BL_L = 0.055
+GRAPH_BL_L = 0.050
 GRAPH_BL_B = 0.090
-GRAPH_BL_W = 0.350
+GRAPH_BL_W = 0.290
 GRAPH_BL_H = 0.235
 
 # Graphique bas AU MILIEU (recette BR moyenne journalière cumulée)
-GRAPH_BM_L = 0.410
+GRAPH_BM_L = 0.360
 GRAPH_BM_B = 0.090
-GRAPH_BM_W = 0.350
+GRAPH_BM_W = 0.290
 GRAPH_BM_H = 0.235
 
 # Commentaire bas À DROITE (partagé par les 2 graphes de recette)
-# Bloc étroit pour laisser un maximum de place aux 2 graphes.
 COMMENT_BIG_L = 0.765
 COMMENT_BIG_B = 0.135
 COMMENT_BIG_W = 0.240
@@ -1754,16 +1756,18 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
     txt = ax.text(
         text_x, text_y,
         lignes,
-        fontsize=fontsize, 
-        color="#374151", 
+        fontsize=fontsize,
+        color="#374151",
         va="top",
         transform=ax.transAxes,
         linespacing=linespacing,
-        clip_on=True,
+        clip_on=not is_big_block,
         wrap=False,
         zorder=10,
     )
-    txt.set_clip_path(ax.patch)
+    # Bloc partagé des recettes : pas de rognage pour que tout le texte s'affiche.
+    if not is_big_block:
+        txt.set_clip_path(ax.patch)
  
 # ══════════════════════════════════════════════════════════════════════════════
 #  WRAPPERS HC / HTP  (rétrocompatibilité)
