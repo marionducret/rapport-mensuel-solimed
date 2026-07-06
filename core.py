@@ -303,6 +303,23 @@ def format_fr(val, fmt="{:,.0f}"):
     except Exception:
         return "N/A"
 
+def format_court(val):
+    """Format compact pour les légendes : 27000 -> 27k, 1 250 000 -> 1,3M."""
+    try:
+        v = float(val)
+    except (TypeError, ValueError):
+        return "N/A"
+    if np.isnan(v):
+        return "N/A"
+    a = abs(v)
+    if a >= 1_000_000:
+        s = f"{v / 1_000_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+        return f"{s}M"
+    if a >= 1_000:
+        s = f"{v / 1_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+        return f"{s}k"
+    return format_fr(v)
+
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
 #  UTILITAIRES CANVA
@@ -1061,10 +1078,10 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
     non_nuls = y_vals[y_vals != 0].dropna()
     moyenne = non_nuls.mean() if not non_nuls.empty else 0.0
     ax.axhline(moyenne, color=GRIS, linestyle="--", linewidth=1.5,
-               label=f"Moyenne période ({format_fr(moyenne)})")
+               label=f"Moyenne période ({format_court(moyenne)})")
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=VERT_KPI, linestyle="--", linewidth=1.5,
-                   label=f"Moy. année préc. ({format_fr(moy_annuelle)})")
+                   label=f"Moy. année préc. ({format_court(moy_annuelle)})")
     ax.set_title(title, pad=25, fontproperties=barlow_bold, color=VERT_TEXT)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
@@ -1130,7 +1147,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
 def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
-                  colors=None, title_color=TEAL):
+                  colors=None, title_color=TEAL, legend_frame=True):
     COLORS = colors if colors else [BLEU, BLEU_CLAIR]
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
 
@@ -1167,9 +1184,9 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
         if moy_annuelle is not None and col in moy_annuelle and moy_annuelle[col] is not None:
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
-                       label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
+                       label=f"Moy. année préc. — {label.split(' ')[0]} ({format_court(moy_annuelle[col])})")
     ax.set_title(title, pad=25, fontproperties=barlow_bold, color=title_color)
-    ax.legend(fontsize=10, framealpha=0.9, loc="best")
+    ax.legend(fontsize=10, framealpha=0.9, loc="best", frameon=legend_frame)
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -1639,6 +1656,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
                 fmt=subplot.get("fmt", "{: .0f}"),
                 colors=palette,
                 title_color=VERT_TEXT if is_vert else TEAL,
+                legend_frame=not is_vert,
                 moy_annuelle=moy_annuelle,
             )
 
@@ -2024,6 +2042,7 @@ def generate_all_figures(evol_df, moy_annuelle=None, mode="all"):
                               fmt=subplot.get("fmt", "{: .0f}"),
                               colors=palette,
                               title_color=VERT_TEXT if is_vert else TEAL,
+                              legend_frame=not is_vert,
                               moy_annuelle=moy_annuelle)
 
             fig.tight_layout()
