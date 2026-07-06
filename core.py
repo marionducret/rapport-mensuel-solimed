@@ -1129,7 +1129,8 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.set_xticklabels(x_vals)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
-def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None, colors=None):
+def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
+                  colors=None, title_color=TEAL):
     COLORS = colors if colors else [BLEU, BLEU_CLAIR]
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
 
@@ -1146,7 +1147,7 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None, c
             fontweight="bold",
             color=GRIS_TEXTE,
         )
-        ax.set_title(title, pad=25, fontproperties=barlow_bold, color=TEAL)
+        ax.set_title(title, pad=25, fontproperties=barlow_bold, color=title_color)
         _style_ax(ax)
         ax.set_xticks(range(len(x_vals)))
         ax.set_xticklabels(x_vals)
@@ -1167,7 +1168,7 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None, c
             ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({moy_annuelle[col]:,.0f})")
-    ax.set_title(title, pad=25, fontproperties=barlow_bold, color=TEAL)
+    ax.set_title(title, pad=25, fontproperties=barlow_bold, color=title_color)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
@@ -1631,11 +1632,13 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
                 moy_annuelle=moy
             )
         elif t == "multi":
-            palette = [VERT, VERT_KPI] if subplot.get("palette") == "vert" else None
+            is_vert = subplot.get("palette") == "vert"
+            palette = [VERT, VERT_KPI] if is_vert else None
             make_ax_multi(
                 ax, series, title, evol_df,
                 fmt=subplot.get("fmt", "{: .0f}"),
                 colors=palette,
+                title_color=VERT_TEXT if is_vert else TEAL,
                 moy_annuelle=moy_annuelle,
             )
 
@@ -1647,7 +1650,8 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
     # Bas : recette supp (bas gauche) puis recette moy journalière (bas milieu)
     series_recettes = config["plots"][3]["series"] + config["plots"][2]["series"]
     _draw_comment(ax_cb, series_recettes, theme, evol_df,
-                  custom_comments, moy_annuelle=moy_annuelle, is_big_block=True)
+                  custom_comments, moy_annuelle=moy_annuelle, is_big_block=True,
+                  sep="\n")
 
     # ── Pied de page ─────────────────────────────────────────────────
     ax_n = fig.add_axes([0, 0, 1, 1], zorder=4)
@@ -1712,7 +1716,7 @@ def _standard_comment_for_axis(full_text, is_big_block=False):
 
 
 def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=12,
-                  moy_annuelle=None, is_big_block=False):
+                  moy_annuelle=None, is_big_block=False, sep="\n\n"):
     ax.axis("off")
     ax.patch.set_facecolor("#F9FAFB")
     ax.patch.set_alpha(0.95)
@@ -1723,7 +1727,7 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
-    full_text = "\n\n".join(texts)
+    full_text = sep.join(texts)
     lignes, fontsize, linespacing, text_x, text_y = _standard_comment_for_axis(
         full_text,
         is_big_block=is_big_block,
@@ -2014,10 +2018,12 @@ def generate_all_figures(evol_df, moy_annuelle=None, mode="all"):
                 make_ax_hlines(ax, col, titre, subplot.get("objectif"),
                                evol_df, moy_annuelle=moy)
             elif t == "multi":
-                palette = [VERT, VERT_KPI] if subplot.get("palette") == "vert" else None
+                is_vert = subplot.get("palette") == "vert"
+                palette = [VERT, VERT_KPI] if is_vert else None
                 make_ax_multi(ax, series, theme, evol_df,
                               fmt=subplot.get("fmt", "{: .0f}"),
                               colors=palette,
+                              title_color=VERT_TEXT if is_vert else TEAL,
                               moy_annuelle=moy_annuelle)
 
             fig.tight_layout()
