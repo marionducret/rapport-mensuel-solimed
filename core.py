@@ -224,6 +224,18 @@ THEMES = {
                 ],
                 "title": "Recette BR moyenne journalière (cumulée)",
             },
+            {
+                "type": "multi",
+                "series": [
+                    (
+                        "montantBR_mois_HC",
+                        "Recette du mois supplémentaire"
+                    ),
+                ],
+                "title": "Recette supplémentaire par rapport à la période M-1",
+                "palette": "vert",
+                "fmt": "{:,.0f}",
+            },
         ]
     },
     "HTP ": {
@@ -254,6 +266,18 @@ THEMES = {
                     ),
                 ],
                 "title": "Recette BR moyenne journalière HTP (cumulée)",
+            },
+            {
+                "type": "multi",
+                "series": [
+                    (
+                        "montantBR_mois_HTP",
+                        "Recette du mois supplémentaire"
+                    ),
+                ],
+                "title": "Recette supplémentaire par rapport à la période M-1",
+                "palette": "vert",
+                "fmt": "{:,.0f}",
             },
         ]
     },}
@@ -979,10 +1003,7 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}", dy=12):
             continue
         if np.isnan(v):
             continue
-        try:
-            label = fmt.format(v)
-        except (ValueError, TypeError):
-            label = str(v)
+        label = format_fr(v, fmt)
         ax.annotate(
             label,
             xy=(i, v),
@@ -1108,8 +1129,8 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.set_xticklabels(x_vals)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
-def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None):
-    COLORS=[BLEU, BLEU_CLAIR]
+def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None, colors=None):
+    COLORS = colors if colors else [BLEU, BLEU_CLAIR]
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
 
     toutes_vides = all(evol_df[col].dropna().empty for col, _ in plots)
@@ -1229,16 +1250,24 @@ COMMENT_SMALL_R_B = 0.405
 COMMENT_SMALL_R_W = 0.465
 COMMENT_SMALL_R_H = 0.140
 
-# Grand graphique bas À GAUCHE
-GRAPH_BIG_L = 0.065
-GRAPH_BIG_B = 0.090
-GRAPH_BIG_W = 0.410
-GRAPH_BIG_H = 0.235
+# Ligne du bas divisée en 3 : graphe bas-gauche + graphe bas-milieu + commentaire partagé
+# Graphique bas À GAUCHE (recette supplémentaire du mois)
+GRAPH_BL_L = 0.055
+GRAPH_BL_B = 0.090
+GRAPH_BL_W = 0.350
+GRAPH_BL_H = 0.235
 
-# Commentaire bas À DROITE
-COMMENT_BIG_L = 0.645
+# Graphique bas AU MILIEU (recette BR moyenne journalière cumulée)
+GRAPH_BM_L = 0.410
+GRAPH_BM_B = 0.090
+GRAPH_BM_W = 0.350
+GRAPH_BM_H = 0.235
+
+# Commentaire bas À DROITE (partagé par les 2 graphes de recette)
+# Bloc étroit pour laisser un maximum de place aux 2 graphes.
+COMMENT_BIG_L = 0.765
 COMMENT_BIG_B = 0.135
-COMMENT_BIG_W = 0.370
+COMMENT_BIG_W = 0.240
 COMMENT_BIG_H = 0.200
  
 # Pied de page
@@ -1247,7 +1276,7 @@ PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
 COMMENT_SMALL_MAX_CHARS = 95
-COMMENT_BIG_MAX_CHARS = 65
+COMMENT_BIG_MAX_CHARS = 40
 
 # Position du début du texte dans chaque bloc commentaire.
 COMMENT_SMALL_TEXT_X = 0.025
@@ -1258,8 +1287,8 @@ COMMENT_BIG_TEXT_Y = 1
 # Taille et interligne des commentaires.
 COMMENT_SMALL_FONT_SIZE = 9
 COMMENT_SMALL_LINESPACING = 1.20
-COMMENT_BIG_FONT_SIZE = 10
-COMMENT_BIG_LINESPACING = 1.40
+COMMENT_BIG_FONT_SIZE = 9
+COMMENT_BIG_LINESPACING = 1.25
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  PAGE DE GARDE 
@@ -1535,11 +1564,20 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         GRAPH_RIGHT_H - 2 * INNER,
     ], zorder=3)
 
-    ax_gb = fig.add_axes([
-        GRAPH_BIG_L + PAD_L,
-        GRAPH_BIG_B + INNER,
-        GRAPH_BIG_W - PAD_L - PAD_R,
-        GRAPH_BIG_H - 2 * INNER,
+    # Bas gauche : recette supplémentaire du mois
+    ax_bl = fig.add_axes([
+        GRAPH_BL_L + PAD_L,
+        GRAPH_BL_B + INNER,
+        GRAPH_BL_W - PAD_L - PAD_R,
+        GRAPH_BL_H - 2 * INNER,
+    ], zorder=3)
+
+    # Bas milieu : recette BR moyenne journalière cumulée
+    ax_bm = fig.add_axes([
+        GRAPH_BM_L + PAD_L,
+        GRAPH_BM_B + INNER,
+        GRAPH_BM_W - PAD_L - PAD_R,
+        GRAPH_BM_H - 2 * INNER,
     ], zorder=3)
 
     # ── Création des 3 axes commentaires ─────────────────────────────
@@ -1566,13 +1604,14 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
         COMMENT_BIG_H - 2 * CINNER,
     ], zorder=3)
  
-    graph_axes   = [ax_gl, ax_gr, ax_gb]
-    comment_axes = [ax_cl, ax_cr, ax_cb]
+    # Mapping graphe → axe. Ligne du bas divisée en 3 :
+    #   plot 2 (recette BR moy journalière) → bas milieu
+    #   plot 3 (recette supp du mois)       → bas gauche
+    graph_axes = [ax_gl, ax_gr, ax_bm, ax_bl]
 
     # ── Dispatch par type pour chaque sous-graphe ─────────────────────
     for i, subplot in enumerate(config["plots"]):
         ax     = graph_axes[i]
-        ax_c   = comment_axes[i]
         t      = subplot["type"]
         series = subplot["series"]
         title  = subplot["title"]
@@ -1592,17 +1631,23 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
                 moy_annuelle=moy
             )
         elif t == "multi":
-            make_ax_multi(ax, series, title, evol_df, moy_annuelle=moy_annuelle)
+            palette = [VERT, VERT_KPI] if subplot.get("palette") == "vert" else None
+            make_ax_multi(
+                ax, series, title, evol_df,
+                fmt=subplot.get("fmt", "{: .0f}"),
+                colors=palette,
+                moy_annuelle=moy_annuelle,
+            )
 
-        _draw_comment(
-            ax_c,
-            series,
-            theme,
-            evol_df,
-            custom_comments,
-            moy_annuelle=moy_annuelle,
-            is_big_block=(i == 2),
-        )
+    # ── Commentaires : 1 par graphe du haut, 1 partagé pour les 2 recettes ──
+    _draw_comment(ax_cl, config["plots"][0]["series"], theme, evol_df,
+                  custom_comments, moy_annuelle=moy_annuelle)
+    _draw_comment(ax_cr, config["plots"][1]["series"], theme, evol_df,
+                  custom_comments, moy_annuelle=moy_annuelle)
+    # Bas : recette supp (bas gauche) puis recette moy journalière (bas milieu)
+    series_recettes = config["plots"][3]["series"] + config["plots"][2]["series"]
+    _draw_comment(ax_cb, series_recettes, theme, evol_df,
+                  custom_comments, moy_annuelle=moy_annuelle, is_big_block=True)
 
     # ── Pied de page ─────────────────────────────────────────────────
     ax_n = fig.add_axes([0, 0, 1, 1], zorder=4)
@@ -1969,7 +2014,11 @@ def generate_all_figures(evol_df, moy_annuelle=None, mode="all"):
                 make_ax_hlines(ax, col, titre, subplot.get("objectif"),
                                evol_df, moy_annuelle=moy)
             elif t == "multi":
-                make_ax_multi(ax, series, theme, evol_df, moy_annuelle=moy_annuelle)
+                palette = [VERT, VERT_KPI] if subplot.get("palette") == "vert" else None
+                make_ax_multi(ax, series, theme, evol_df,
+                              fmt=subplot.get("fmt", "{: .0f}"),
+                              colors=palette,
+                              moy_annuelle=moy_annuelle)
 
             fig.tight_layout()
             figures.append((theme, f"Graphe {i+1}", fig, series))
