@@ -263,10 +263,10 @@ THEMES = {
                 "series": [
                     (
                         "recette_BR_moy_jour_cumule_HTP",
-                        "Recette BR moyenne journalière HTP (cumulée)"
+                        "Recette BR moyenne journalière (cumulée)"
                     ),
                 ],
-                "title": "Recette BR moyenne journalière HTP (cumulée)",
+                "title": "Recette BR moyenne journalière (cumulée)",
             },
             {
                 "type": "multi",
@@ -1014,7 +1014,15 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}", dy=12):
     # dy > 0 : étiquette au-dessus du point ; dy < 0 : en dessous.
     # Permet de séparer les étiquettes de deux séries qui se superposent.
     y_vals = y_vals.reset_index(drop=True)
+    # Au-delà de 6 périodes, les étiquettes se chevauchent : on n'affiche plus
+    # que celles des 2 dernières périodes pour garder le graphe lisible.
+    if len(y_vals) > 6:
+        idx_a_annoter = set(range(len(y_vals) - 2, len(y_vals)))
+    else:
+        idx_a_annoter = set(range(len(y_vals)))
     for i, val in enumerate(y_vals):
+        if i not in idx_a_annoter:
+            continue
         try:
             v = float(val)
         except (TypeError, ValueError):
@@ -1275,13 +1283,13 @@ COMMENT_SMALL_R_H = 0.140
 # Ligne du bas divisée en 3 : graphe bas-gauche + graphe bas-milieu + commentaire partagé
 # Graphique bas À GAUCHE (recette supplémentaire du mois)
 GRAPH_BL_L = 0.080
-GRAPH_BL_B = 0.090
+GRAPH_BL_B = 0.070
 GRAPH_BL_W = 0.275
 GRAPH_BL_H = 0.235
 
 # Graphique bas AU MILIEU (recette BR moyenne journalière cumulée)
 GRAPH_BM_L = 0.415
-GRAPH_BM_B = 0.090
+GRAPH_BM_B = 0.070
 GRAPH_BM_W = 0.275
 GRAPH_BM_H = 0.235
 
@@ -1297,7 +1305,7 @@ PAGE_NUM_X    = 0.970
 
 # Largeur maximale des commentaires, en nombre de caractères par ligne.
 COMMENT_SMALL_MAX_CHARS = 95
-COMMENT_BIG_MAX_CHARS = 40
+COMMENT_BIG_MAX_CHARS = 46
 
 # Position du début du texte dans chaque bloc commentaire.
 COMMENT_SMALL_TEXT_X = 0.025
