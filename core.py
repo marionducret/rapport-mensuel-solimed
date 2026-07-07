@@ -1150,7 +1150,7 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
 def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
-                  colors=None, title_color=TEAL, legend_frame=True):
+                  colors=None, title_color=TEAL, legend_frame=True, show_legend=True):
     COLORS = colors if colors else [BLEU, BLEU_CLAIR]
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
 
@@ -1189,7 +1189,8 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
                        linestyle=":", linewidth=1.5,
                        label=f"Moy. année préc. — {label.split(' ')[0]} ({format_court(moy_annuelle[col])})")
     ax.set_title(title, pad=25, fontproperties=barlow_bold, color=title_color)
-    ax.legend(fontsize=10, framealpha=0.9, loc="best", frameon=legend_frame)
+    if show_legend:
+        ax.legend(fontsize=10, framealpha=0.9, loc="best", frameon=legend_frame)
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -1273,15 +1274,15 @@ COMMENT_SMALL_R_H = 0.140
 
 # Ligne du bas divisée en 3 : graphe bas-gauche + graphe bas-milieu + commentaire partagé
 # Graphique bas À GAUCHE (recette supplémentaire du mois)
-GRAPH_BL_L = 0.050
+GRAPH_BL_L = 0.080
 GRAPH_BL_B = 0.090
-GRAPH_BL_W = 0.290
+GRAPH_BL_W = 0.275
 GRAPH_BL_H = 0.235
 
 # Graphique bas AU MILIEU (recette BR moyenne journalière cumulée)
-GRAPH_BM_L = 0.360
+GRAPH_BM_L = 0.415
 GRAPH_BM_B = 0.090
-GRAPH_BM_W = 0.290
+GRAPH_BM_W = 0.275
 GRAPH_BM_H = 0.235
 
 # Commentaire bas À DROITE (partagé par les 2 graphes de recette)
@@ -1659,6 +1660,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
                 colors=palette,
                 title_color=VERT_TEXT if is_vert else TEAL,
                 legend_frame=not is_vert,
+                show_legend=not is_vert,
                 moy_annuelle=moy_annuelle,
             )
 
@@ -1670,8 +1672,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
     # Bas : recette supp (bas gauche) puis recette moy journalière (bas milieu)
     series_recettes = config["plots"][3]["series"] + config["plots"][2]["series"]
     _draw_comment(ax_cb, series_recettes, theme, evol_df,
-                  custom_comments, moy_annuelle=moy_annuelle, is_big_block=True,
-                  sep="\n")
+                  custom_comments, moy_annuelle=moy_annuelle, is_big_block=True)
 
     # ── Pied de page ─────────────────────────────────────────────────
     ax_n = fig.add_axes([0, 0, 1, 1], zorder=4)
@@ -1747,7 +1748,14 @@ def _draw_comment(ax, subplot_plots, theme, evol_df, custom_comments, fontsize=1
             texts.append(custom_comments[key])
         else:
             texts.append(generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle))
-    full_text = sep.join(texts)
+    if is_big_block:
+        # Bloc partagé des 2 graphes de recette : pas de ligne vide entre les
+        # paragraphes d'un même graphe, mais une ligne vide entre les deux
+        # commentaires.
+        texts = [re.sub(r"\n{2,}", "\n", t) for t in texts]
+        full_text = "\n\n".join(texts)
+    else:
+        full_text = sep.join(texts)
     lignes, fontsize, linespacing, text_x, text_y = _standard_comment_for_axis(
         full_text,
         is_big_block=is_big_block,
@@ -2047,6 +2055,7 @@ def generate_all_figures(evol_df, moy_annuelle=None, mode="all"):
                               colors=palette,
                               title_color=VERT_TEXT if is_vert else TEAL,
                               legend_frame=not is_vert,
+                              show_legend=not is_vert,
                               moy_annuelle=moy_annuelle)
 
             fig.tight_layout()
