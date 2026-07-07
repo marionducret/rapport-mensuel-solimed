@@ -1282,13 +1282,13 @@ COMMENT_SMALL_R_H = 0.140
 
 # Ligne du bas divisée en 3 : graphe bas-gauche + graphe bas-milieu + commentaire partagé
 # Graphique bas À GAUCHE (recette supplémentaire du mois)
-GRAPH_BL_L = 0.060
+GRAPH_BL_L = 0.062
 GRAPH_BL_B = 0.070
 GRAPH_BL_W = 0.275
 GRAPH_BL_H = 0.235
 
 # Graphique bas AU MILIEU (recette BR moyenne journalière cumulée)
-GRAPH_BM_L = 0.395
+GRAPH_BM_L = 0.397
 GRAPH_BM_B = 0.070
 GRAPH_BM_W = 0.275
 GRAPH_BM_H = 0.235
