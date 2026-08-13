@@ -1867,20 +1867,32 @@ def _comment_sens(delta):
     return "stabilité"
 
 
-def _comment_tendance_globale(vals, unit=""):
-    """Qualifie la tendance d'une série en distinguant tendance et volatilité.
+def _comment_tendance_globale(vals, unit="", mois=None):
+    """Qualifie la tendance d'une série en distinguant tendance, volatilité
+    et retournement.
 
     - pente faible + faible amplitude relative  -> « stabilité globale »
     - pente faible + forte amplitude relative   -> « pas de tendance nette,
-      fortes fluctuations (de X à Y) » (on ne dit plus « stable » quand la
-      série oscille p. ex. entre 572k et 967k)
-    - pente marquée : hausse/baisse, en signalant l'ampleur des variations.
+      fortes fluctuations (de X à Y) »
+    - pente contredite par la majorité des variations mensuelles (ex.
+      progression sur 4 mois puis chute brutale) -> description du
+      retournement (progression jusqu'au pic, puis repli/rebond)
+    - pente marquée et cohérente : hausse/baisse, en signalant l'ampleur
+      des variations.
+
+    mois : libellés des périodes alignés sur vals (ex. ["M1", ..., "M6"]) ;
+    utilisés pour situer le pic/creux dans le texte.
     """
     vals = vals.astype(float).reset_index(drop=True)
     if len(vals) < 3:
         return f"Les indicateurs montrent une {_comment_sens(vals.iloc[-1] - vals.iloc[0])} depuis la première période."
 
-    x = np.arange(len(vals))
+    n = len(vals)
+    if mois is None or len(mois) != n:
+        mois = [f"M{i + 1}" for i in range(n)]
+    mois = [str(m) for m in mois]
+
+    x = np.arange(n)
     pente = np.polyfit(x, vals, 1)[0]
     amplitude = vals.max() - vals.min()
     moy = abs(vals.mean())
@@ -1901,6 +1913,44 @@ def _comment_tendance_globale(vals, unit=""):
         )
 
     variations = vals.diff().dropna()
+
+    # ── Retournement ────────────────────────────────────────────────────────
+    # La pente de régression peut être dominée par un seul mois extrême : si
+    # elle contredit la majorité des variations mensuelles, on décrit la forme
+    # réelle plutôt qu'une fausse « tendance à la baisse/hausse ».
+    if n >= 4:
+        part_hausses = (variations > 0).mean()
+        # Pente négative alors que la plupart des mois progressent : pic suivi
+        # d'une chute (cas typique : hausse M1→M4 puis chute M5).
+        if pente < 0 and part_hausses >= 0.6:
+            i_pic = int(vals.idxmax())
+            if 0 < i_pic < n - 1:
+                post = vals.iloc[i_pic:].reset_index(drop=True)
+                i_creux_post = i_pic + int(post.idxmin())
+                txt = (
+                    f"L'indicateur a progressé jusqu'en {mois[i_pic]} "
+                    f"({_format_fr_adaptatif(vals.iloc[i_pic])}{unit}), puis a "
+                    f"nettement diminué en {mois[i_creux_post]} "
+                    f"({_format_fr_adaptatif(vals.iloc[i_creux_post])}{unit})"
+                )
+                if i_creux_post < n - 1 and vals.iloc[-1] > vals.iloc[i_creux_post]:
+                    txt += f" avant un rebond partiel en {mois[n - 1]}"
+                return txt + "."
+        # Cas miroir : pente positive alors que la plupart des mois reculent.
+        if pente > 0 and (variations < 0).mean() >= 0.6:
+            i_creux = int(vals.idxmin())
+            if 0 < i_creux < n - 1:
+                post = vals.iloc[i_creux:].reset_index(drop=True)
+                i_pic_post = i_creux + int(post.idxmax())
+                txt = (
+                    f"L'indicateur a diminué jusqu'en {mois[i_creux]} "
+                    f"({_format_fr_adaptatif(vals.iloc[i_creux])}{unit}), puis s'est "
+                    f"nettement redressé en {mois[i_pic_post]} "
+                    f"({_format_fr_adaptatif(vals.iloc[i_pic_post])}{unit})"
+                )
+                if i_pic_post < n - 1 and vals.iloc[-1] < vals.iloc[i_pic_post]:
+                    txt += f" avant un repli partiel en {mois[n - 1]}"
+                return txt + "."
     fortes_var = (
         f"malgré de fortes variations d'un mois à l'autre {borne_txt}"
         if volatilite > 0.25
@@ -1968,7 +2018,8 @@ def generate_group_comment(subplot_plots, evol_df):
         analyses.append(
             f"{titre} : {_comment_sens(delta)} de {_format_comment_value(delta, unit)}"
         )
-        valid_series.append((series, unit))
+        mois_labels = [str(m).split("_")[-1] for m in evol_df["Mois"].loc[series.index]]
+        valid_series.append((series, unit, mois_labels))
 
     if not analyses:
         return "Données insuffisantes pour analyse."
@@ -1981,7 +2032,8 @@ def generate_group_comment(subplot_plots, evol_df):
                 unit = _comment_unit(col, titre)
                 moyennes.append(f"{titre.lower()} {_format_comment_value(series.mean(), unit)}")
 
-    tendance = _comment_tendance_globale(valid_series[0][0], unit=valid_series[0][1])
+    tendance = _comment_tendance_globale(
+        valid_series[0][0], unit=valid_series[0][1], mois=valid_series[0][2])
     return "\n".join([
         "; ".join(analyses) + " par rapport à la période précédente.",
         "Moyennes observées : " + " ; ".join(moyennes) + ".",
@@ -2011,9 +2063,11 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         return "stabilité"
 
     def _tendance_globale(vals):
-        # Délègue à la version commune (volatilité prise en compte), en
-        # transmettant l'unité de l'indicateur pour les bornes min/max.
-        return _comment_tendance_globale(vals, unit=_comment_unit(col, titre))
+        # Délègue à la version commune (volatilité et retournements pris en
+        # compte), en transmettant l'unité et les libellés de mois.
+        mois_labels = [str(m).split("_")[-1] for m in evol_df["Mois"].loc[vals.index]]
+        return _comment_tendance_globale(
+            vals, unit=_comment_unit(col, titre), mois=mois_labels)
 
     def _format_moyenne(val):
         if "taux" in col:

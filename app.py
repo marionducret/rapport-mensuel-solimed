@@ -2,6 +2,7 @@
 import streamlit as st
 import core
 import pandas as pd
+import hashlib
 import io
 import json
 import base64
@@ -747,9 +748,16 @@ for theme, graphe_label, fig, plots in figures:
     with col2:
         for col, titre in plots:
             auto_comment = core.generate_comment(col, titre, evol_df, moy_annuelle=moy_annuelle)
+            # L'empreinte du commentaire auto fait partie de la key : si le
+            # texte généré change (nouvelles données ou logique de commentaire
+            # mise à jour dans core.py), la zone se réinitialise avec le
+            # nouveau texte au lieu de conserver l'ancien en session.
+            # Les éditions manuelles restent conservées tant que le
+            # commentaire auto ne change pas.
+            comment_hash = hashlib.md5(auto_comment.encode("utf-8")).hexdigest()[:8]
             edited = st.text_area(
                 titre, value=auto_comment, height=120,
-                key=f"{theme}_{col}_{data_version}",
+                key=f"{theme}_{col}_{data_version}_{comment_hash}",
             )
             comments[(theme, col)] = edited
     st.divider()
