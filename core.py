@@ -304,8 +304,14 @@ def format_fr(val, fmt="{:,.0f}"):
     except Exception:
         return "N/A"
 
-def format_court(val):
-    """Format compact pour les légendes : 27000 -> 27k, 1 250 000 -> 1,3M."""
+def format_court(val, step=None):
+    """Format compact pour les légendes : 27000 -> 27k, 1 250 000 -> 1,3M.
+
+    step : écart entre deux graduations consécutives (en unités de données).
+    Si fourni, le nombre de décimales est ajusté pour que deux graduations
+    voisines restent distinctes à l'affichage (évite trois ticks "204" quand
+    l'axe va de 203,9 à 204,3).
+    """
     try:
         v = float(val)
     except (TypeError, ValueError):
@@ -314,12 +320,24 @@ def format_court(val):
         return "N/A"
     a = abs(v)
     if a >= 1_000_000:
-        s = f"{v / 1_000_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
-        return f"{s}M"
-    if a >= 1_000:
-        s = f"{v / 1_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
-        return f"{s}k"
-    return format_fr(v)
+        scale, suffixe, dec = 1_000_000, "M", 1
+    elif a >= 1_000:
+        scale, suffixe, dec = 1_000, "k", 1
+    else:
+        scale, suffixe, dec = 1, "", 0
+    if step is not None and step > 0:
+        step_scaled = step / scale
+        if step_scaled < 1:
+            # Décimales nécessaires pour distinguer deux ticks espacés de `step`.
+            dec = max(dec, min(int(np.ceil(-np.log10(step_scaled))), 3))
+    s = f"{v / scale:.{dec}f}"
+    if dec > 0:
+        s = s.rstrip("0").rstrip(".")
+    s = s.replace(".", ",")
+    if suffixe:
+        return f"{s}{suffixe}"
+    # Valeurs < 1000 : on garde le format français (espace des milliers inutile ici).
+    return s
 
 #%%
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1020,6 +1038,17 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}", dy=12):
         idx_a_annoter = set(range(len(y_vals) - 2, len(y_vals)))
     else:
         idx_a_annoter = set(range(len(y_vals)))
+    # Décimales adaptatives : si la série varie de moins de ~3 unités, un format
+    # entier afficherait la même étiquette partout (ex. "204" sur tous les
+    # points). On ajoute alors 1 ou 2 décimales, avec la virgule française.
+    decimale_fr = False
+    vals_num = pd.to_numeric(pd.Series(y_vals), errors="coerce").dropna()
+    if fmt == "{: .0f}" and len(vals_num) > 1:
+        amplitude = float(vals_num.max() - vals_num.min())
+        if 0 < amplitude < 3:
+            dec = 1 if amplitude >= 0.3 else 2
+            fmt = "{: ." + str(dec) + "f}"
+            decimale_fr = True
     for i, val in enumerate(y_vals):
         if i not in idx_a_annoter:
             continue
@@ -1030,6 +1059,8 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}", dy=12):
         if np.isnan(v):
             continue
         label = format_fr(v, fmt)
+        if decimale_fr:
+            label = label.replace(".", ",")
         ax.annotate(
             label,
             xy=(i, v),
@@ -1055,7 +1086,19 @@ def _style_ax(ax):
     ax.yaxis.set_tick_params(pad=5)
     ax.xaxis.set_tick_params(pad=5)
     # Axe Y compact (27000 -> 27k, 1 600 000 -> 1,6M) et sans notation offset "1e6".
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: format_court(v)))
+    # Les décimales s'adaptent à l'écart entre graduations : si l'axe couvre une
+    # plage sous-unitaire (ex. 203,9 → 204,3), on affiche 203,9 / 204,1 / 204,3
+    # au lieu de trois fois "204".
+    def _fmt_tick(v, pos, _ax=ax):
+        ticks = _ax.get_yticks()
+        step = None
+        if len(ticks) > 1:
+            diffs = np.diff(np.sort(np.unique(np.round(ticks, 9))))
+            diffs = diffs[diffs > 0]
+            if diffs.size:
+                step = float(diffs.min())
+        return format_court(v, step=step)
+    ax.yaxis.set_major_formatter(FuncFormatter(_fmt_tick))
 
 def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuelle=None):
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]    
@@ -1088,11 +1131,15 @@ def make_ax_hlines(ax, col, title, objectif, evol_df, fmt="{: .0f}", moy_annuell
     # Les mois forcés à 0 (sans montant) ne comptent pas dans la moyenne période.
     non_nuls = y_vals[y_vals != 0].dropna()
     moyenne = non_nuls.mean() if not non_nuls.empty else 0.0
+    # Si la série varie peu, les moyennes arrondies à l'entier deviennent
+    # indistinguables ("204" partout) : on passe un pas fin à format_court
+    # pour afficher une décimale.
+    step_legende = 0.1 if float(y_dispo.max() - y_dispo.min()) < 3 else None
     ax.axhline(moyenne, color=GRIS, linestyle="--", linewidth=1.5,
-               label=f"Moyenne période ({format_court(moyenne)})")
+               label=f"Moyenne période ({format_court(moyenne, step=step_legende)})")
     if moy_annuelle is not None:
         ax.axhline(moy_annuelle, color=VERT_KPI, linestyle="--", linewidth=1.5,
-                   label=f"Moy. année préc. ({format_court(moy_annuelle)})")
+                   label=f"Moy. année préc. ({format_court(moy_annuelle, step=step_legende)})")
     ax.set_title(title, pad=25, fontproperties=barlow_bold, color=VERT_TEXT)
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
@@ -1820,7 +1867,15 @@ def _comment_sens(delta):
     return "stabilité"
 
 
-def _comment_tendance_globale(vals):
+def _comment_tendance_globale(vals, unit=""):
+    """Qualifie la tendance d'une série en distinguant tendance et volatilité.
+
+    - pente faible + faible amplitude relative  -> « stabilité globale »
+    - pente faible + forte amplitude relative   -> « pas de tendance nette,
+      fortes fluctuations (de X à Y) » (on ne dit plus « stable » quand la
+      série oscille p. ex. entre 572k et 967k)
+    - pente marquée : hausse/baisse, en signalant l'ampleur des variations.
+    """
     vals = vals.astype(float).reset_index(drop=True)
     if len(vals) < 3:
         return f"Les indicateurs montrent une {_comment_sens(vals.iloc[-1] - vals.iloc[0])} depuis la première période."
@@ -1828,22 +1883,39 @@ def _comment_tendance_globale(vals):
     x = np.arange(len(vals))
     pente = np.polyfit(x, vals, 1)[0]
     amplitude = vals.max() - vals.min()
-    seuil = max(abs(vals.mean()) * 0.01, amplitude * 0.05, 1e-9)
+    moy = abs(vals.mean())
+    seuil = max(moy * 0.01, amplitude * 0.05, 1e-9)
+    # Amplitude relative : mesure la dispersion indépendamment de la tendance.
+    volatilite = amplitude / moy if moy > 0 else 0.0
+    borne_txt = (
+        f"(de {_format_fr_adaptatif(vals.min())}{unit} "
+        f"à {_format_fr_adaptatif(vals.max())}{unit})"
+    )
 
     if abs(pente) <= seuil:
-        return "Les indicateurs montrent une stabilité globale depuis la première période."
+        if volatilite <= 0.10:
+            return "Les indicateurs montrent une stabilité globale depuis la première période."
+        return (
+            "Pas de tendance nette sur la période : l'indicateur fluctue "
+            f"fortement d'un mois à l'autre {borne_txt}."
+        )
 
     variations = vals.diff().dropna()
+    fortes_var = (
+        f"malgré de fortes variations d'un mois à l'autre {borne_txt}"
+        if volatilite > 0.25
+        else "malgré des variations"
+    )
     if pente > 0:
         return (
             "Les indicateurs montrent une progression globale depuis la première période."
             if (variations >= 0).mean() >= 0.75
-            else "Les indicateurs restent globalement orientés à la hausse depuis la première période, malgré des variations."
+            else f"Les indicateurs restent globalement orientés à la hausse depuis la première période, {fortes_var}."
         )
     return (
         "Les indicateurs montrent une diminution globale depuis la première période."
         if (variations <= 0).mean() >= 0.75
-        else "Les indicateurs restent globalement orientés à la baisse depuis la première période, malgré des variations."
+        else f"Les indicateurs restent globalement orientés à la baisse depuis la première période, {fortes_var}."
     )
 
 
@@ -1859,14 +1931,27 @@ def _comment_unit(col, titre):
     return ""
 
 
+def _format_fr_adaptatif(val):
+    """Comme format_fr, mais ajoute des décimales pour les petites valeurs :
+    évite « hausse de 0€ » quand l'écart réel est de 0,14€."""
+    try:
+        a = abs(float(val))
+    except (TypeError, ValueError):
+        return "N/A"
+    if a >= 3 or a == 0:
+        return format_fr(val)
+    dec = 1 if a >= 0.3 else 2
+    return format_fr(val, "{:,." + str(dec) + "f}").replace(".", ",")
+
+
 def _format_comment_value(val, unit):
     if unit == "%":
         return f"{abs(val):.1f}%"
     if unit == "€":
-        return f"{format_fr(abs(val))}€"
+        return f"{_format_fr_adaptatif(abs(val))}€"
     if unit:
-        return f"{format_fr(abs(val))}{unit}"
-    return format_fr(abs(val))
+        return f"{_format_fr_adaptatif(abs(val))}{unit}"
+    return _format_fr_adaptatif(abs(val))
 
 
 def generate_group_comment(subplot_plots, evol_df):
@@ -1883,7 +1968,7 @@ def generate_group_comment(subplot_plots, evol_df):
         analyses.append(
             f"{titre} : {_comment_sens(delta)} de {_format_comment_value(delta, unit)}"
         )
-        valid_series.append(series)
+        valid_series.append((series, unit))
 
     if not analyses:
         return "Données insuffisantes pour analyse."
@@ -1896,7 +1981,7 @@ def generate_group_comment(subplot_plots, evol_df):
                 unit = _comment_unit(col, titre)
                 moyennes.append(f"{titre.lower()} {_format_comment_value(series.mean(), unit)}")
 
-    tendance = _comment_tendance_globale(valid_series[0])
+    tendance = _comment_tendance_globale(valid_series[0][0], unit=valid_series[0][1])
     return "\n".join([
         "; ".join(analyses) + " par rapport à la période précédente.",
         "Moyennes observées : " + " ; ".join(moyennes) + ".",
@@ -1926,31 +2011,9 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         return "stabilité"
 
     def _tendance_globale(vals):
-        vals = vals.astype(float).reset_index(drop=True)
-        if len(vals) < 3:
-            delta = vals.iloc[-1] - vals.iloc[0]
-            return f"Les indicateurs montrent une {_sens(delta)} depuis la première période."
-
-        x = np.arange(len(vals))
-        pente = np.polyfit(x, vals, 1)[0]
-        amplitude = vals.max() - vals.min()
-        seuil = max(abs(vals.mean()) * 0.01, amplitude * 0.05, 1e-9)
-
-        if abs(pente) <= seuil:
-            return "Les indicateurs montrent une stabilité globale depuis la première période."
-
-        variations = vals.diff().dropna()
-        if pente > 0:
-            return (
-                "Les indicateurs montrent une progression globale depuis la première période."
-                if (variations >= 0).mean() >= 0.75
-                else "Les indicateurs restent globalement orientés à la hausse depuis la première période, malgré des variations."
-            )
-        return (
-            "Les indicateurs montrent une diminution globale depuis la première période."
-            if (variations <= 0).mean() >= 0.75
-            else "Les indicateurs restent globalement orientés à la baisse depuis la première période, malgré des variations."
-        )
+        # Délègue à la version commune (volatilité prise en compte), en
+        # transmettant l'unité de l'indicateur pour les bornes min/max.
+        return _comment_tendance_globale(vals, unit=_comment_unit(col, titre))
 
     def _format_moyenne(val):
         if "taux" in col:
@@ -1965,10 +2028,10 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
 
     def _format_ecart_activite(val):
         if "jour" in col.lower() or "jour" in titre.lower():
-            return f"{format_fr(abs(val))}j"
+            return f"{_format_fr_adaptatif(abs(val))}j"
         if "sejour" in col.lower() or "séjour" in titre.lower():
-            return f"{format_fr(abs(val))}séj"
-        return format_fr(abs(val))
+            return f"{_format_fr_adaptatif(abs(val))}séj"
+        return _format_fr_adaptatif(abs(val))
 
     delta_precedent = fin - precedent if precedent is not None else None
     sens_precedent = _sens(delta_precedent) if delta_precedent is not None else None
@@ -1997,7 +2060,7 @@ def generate_comment(col, titre, evol_df, moy_annuelle=None):
         # exclus de la moyenne observée.
         series_moy = series[series != 0]
         moy_obs = series_moy.mean() if not series_moy.empty else series.mean()
-        ecart_txt = f"{format_fr(abs(delta_precedent))}€" if delta_precedent is not None else None
+        ecart_txt = f"{_format_fr_adaptatif(abs(delta_precedent))}€" if delta_precedent is not None else None
         moy_txt = f"La moyenne observée est de {_format_moyenne(moy_obs)}"
         moy_prec = _get_moy_annuelle_for_col(moy_annuelle, col)
         if moy_prec is not None and not pd.isna(moy_prec) and moy_prec != 0:
