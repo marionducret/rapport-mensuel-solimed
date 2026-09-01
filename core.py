@@ -1032,12 +1032,7 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}", dy=12):
     # dy > 0 : étiquette au-dessus du point ; dy < 0 : en dessous.
     # Permet de séparer les étiquettes de deux séries qui se superposent.
     y_vals = y_vals.reset_index(drop=True)
-    # Au-delà de 6 périodes, les étiquettes se chevauchent : on n'affiche plus
-    # que celles des 2 dernières périodes pour garder le graphe lisible.
-    if len(y_vals) > 6:
-        idx_a_annoter = set(range(len(y_vals) - 2, len(y_vals)))
-    else:
-        idx_a_annoter = set(range(len(y_vals)))
+    # Toutes les périodes sont annotées, quel que soit leur nombre.
     # Décimales adaptatives : si la série varie de moins de ~3 unités, un format
     # entier afficherait la même étiquette partout (ex. "204" sur tous les
     # points). On ajoute alors 1 ou 2 décimales, avec la virgule française.
@@ -1050,8 +1045,6 @@ def annoter_tous_les_points(ax, x_vals, y_vals, fmt="{: .0f}", dy=12):
             fmt = "{: ." + str(dec) + "f}"
             decimale_fr = True
     for i, val in enumerate(y_vals):
-        if i not in idx_a_annoter:
-            continue
         try:
             v = float(val)
         except (TypeError, ValueError):
