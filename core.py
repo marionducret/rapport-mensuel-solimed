@@ -236,6 +236,7 @@ THEMES = {
                 "title": "Recette supplémentaire par rapport à la période M-1",
                 "palette": "vert",
                 "fmt": "{:,.0f}",
+                "moyenne_periode": True,
             },
         ]
     },
@@ -279,6 +280,7 @@ THEMES = {
                 "title": "Recette supplémentaire par rapport à la période M-1",
                 "palette": "vert",
                 "fmt": "{:,.0f}",
+                "moyenne_periode": True,
             },
         ]
     },}
@@ -1198,7 +1200,8 @@ def make_ax_bar(ax, series, title, evol_df, fmt="{:.1f} %"):
     ax.legend(fontsize=10, framealpha=0.9, loc="best")
 
 def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
-                  colors=None, title_color=TEAL, legend_frame=True, show_legend=True):
+                  colors=None, title_color=TEAL, legend_frame=True, show_legend=True,
+                  show_moyenne=False):
     COLORS = colors if colors else [BLEU, BLEU_CLAIR]
     x_vals = [m.split("_")[-1] for m in evol_df["Mois"]]
 
@@ -1222,6 +1225,9 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
         return
 
     n_series = len(plots)
+    # Lignes de repère (moyennes) : conservées à part pour rester visibles en
+    # légende même quand la légende des séries est masquée (courbe unique).
+    handles_moyennes = []
     for i, (col, label) in enumerate(plots):
         y_vals = evol_df[col].reset_index(drop=True)
         ax.plot(x_vals, y_vals, linewidth=2.5, color=COLORS[i % len(COLORS)],
@@ -1232,13 +1238,28 @@ def make_ax_multi(ax, plots, title, evol_df, fmt="{: .0f}", moy_annuelle=None,
         # série (transmis, la plus haute) au-dessus, les autres en dessous.
         dy = 12 if (n_series < 2 or i == n_series - 1) else -14
         annoter_tous_les_points(ax, x_vals, y_vals, fmt=fmt, dy=dy)
+        if show_moyenne:
+            # Même règle que make_ax_hlines : les mois forcés à 0 (sans montant)
+            # ne comptent pas dans la moyenne de la période.
+            # Suffixe de série inutile quand il n'y a qu'une courbe.
+            suffixe = f" — {label.split(' ')[0]}" if n_series > 1 else ""
+            non_nuls = y_vals[y_vals != 0].dropna()
+            if not non_nuls.empty:
+                moyenne = float(non_nuls.mean())
+                handles_moyennes.append(ax.axhline(
+                    moyenne, color=GRIS, linestyle="--", linewidth=1.5,
+                    label=f"Moyenne période{suffixe} ({format_court(moyenne)})"))
         if moy_annuelle is not None and col in moy_annuelle and moy_annuelle[col] is not None:
-            ax.axhline(moy_annuelle[col], color=COLORS[i % len(COLORS)],
-                       linestyle=":", linewidth=1.5,
-                       label=f"Moy. année préc. — {label.split(' ')[0]} ({format_court(moy_annuelle[col])})")
+            handles_moyennes.append(ax.axhline(
+                moy_annuelle[col], color=COLORS[i % len(COLORS)],
+                linestyle=":", linewidth=1.5,
+                label=f"Moy. année préc. — {label.split(' ')[0]} ({format_court(moy_annuelle[col])})"))
     ax.set_title(title, pad=25, fontproperties=barlow_bold, color=title_color)
     if show_legend:
         ax.legend(fontsize=10, framealpha=0.9, loc="best", frameon=legend_frame)
+    elif handles_moyennes:
+        # Légende des séries masquée, mais les repères doivent rester identifiables.
+        ax.legend(handles=handles_moyennes, fontsize=10, framealpha=0.9, loc="best")
     _style_ax(ax)
     ax.set_xticks(range(len(x_vals)))
     ax.set_xticklabels(x_vals)
@@ -1710,6 +1731,7 @@ def _build_page_graphique(fig, theme, config, evol_df, page_num,
                 legend_frame=not is_vert,
                 show_legend=not is_vert,
                 moy_annuelle=moy_annuelle,
+                show_moyenne=subplot.get("moyenne_periode", False),
             )
 
     # ── Commentaires : 1 par graphe du haut, 1 partagé pour les 2 recettes ──
@@ -2174,7 +2196,8 @@ def generate_all_figures(evol_df, moy_annuelle=None, mode="all"):
                               title_color=VERT_TEXT if is_vert else TEAL,
                               legend_frame=not is_vert,
                               show_legend=not is_vert,
-                              moy_annuelle=moy_annuelle)
+                              moy_annuelle=moy_annuelle,
+                              show_moyenne=subplot.get("moyenne_periode", False))
 
             fig.tight_layout()
             figures.append((theme, f"Graphe {i+1}", fig, series))
